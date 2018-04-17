@@ -1,0 +1,25 @@
+properties:
+
+curvedBoundary true/false
+continueComputation true/false
+order
+orderInTime
+cfl
+nThreads
+newtonIters
+penalty
+dampTol
+dampConst
+iterativeSolver 'gmres', 'bicgstab', 'gs'
+timeMethod 'singleTime', 'dualTime'
+coeffsPhys
+coeffsDual
+overlap
+schwarzIters
+schwarzTol
+masterIP
+masterPort
+fetcherPort
+saveRate
+animation true/false
+movementType 'kinematic', 'dynamic'

@@ -1,0 +1,18 @@
+# zprovoznit vypocet na kombinovanych sitich s trojuleniky i ctyruhelniky
+# ruzne elementy s ruznym radem
+# po skonceni vypoctu ukladat parametry do outputParameters.txt
+# opravit numericky tok na hranicich elementu s ruznymi rady
+# do buildu dat run tag
+
+# # # problemy:
+# v souborech pclist a socketList.txt je problem s prazdnyma radkama
+pclist - nesmi bej zadna
+socketList.txt - musi bejt jedna
+# DGFEM bezi i kdyz se fetcher nespojil s pozadovanym poctem uzlu
+# prepocitani site pomoci lRef
+# spatne hodnoty pri vykreslovani T, u, v
+
+### ondra
+zobecnit deformaci site a dynamiku pro 1D i 3D
+algoritmus deformace site pro poddajne teleso ??????
+vyzkouset prismovy element
