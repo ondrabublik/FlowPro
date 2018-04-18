@@ -6,7 +6,7 @@ simulations/*
 tasks
 matlab/pclist.txt
 matlab/flowProPath.txt
-network/parameters.txt
+network/*
 args.txt
 FlowPro.jar
 FlowPro.zip

@@ -11,12 +11,13 @@ The main feature of the software is that you can easily define your own mathemat
 -java 8 is installed
 
 ## Running the tests
-At first, you must set a path of the simulation in file args.txt Open file args.txt, write "examples/NACA default" on it and save. 
+At first, you must set a path of the simulation in file args.txt Open file args.txt, write "examples/NACA default" and save it. 
 Then run the comand at commandline
 
 java -jar FlowPro.jar local
 
 To show results run at commandline
+
 java -jar FlowPro.jar postprocessing mach pressure -fvtk
 
 ## Built With
