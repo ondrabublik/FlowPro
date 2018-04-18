@@ -26,13 +26,11 @@ java -jar FlowPro.jar postprocessing mach pressure -fvtk
 ## Contributing
 
 ## Authors
-Ondrej Bublik [obublik@kme.zcu.cz]
-Ales Pecka [pecka@kme.zcu.cz]
-Jan Vimmr [jvimmr@kme.zcu.cz]
+Ondrej Bublik [obublik@]
 
 ## License
 
-This project is licensed under the BSD License - see the [license.txt](license.txt) file for details
+This project is licensed under the BSD License - see the [LICENSE.txt](LICENSE.txt) file for details
 
 ## Acknowledgments
 
