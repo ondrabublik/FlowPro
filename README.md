@@ -12,7 +12,7 @@ The main feature of the software is that you can easily define your own mathemat
 
 ## Running the tests
 At first, you must set a path of the simulation in file args.txt Open file args.txt, write "examples/NACA default" and save it. 
-Then run the comand at commandline
+Then run the command at commandline
 
 java -jar FlowPro.jar local
 
