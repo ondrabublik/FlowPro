@@ -5,7 +5,7 @@ if nargin == 0
     path = pwd;
     cd(getFlowProPath);
     if isunix
-        system('java -d64 -Xmx8g -jar FlowPro.jar local');
+        system('java -d64 -Xmx12g -jar FlowPro.jar local');
     else
 %         system('start java -d64 -Xmx8g -jar FlowPro.jar local');
         system('start run.bat');

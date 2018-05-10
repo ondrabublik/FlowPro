@@ -6,9 +6,9 @@ The main feature of the software is that you can easily define your own mathemat
 
 ## Getting Started
 
-
 ### Prerequisites
--java 8 is installed
+* java 8
+* paraview (for visualisation) 
 
 ## Running the tests
 At first, you must set a path of the simulation in file args.txt Open file args.txt, write "examples/NACA default" and save it. 
@@ -23,8 +23,6 @@ java -jar FlowPro.jar postprocessing mach pressure -fvtk
 ## Built With
 
 * [Ant] - build.xml
-
-## Contributing
 
 ## Authors
 Ondrej Bublik [obublik@kme.zcu.cz]

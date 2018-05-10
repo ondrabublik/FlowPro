@@ -3,7 +3,9 @@ close all;
 
 % start flowpro
 run
-pause(5)
+disp('pausing ...')
+pause(10)
+disp('runing ...')
 
 javaaddpath(pwd);
 import java.net.Socket
@@ -36,17 +38,37 @@ while 1
             n = length(rhs);
             A = sparse(I+1,J+1,H,n,n);
             
+            % UMFPACK ==================================
             tic
             x = A\rhs;
             toc
-
-% %             setup.type = 'crout';
-% %             setup.milu = 'row';
-% %             setup.droptol = 0.1;
-% %             [L,U] = ilu(A,setup);
+            % UMFPACK ==================================
+            
+            
+            %amg ========================================================
+%             opt = amgset;                               % default option file
+%             opt = amgset(opt,'coarsest',10);            % set the number of levels
+%             opt = amgset(opt,'PreCond','pcg');          % set the Krylov method
+%             opt = amgset(opt,'PrintOnScreen','off');    % turn off the option to print the log on the screen 
+%             opt = amgset(opt,'SaveCsn','off');           % save the set of coarse-grid points
+%             opt = amgset(opt,'CsnType','amg');          % choose the coarsening method
+% 
+%             % Initial vector
+%             x = rand(length(A),1);
+% 
+%             % Solve a linear system
+%             x = amg(A,x,rhs,opt);
+%             norm(A*x-rhs)
+            %amg ========================================================
+            
+            % gmres =================================================
+%             setup.type = 'nofill';
+%             setup.droptol = 0.01;
+%             [L,U] = ilu(A,setup);
 %             tic
-%             x = bicgstab(A,rhs,1e-4,200);
+%             x = gmres(A,rhs,50,1e-3,5,L,U);
 %             toc
+            % gmres =================================================
             
             % write data to FlowPro
             oos.writeUnshared(x);

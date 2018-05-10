@@ -699,12 +699,16 @@ public class Solver {
                     }
                     dfm.recalculateMesh(elems, par.order);
                 }
-
+                
+                //long startTime = System.currentTimeMillis();
                 assembler.assemble(dt, dto);
-
+                //System.out.println("Assemble: " + (System.currentTimeMillis() - startTime));
+                
+                //startTime = System.currentTimeMillis();
                 // reseni soustavy rovnic
                 Arrays.fill(x, 0.0);
                 converges = linSolver.solve(x);
+                //System.out.println("Solve: " + (System.currentTimeMillis() - startTime));
 
                 if (!converges) {
                     copyWo2W();

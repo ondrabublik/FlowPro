@@ -34,7 +34,8 @@ public class Parameters implements Serializable {
     public final double newtonIterTol;
     public final double penalty;    // interior penalty constant
     public final double meshScale; // mesh scale
-
+    boolean useJacobiMatrix;
+    
     // solver type
     public String linearSolver;
     public double iterativeSolverTol;
@@ -152,6 +153,12 @@ public class Parameters implements Serializable {
                 FVMlimiter = props.getString("FVMlimiter");
             } else {
                 FVMlimiter = "none";
+            }
+            
+            if (props.containsKey("useJacobiMatrix")) {
+                useJacobiMatrix = props.getBoolean("useJacobiMatrix");
+            } else {
+                useJacobiMatrix = false;
             }
             
             // dynamics parameters

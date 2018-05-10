@@ -402,7 +402,7 @@ public class Mesh implements Serializable {
 
             elemData = new ElementData(dim);
             centreVolumeInterpolant = new double[nVertices];
-            Arrays.fill(centreVolumeInterpolant, 1.0/nVertices);
+            Arrays.fill(centreVolumeInterpolant, 1.0 / nVertices);
         }
 
         public void initBasis() throws IOException {
@@ -481,7 +481,7 @@ public class Mesh implements Serializable {
             if (elemType.order > 1) {
                 double g_shock = shock_senzor(par.dampTol);
                 double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
-                double lam = eqn.maxEigenvalue(calculateAvgW(),elemData);
+                double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
                 eps = lam * elemSize / elemType.order * g_shock;
 
                 if (eqn.isDiffusive()) {
@@ -572,19 +572,46 @@ public class Mesh implements Serializable {
 
             assembleRHS(Rw, a1, a2, a3);
 
-            double h = par.h;
-            for (int i = 0; i < nBasis * nEqs; i++) {
-                V[i] = h;
+            if (par.useJacobiMatrix && eqn.isEquationsJacobian()) { // fast assemble when jacobian of equations is known
 
-                for (int j = 0; j < Rw.length; j++) {
-                    ADiag[i][j] = -Rw[j];
+                residuumWithJacobian(ADiag, ANeighs);
+
+            } else { // slow assemble when jacobian of equations is unknown
+                double h = par.h;
+                for (int i = 0; i < nBasis * nEqs; i++) {
+                    V[i] = h;
+
+                    for (int j = 0; j < Rw.length; j++) {
+                        ADiag[i][j] = -Rw[j];
+                    }
+
+                    residuum(V, ANeighs, ADiag[i]);
+
+                    V[i] = 0;
                 }
+                Mat.divide(ADiag, -h);
 
-                residuum(V, ANeighs, ADiag[i]);
+                // sousedni elementy - pouze krivkovy integral pres k-tou stenu
+                for (int k = 0; k < nFaces; k++) {
+                    if (TT[k] > -1) {
+                        double[] RWall = new double[nBasis * nEqs];
+                        residuumWall(k, V, ANeighs, RWall);
+                        int nBasisR = ANeighs[k].neR;
+                        for (int i = 0; i < nBasisR * nEqs; i++) {
+                            ANeighs[k].V[i] = h;
 
-                V[i] = 0;
+                            for (int j = 0; j < RWall.length; j++) {
+                                ANeighs[k].MR[i][j] = -RWall[j];
+                            }
+
+                            residuumWall(k, V, ANeighs, ANeighs[k].MR[i]);
+                            ANeighs[k].V[i] = 0;
+                        }
+
+                        Mat.divide(ANeighs[k].MR, -h);
+                    }
+                }
             }
-            Mat.divide(ADiag, -h);
 
             // pricteni matice hmotnosti
             for (int m = 0; m < nEqs; m++) {
@@ -594,25 +621,287 @@ public class Mesh implements Serializable {
                     }
                 }
             }
+        }
 
-            // sousedni elementy - pouze krivkovy integral pres k-tou stenu
-            for (int k = 0; k < nFaces; k++) {
-                if (TT[k] > -1) {
-                    double[] RWall = new double[nBasis * nEqs];
-                    residuumWall(k, V, ANeighs, RWall);
-                    int nBasisR = ANeighs[k].neR;
-                    for (int i = 0; i < nBasisR * nEqs; i++) {
-                        ANeighs[k].V[i] = h;
+        private void residuumWithJacobian(double[][] ADiag, Neighbour[] Sous) {
+            // vypocet toku hranici
+            for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
+                residuumWithJacobianWall(k, ADiag, Sous[k]);
+            }
 
-                        for (int j = 0; j < RWall.length; j++) {
-                            ANeighs[k].MR[i][j] = -RWall[j];
+            if (elemType.order > 1) { // volume integral only for DGFEM
+                double[] nor = new double[dim];
+                double[] a = null;
+                double[] ad = null;
+                double[] ap = null;
+
+                for (int p = 0; p < Int.nIntVolume; p++) {
+                    double[] base = Int.basisVolume[p];
+                    double[][] dBase = Int.dXbasisVolume[p];
+                    double Jac = Int.JacobianVolume[p];
+                    double weight = Int.weightsVolume[p];
+
+                    // interpolation of mesh velocity, and other data
+                    double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
+
+                    double[] WInt = new double[nEqs];
+                    double[] dWInt = new double[dim * nEqs];
+                    for (int m = 0; m < nEqs; m++) {
+                        for (int j = 0; j < nBasis; j++) {
+                            WInt[m] += W[m * nBasis + j] * base[j];
+                            for (int d = 0; d < dim; d++) {
+                                dWInt[nEqs * d + m] += W[m * nBasis + j] * dBase[j][d];
+                            }
                         }
+                    }
+                    // convection
+                    for (int d = 0; d < dim; d++) {
+                        if (eqn.isConvective()) {
+                            nor[d] = 1;
+                            a = eqn.convectiveFluxJacobian(WInt, nor, elemData);
+                            nor[d] = 0;
+                        }
+                        if (eqn.isDiffusive()) {
+                            nor[d] = 1;
+                            ad = eqn.diffusiveFluxJacobian(WInt, dWInt, nor, elemData);
+                            nor[d] = 0;
+                        }
+                        if (eqn.isSourcePresent()) {
+                            nor[d] = 1;
+                            ap = eqn.sourceTermJacobian(WInt, dWInt, elemData);
+                            nor[d] = 0;
+                        }
+                        for (int m = 0; m < nEqs; m++) {
+                            for (int q = 0; q < nEqs; q++) {
+                                for (int i = 0; i < nBasis; i++) {
+                                    for (int j = 0; j < nBasis; j++) {
+                                        if (eqn.isConvective()) {
+                                            ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * a[nEqs * q + m] * base[i] * dBase[j][d] - (eps + par.dampConst) * Jac * weight * dBase[i][d] * dBase[j][d];
+                                        }
+                                        if (eqn.isDiffusive()) {
+                                            ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * ad[nEqs * q + m] * base[i] * dBase[j][d] + Jac * weight * ad[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBase[i][d] * dBase[j][d];
+                                        }
+                                        if (eqn.isSourcePresent()) {
+                                            ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * ap[nEqs * q + m] * base[i] * dBase[j][d] + Jac * weight * ap[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBase[i][d] * dBase[j][d];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-                        residuumWall(k, V, ANeighs, ANeighs[k].MR[i]);
-                        ANeighs[k].V[i] = 0;
+        private void residuumWithJacobianWall(int k, double[][] ADiag, Neighbour Sous) {
+            double[] aL = null;
+            double[] aR = null;
+            double[] adL = null;
+            double[] adR = null;
+            int[] edgeIndex = Int.faces[k].faceIndexes;
+            double h = 1e-6;
+            double[] V = new double[nEqs];
+
+            for (int p = 0; p < Int.faces[k].nIntEdge; p++) { // edge integral
+                double[] innerInterpolant = Int.faces[k].interpolantFace[p];
+                double[] baseLeft = Int.faces[k].basisFaceLeft[p];
+                double[][] dBaseLeft = Int.faces[k].dXbasisFaceLeft[p];
+                double Jac = Int.faces[k].JacobianFace[p];
+                double weight = Int.faces[k].weightsFace[p];
+                double[] baseRight = null;
+                double[][] dBaseRight = null;
+                if (TT[k] > -1) {
+                    baseRight = Int.faces[k].basisFaceRight[p];
+                    dBaseRight = Int.faces[k].dXbasisFaceRight[p];
+                }
+
+                // interpolation of mesh velocity
+                double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
+
+                double[] WL = new double[nEqs];
+                double[] WR = new double[nEqs];
+                double[] dWL = new double[dim * nEqs];
+                double[] dWR = new double[dim * nEqs];
+
+                // values from boundary inlet (WL, dWL)
+                for (int j = 0; j < nEqs; j++) {
+                    for (int m = 0; m < nBasis; m++) {
+                        WL[j] += W[j * nBasis + m] * baseLeft[m];
+                        for (int d = 0; d < dim; d++) {
+                            dWL[nEqs * d + j] += W[j * nBasis + m] * dBaseLeft[m][d];
+                        }
+                    }
+                }
+
+                // values from boundary outlet (WR, dWR)
+                if (TT[k] > -1) {
+                    double[] WRp = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
+                    for (int m = 0; m < nEqs; m++) {
+                        int nRBasis = elems[TT[k]].nBasis;
+                        for (int j = 0; j < nRBasis; j++) {
+                            WR[m] += WRp[m * nRBasis + j] * baseRight[j];
+                            for (int d = 0; d < dim; d++) {
+                                dWR[nEqs * d + m] += WRp[m * nRBasis + j] * dBaseRight[j][d];
+                            }
+                        }
+                    }
+                } else {
+                    WR = eqn.boundaryValue(WL, n[k][p], TT[k], elemData);
+                    System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
+                }
+
+                // inviscid flux in integration point
+                if (eqn.isConvective()) {
+                    double vn = 0;
+                    for (int d = 0; d < dim; d++) {
+                        vn = vn + u[d] * n[k][p][d];
+                    }
+                    aL = eqn.convectiveFluxJacobian(WL, n[k][p], elemData);	// nevazky tok
+                    if (TT[k] > -1) {
+                        aR = eqn.convectiveFluxJacobian(WR, n[k][p], elemData);	// nevazky tok
+                    }
+                }
+
+                // viscouse flux in integration point
+                if (eqn.isDiffusive()) {
+                    adL = eqn.diffusiveFluxJacobian(WL, dWL, n[k][p], elemData);	// vazky tok
+                    if (TT[k] > -1) {
+                        adR = eqn.diffusiveFluxJacobian(WR, dWR, n[k][p], elemData);	// vazky tok
+                    }
+                }
+
+                if (TT[k] > -1) {
+                    int nRBasis = elems[TT[k]].nBasis;
+                    double[] dBazeSumL = new double[nBasis];
+                    if (TT[k] > -1) {
+                        for (int i = 0; i < nBasis; i++) {
+                            for (int d = 0; d < dim; d++) {
+                                dBazeSumL[i] += dBaseLeft[i][d] * n[k][p][d] / 2;
+                            }
+                        }
+                    }
+                    double[] dBazeSumR = new double[nRBasis];
+                    if (TT[k] > -1) {
+                        for (int i = 0; i < nRBasis; i++) {
+                            for (int d = 0; d < dim; d++) {
+                                dBazeSumR[i] += dBaseRight[i][d] * n[k][p][d] / 2;
+                            }
+                        }
                     }
 
-                    Mat.divide(ANeighs[k].MR, -h);
+                    // LF schema ==================================
+                    double[] Ws = new double[nEqs];
+                    for (int m = 0; m < nEqs; m++) {
+                        Ws[m] = (WL[m] + WR[m]) / 2;
+                    }
+                    double lam = eqn.maxEigenvalue(Ws, elemData);
+                    for (int m = 0; m < nEqs; m++) {
+                        aL[nEqs * m + m] += lam;
+                        aR[nEqs * m + m] -= lam;
+                    }
+
+                    for (int m = 0; m < nEqs; m++) {
+                        V[m] = h;
+                        double lamh = eqn.maxEigenvalue(Mat.plusVec(Ws, V), elemData);
+                        double dlam = (lamh - lam) / h;
+                        V[m] = 0;
+                        for (int q = 0; q < nEqs; q++) {
+                            aL[nEqs * q + m] += dlam * WL[q];
+                            aR[nEqs * q + m] -= dlam * WR[q];
+                        }
+                    }
+                    // end LF schema ==================================
+
+                    for (int m = 0; m < nEqs; m++) {
+                        for (int q = 0; q < nEqs; q++) {
+                            for (int i = 0; i < nBasis; i++) {
+                                for (int j = 0; j < nBasis; j++) {
+                                    if (eqn.isConvective()) {
+                                        ADiag[nBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
+                                        ADiag[nBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumL[i] * baseLeft[j];
+                                    }
+                                    if (eqn.isDiffusive()) {
+                                        ADiag[nBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
+                                        for (int d = 0; d < dim; d++) {
+                                            ADiag[nBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adL[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBaseLeft[i][d] * baseLeft[j];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    for (int m = 0; m < nEqs; m++) {
+                        for (int q = 0; q < nEqs; q++) {
+                            for (int i = 0; i < nRBasis; i++) {
+                                for (int j = 0; j < nBasis; j++) {
+                                    if (eqn.isConvective()) {
+                                        Sous.MR[nRBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aR[nEqs * q + m] * baseRight[i] * baseLeft[j];
+                                        Sous.MR[nRBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
+                                    }
+                                    if (eqn.isDiffusive()) {
+                                        Sous.MR[nRBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adR[nEqs * q + m] * baseRight[i] * baseLeft[j];
+                                        for (int d = 0; d < dim; d++) {
+                                            Sous.MR[nRBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adR[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBaseRight[i][d] * baseLeft[j];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (eqn.isConvective()) {
+                        aL = eqn.boundaryConvectiveFluxJacobian(WL, WR, n[k][p], TT[k], elemData);
+                        if (aL == null) {
+                            double[] WR0 = eqn.boundaryValue(WL, n[k][p], TT[k], elemData);
+                            for (int m = 0; m < nEqs; m++) {
+                                V[m] = h;
+                                double[] WRh = eqn.boundaryValue(Mat.plusVec(WL, V), n[k][p], TT[k], elemData);
+                                V[m] = 0;
+                                for (int q = 0; q < nEqs; q++) {
+                                    double derWR = (WRh[q] - WR0[q]) / h;
+                                    for (int i = 0; i < nBasis; i++) {
+                                        for (int j = 0; j < nBasis; j++) {
+                                            ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * derWR * baseLeft[i] * baseLeft[j];
+                                        }
+                                    }
+                                }
+                            }
+                        } else{
+                            for (int m = 0; m < nEqs; m++) {
+                                for (int q = 0; q < nEqs; q++) {
+                                    for (int i = 0; i < nBasis; i++) {
+                                        for (int j = 0; j < nBasis; j++) {
+                                            ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * aL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+//                    double[] WR0 = eqn.boundaryValue(WL, u, n[k][p], TT[k], elemData);
+//                    for (int m = 0; m < nEqs; m++) {
+//                        V[m] = h;
+//                        double[] WRh = eqn.boundaryValue(Mat.plusVec(WL, V), u, n[k][p], TT[k], elemData);
+//                        V[m] = 0;
+//                        for (int q = 0; q < nEqs; q++) {
+//                            double derWR = (WRh[q] - WR0[q]) / h;
+//                            for (int i = 0; i < nBasis; i++) {
+//                                for (int j = 0; j < nBasis; j++) {
+//                                    if (eqn.isConvective()) {
+//                                        ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * derWR * baseLeft[i] * baseLeft[j];
+//                                    }
+//                                    if (eqn.isDiffusive()) {
+//                                        ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * adL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
+//                                        for (int d = 0; d < dim; d++) {
+//                                            ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * adL[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBaseLeft[i][d] * baseLeft[j];
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
                 }
             }
         }
@@ -639,7 +928,7 @@ public class Mesh implements Serializable {
 
                     // interpolation of mesh velocity, and other data
                     double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
-                    
+
                     double[] WInt = new double[nEqs];
                     double[] dWInt = new double[dim * nEqs];
                     for (int m = 0; m < nEqs; m++) {
@@ -655,7 +944,7 @@ public class Mesh implements Serializable {
                         f = new double[dim][];
                         for (int d = 0; d < dim; d++) {
                             nor[d] = 1;
-                            f[d] = eqn.convectiveFlux(WInt, u[d], nor, elemData);
+                            f[d] = eqn.convectiveFlux(WInt, nor, elemData);
                             nor[d] = 0;
                         }
                     }
@@ -679,7 +968,7 @@ public class Mesh implements Serializable {
                                 double fsum = 0;
                                 double dWsum = 0;
                                 for (int d = 0; d < dim; d++) {
-                                    fsum += f[d][m] * dBase[j][d];
+                                    fsum += (f[d][m] - u[d]*WInt[m]) * dBase[j][d];
                                     dWsum += dWInt[nEqs * d + m] * dBase[j][d];
                                 }
                                 K[nBasis * m + j] += Jac * weight * fsum - (eps + par.dampConst) * Jac * weight * dWsum;
@@ -821,19 +1110,29 @@ public class Mesh implements Serializable {
                         }
                     }
                 } else {
-                    WR = eqn.boundaryValue(WL, u, n[k][p], TT[k], elemData);
+                    WR = eqn.boundaryValue(WL, n[k][p], TT[k], elemData);
                     System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
                 }
 
                 // inviscid flux in integration point
+                double vn = 0;
+                double[] Wale = new double[nEqs];
                 if (eqn.isConvective()) {
-                    double vn = 0;
                     for (int d = 0; d < dim; d++) {
                         vn = vn + u[d] * n[k][p][d];
                     }
-                    fn = eqn.numericalConvectiveFlux(WL, WR, vn, n[k][p], TT[k], elemData);	// nevazky tok
+                    if(TT[k] > -1){
+                        for (int j = 0; j < nEqs; j++) {
+                            Wale[j] = (WL[j]+WR[j])/2;
+                        }
+                    } else {
+                        for (int j = 0; j < nEqs; j++) {
+                            Wale[j] = WL[j];
+                        }
+                    }
+                    fn = eqn.numericalConvectiveFlux(WL, WR, n[k][p], TT[k], elemData);	// nevazky tok
                 }
-
+                
                 // viscid flux in integration point
                 if (eqn.isDiffusive()) {
                     fvn = eqn.numericalDiffusiveFlux(WL, WR, dWL, dWR, n[k][p], TT[k], elemData); // vazky tok
@@ -849,7 +1148,7 @@ public class Mesh implements Serializable {
                     for (int j = 0; j < nBasis; j++) {
                         double jwb = Jac * weight * baseLeft[j];
                         if (eqn.isConvective()) {
-                            K[nBasis * m + j] -= jwb * fn[m];
+                            K[nBasis * m + j] -= jwb * (fn[m] - vn*Wale[m]);
                             if (TT[k] > -1) {
                                 K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * jwb * dWsum;
                             }
@@ -897,7 +1196,7 @@ public class Mesh implements Serializable {
                     }
                     WWall = Mat.times(Mat.plusVec(WR, WL), 0.5);
                 } else {
-                    WWall = eqn.boundaryValue(WL, u, n[k][0], TT[k], elemData);
+                    WWall = eqn.boundaryValue(WL, n[k][0], TT[k], elemData);
                 }
 
                 for (int j = 0; j < nEqs; j++) {
@@ -1022,56 +1321,58 @@ public class Mesh implements Serializable {
         }
 
         double[] interpolateVelocityAndFillElementDataObjectOnVolume(double[] innerInterpolant) {
-                // interpolation of mesh velocity, and other data
-                double[] u = new double[dim];
-                Arrays.fill(elemData.currentX, .0);
-                elemData.currentWallDistance = 0;
+            // interpolation of mesh velocity, and other data
+            double[] u = new double[dim];
+            Arrays.fill(elemData.currentX, .0);
+            elemData.currentWallDistance = 0;
+            for (int j = 0; j < nVertices; j++) {
+                for (int d = 0; d < dim; d++) {
+                    u[d] += innerInterpolant[j] * U[j][d];
+                    elemData.currentX[d] += innerInterpolant[j] * vertices[j][d];
+                }
+                elemData.currentWallDistance += innerInterpolant[j] * wallDistance[j];
+            }
+            if (par.externalField) {
+                int nExternalField = externalField[0].length;
+                elemData.externalField = new double[nExternalField];
                 for (int j = 0; j < nVertices; j++) {
-                    for (int d = 0; d < dim; d++) {
-                        u[d] += innerInterpolant[j] * U[j][d];
-                        elemData.currentX[d] += innerInterpolant[j] * vertices[j][d];
-                    }
-                    elemData.currentWallDistance += innerInterpolant[j] * wallDistance[j];
-                }
-                if (par.externalField) {
-                    int nExternalField = externalField[0].length;
-                    elemData.externalField = new double[nExternalField];
-                    for (int j = 0; j < nVertices; j++) {
-                        for (int r = 0; r < nExternalField; r++) {
-                            elemData.externalField[r] += innerInterpolant[j] * externalField[j][r];
-                        }
+                    for (int r = 0; r < nExternalField; r++) {
+                        elemData.externalField[r] += innerInterpolant[j] * externalField[j][r];
                     }
                 }
-                elemData.currentT = t;
-                elemData.integralMonitor = integralMonitor;
-                
-                return u;
+            }
+            elemData.currentT = t;
+            elemData.integralMonitor = integralMonitor;
+
+            return u;
         }
+
         double[] interpolateVelocityAndFillElementDataObjectOnFace(int k, double[] innerInterpolant, int[] edgeIndex) {
-                // interpolation of mesh velocity
-                double[] u = new double[dim];
-                elemData.currentX = new double[dim];
-                elemData.currentWallDistance = 0;
+            // interpolation of mesh velocity
+            double[] u = new double[dim];
+            elemData.currentX = new double[dim];
+            elemData.currentWallDistance = 0;
+            for (int j = 0; j < Int.faces[k].nVerticesEdge; j++) {
+                for (int d = 0; d < dim; d++) {
+                    u[d] += innerInterpolant[j] * U[edgeIndex[j]][d];
+                    elemData.meshVelocity[d] = u[d];
+                    elemData.currentX[d] += innerInterpolant[j] * vertices[edgeIndex[j]][d];
+                }
+                elemData.currentWallDistance += innerInterpolant[j] * wallDistance[edgeIndex[j]];
+            }
+            if (par.externalField) {
+                int nExternalField = externalField[0].length;
+                elemData.externalField = new double[nExternalField];
                 for (int j = 0; j < Int.faces[k].nVerticesEdge; j++) {
-                    for (int d = 0; d < dim; d++) {
-                        u[d] += innerInterpolant[j] * U[edgeIndex[j]][d];
-                        elemData.currentX[d] += innerInterpolant[j] * vertices[edgeIndex[j]][d];
-                    }
-                    elemData.currentWallDistance += innerInterpolant[j] * wallDistance[edgeIndex[j]];
-                }
-                if (par.externalField) {
-                    int nExternalField = externalField[0].length;
-                    elemData.externalField = new double[nExternalField];
-                    for (int j = 0; j < Int.faces[k].nVerticesEdge; j++) {
-                        for (int r = 0; r < nExternalField; r++) {
-                            elemData.externalField[r] += innerInterpolant[j] * externalField[edgeIndex[j]][r];
-                        }
+                    for (int r = 0; r < nExternalField; r++) {
+                        elemData.externalField[r] += innerInterpolant[j] * externalField[edgeIndex[j]][r];
                     }
                 }
-                elemData.currentT = t;
-                elemData.integralMonitor = integralMonitor;
-                
-                return u;
+            }
+            elemData.currentT = t;
+            elemData.integralMonitor = integralMonitor;
+
+            return u;
         }
 
         void updateRHS(double[] x) {

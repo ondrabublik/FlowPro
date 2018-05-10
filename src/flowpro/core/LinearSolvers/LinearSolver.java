@@ -115,6 +115,10 @@ abstract public class LinearSolver {
                 case "extern":
                     solver = new ExternSolver(elems, dofs, par);
                     break;
+                
+                case "MTJ":
+                    //solver = new MTJsolver(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
+                    break;    
                     
                 default:
                     solver = new Gmres(elems, dofs, 50, 5, par.iterativeSolverTol, par.nThreads);
