@@ -660,6 +660,9 @@ public class Mesh implements Serializable {
                             nor[d] = 1;
                             a = eqn.convectiveFluxJacobian(WInt, nor, elemData);
                             nor[d] = 0;
+                            for (int m = 0; m < nEqs; m++) {
+                                a[nEqs * m + m] -= u[d];
+                            }
                         }
                         if (eqn.isDiffusive()) {
                             nor[d] = 1;
@@ -790,24 +793,26 @@ public class Mesh implements Serializable {
                     }
 
                     // LF schema ==================================
-                    double[] Ws = new double[nEqs];
-                    for (int m = 0; m < nEqs; m++) {
-                        Ws[m] = (WL[m] + WR[m]) / 2;
-                    }
-                    double lam = eqn.maxEigenvalue(Ws, elemData);
-                    for (int m = 0; m < nEqs; m++) {
-                        aL[nEqs * m + m] += lam;
-                        aR[nEqs * m + m] -= lam;
-                    }
+                    if (eqn.isConvective()) {
+                        double[] Ws = new double[nEqs];
+                        for (int m = 0; m < nEqs; m++) {
+                            Ws[m] = (WL[m] + WR[m]) / 2;
+                        }
+                        double lam = eqn.maxEigenvalue(Ws, elemData);
+                        for (int m = 0; m < nEqs; m++) {
+                            aL[nEqs * m + m] += lam;
+                            aR[nEqs * m + m] -= lam;
+                        }
 
-                    for (int m = 0; m < nEqs; m++) {
-                        V[m] = h;
-                        double lamh = eqn.maxEigenvalue(Mat.plusVec(Ws, V), elemData);
-                        double dlam = (lamh - lam) / h;
-                        V[m] = 0;
-                        for (int q = 0; q < nEqs; q++) {
-                            aL[nEqs * q + m] += dlam * WL[q];
-                            aR[nEqs * q + m] -= dlam * WR[q];
+                        for (int m = 0; m < nEqs; m++) {
+                            V[m] = h;
+                            double lamh = eqn.maxEigenvalue(Mat.plusVec(Ws, V), elemData);
+                            double dlam = (lamh - lam) / h;
+                            V[m] = 0;
+                            for (int q = 0; q < nEqs; q++) {
+                                aL[nEqs * q + m] += dlam * WL[q];
+                                aR[nEqs * q + m] -= dlam * WR[q];
+                            }
                         }
                     }
                     // end LF schema ==================================
@@ -867,7 +872,7 @@ public class Mesh implements Serializable {
                                     }
                                 }
                             }
-                        } else{
+                        } else {
                             for (int m = 0; m < nEqs; m++) {
                                 for (int q = 0; q < nEqs; q++) {
                                     for (int i = 0; i < nBasis; i++) {
@@ -968,7 +973,7 @@ public class Mesh implements Serializable {
                                 double fsum = 0;
                                 double dWsum = 0;
                                 for (int d = 0; d < dim; d++) {
-                                    fsum += (f[d][m] - u[d]*WInt[m]) * dBase[j][d];
+                                    fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
                                     dWsum += dWInt[nEqs * d + m] * dBase[j][d];
                                 }
                                 K[nBasis * m + j] += Jac * weight * fsum - (eps + par.dampConst) * Jac * weight * dWsum;
@@ -1121,18 +1126,16 @@ public class Mesh implements Serializable {
                     for (int d = 0; d < dim; d++) {
                         vn = vn + u[d] * n[k][p][d];
                     }
-                    if(TT[k] > -1){
+                    if (TT[k] > -1) {
                         for (int j = 0; j < nEqs; j++) {
-                            Wale[j] = (WL[j]+WR[j])/2;
+                            Wale[j] = (WL[j] + WR[j]) / 2;
                         }
                     } else {
-                        for (int j = 0; j < nEqs; j++) {
-                            Wale[j] = WL[j];
-                        }
+                        System.arraycopy(WR, 0, Wale, 0, nEqs);
                     }
                     fn = eqn.numericalConvectiveFlux(WL, WR, n[k][p], TT[k], elemData);	// nevazky tok
                 }
-                
+
                 // viscid flux in integration point
                 if (eqn.isDiffusive()) {
                     fvn = eqn.numericalDiffusiveFlux(WL, WR, dWL, dWR, n[k][p], TT[k], elemData); // vazky tok
@@ -1148,7 +1151,7 @@ public class Mesh implements Serializable {
                     for (int j = 0; j < nBasis; j++) {
                         double jwb = Jac * weight * baseLeft[j];
                         if (eqn.isConvective()) {
-                            K[nBasis * m + j] -= jwb * (fn[m] - vn*Wale[m]);
+                            K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
                             if (TT[k] > -1) {
                                 K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * jwb * dWsum;
                             }
