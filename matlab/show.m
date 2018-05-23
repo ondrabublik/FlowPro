@@ -20,7 +20,7 @@ function show(varargin)
     cd(getFlowProPath);
     system(str);
     cd(path)
-    return
+%     return
     try
         [meshPath, simulPath, outputPath] = getPath;
         vertices = load([outputPath,'vertices.txt']);
@@ -63,6 +63,7 @@ function myContour(tri, vertices, Quantity, name)
     osy = [min(vertices(:,1)) max(vertices(:,1)) min(vertices(:,2)) max(vertices(:,2))];
     axis(osy);
     colorbar;
+    colormap jet
 end
 
 

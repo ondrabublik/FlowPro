@@ -277,9 +277,11 @@ public class FlowProMain {
         try {
             TEshift = Mat.loadIntMatrix(meshPath + "TEshift.txt");
             shift = Mat.loadDoubleMatrix(meshPath + "shift.txt");
-            for (int i = 0; i < shift.length; i++) {
-                for (int j = 0; j < shift[i].length; j++) {
-                    shift[i][j] *= par.meshScale;
+            if (par.meshScale != 1) {
+                for (int i = 0; i < shift.length; i++) {
+                    for (int j = 0; j < shift[i].length; j++) {
+                        shift[i][j] *= par.meshScale;
+                    }
                 }
             }
             LOG.info("periodic boundary found");

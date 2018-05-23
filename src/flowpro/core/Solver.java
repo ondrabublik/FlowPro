@@ -257,6 +257,7 @@ public class Solver {
                     case Tag.SETSOLUTIONMONITOR:
                         //compute solution monitor
                         mesh.integralMonitor = (double[]) inMsg.getData();
+                        mesh.solMonitor.combineMonitoredValues(mesh.integralMonitor);
                         outMsg = new MPIMessage(Tag.SOLUTIONMONITORSET);
                         break;
 
@@ -678,7 +679,7 @@ public class Solver {
                 dt = par.tEnd - state.t;
             }
 
-            //compute domain average
+            //compute domain 
             if (par.solutionMonitorOn) {
                 mesh.computeSolutionMonitor();
             }
@@ -816,7 +817,12 @@ public class Solver {
             if (state.t + dt > par.tEnd) {
                 dt = par.tEnd - state.t;
             }
-
+            
+            //compute domain 
+            if (par.solutionMonitorOn) {
+                mesh.computeSolutionMonitor();
+            }
+            
             // computation
             ltsIter.iterate(state.t + dt);
 

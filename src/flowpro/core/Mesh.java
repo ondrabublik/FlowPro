@@ -257,6 +257,8 @@ public class Mesh implements Serializable {
                 }
             }
         }
+        // combination of computed values
+        solMonitor.combineMonitoredValues(integralMonitor);
     }
 
     public double[][] getMeshPosition() {
@@ -679,10 +681,16 @@ public class Mesh implements Serializable {
                                 for (int i = 0; i < nBasis; i++) {
                                     for (int j = 0; j < nBasis; j++) {
                                         if (eqn.isConvective()) {
-                                            ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * a[nEqs * q + m] * base[i] * dBase[j][d] - (eps + par.dampConst) * Jac * weight * dBase[i][d] * dBase[j][d];
+                                            ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * a[nEqs * q + m] * base[i] * dBase[j][d];
+                                            if(m == q){
+                                                ADiag[nBasis * m + i][nBasis * q + j] += (eps + par.dampConst) * Jac * weight * dBase[i][d] * dBase[j][d];
+                                            }
                                         }
                                         if (eqn.isDiffusive()) {
-                                            ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * ad[nEqs * q + m] * base[i] * dBase[j][d] + Jac * weight * ad[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBase[i][d] * dBase[j][d];
+                                            ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * ad[nEqs * q + m] * base[i] * dBase[j][d];
+                                            for (int r = 0; r < dim; r++) {
+                                                ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * ad[nEqs * nEqs * (r + 1) + nEqs * q + m] * dBase[i][r] * dBase[j][d];
+                                            }
                                         }
                                         if (eqn.isSourcePresent()) {
                                             ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * ap[nEqs * q + m] * base[i] * dBase[j][d] + Jac * weight * ap[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBase[i][d] * dBase[j][d];
@@ -773,7 +781,7 @@ public class Mesh implements Serializable {
                     }
                 }
 
-                if (TT[k] > -1) {
+                if (TT[k] > -1) { // inner edge
                     int nRBasis = elems[TT[k]].nBasis;
                     double[] dBazeSumL = new double[nBasis];
                     if (TT[k] > -1) {
@@ -817,13 +825,24 @@ public class Mesh implements Serializable {
                     }
                     // end LF schema ==================================
 
+                    // IP =============================================
+                    if (eqn.isDiffusive()) {
+                        for (int m = 0; m < nEqs; m++) {
+                            adL[nEqs * m + m] -= (c_IP + elems[TT[k]].c_IP) / 2;
+                            adR[nEqs * m + m] += (c_IP + elems[TT[k]].c_IP) / 2;
+                        }
+                    }
+                    // end IP =========================================
+
                     for (int m = 0; m < nEqs; m++) {
                         for (int q = 0; q < nEqs; q++) {
                             for (int i = 0; i < nBasis; i++) {
                                 for (int j = 0; j < nBasis; j++) {
                                     if (eqn.isConvective()) {
                                         ADiag[nBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
-                                        ADiag[nBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumL[i] * baseLeft[j];
+                                        if(m == q){
+                                            ADiag[nBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumL[i] * baseLeft[j];
+                                        }
                                     }
                                     if (eqn.isDiffusive()) {
                                         ADiag[nBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
@@ -842,7 +861,9 @@ public class Mesh implements Serializable {
                                 for (int j = 0; j < nBasis; j++) {
                                     if (eqn.isConvective()) {
                                         Sous.MR[nRBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aR[nEqs * q + m] * baseRight[i] * baseLeft[j];
-                                        Sous.MR[nRBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
+                                        if(m == q){
+                                            Sous.MR[nRBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
+                                        }
                                     }
                                     if (eqn.isDiffusive()) {
                                         Sous.MR[nRBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adR[nEqs * q + m] * baseRight[i] * baseLeft[j];
@@ -854,59 +875,79 @@ public class Mesh implements Serializable {
                             }
                         }
                     }
-                } else {
+                } else { // boundary edge
                     if (eqn.isConvective()) {
-                        aL = eqn.boundaryConvectiveFluxJacobian(WL, WR, n[k][p], TT[k], elemData);
-                        if (aL == null) {
-                            double[] WR0 = eqn.boundaryValue(WL, n[k][p], TT[k], elemData);
-                            for (int m = 0; m < nEqs; m++) {
-                                V[m] = h;
-                                double[] WRh = eqn.boundaryValue(Mat.plusVec(WL, V), n[k][p], TT[k], elemData);
-                                V[m] = 0;
-                                for (int q = 0; q < nEqs; q++) {
-                                    double derWR = (WRh[q] - WR0[q]) / h;
-                                    for (int i = 0; i < nBasis; i++) {
-                                        for (int j = 0; j < nBasis; j++) {
-                                            ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * derWR * baseLeft[i] * baseLeft[j];
-                                        }
+                        double[] fR0 = eqn.numericalConvectiveFlux(WL, WR, n[k][p], TT[k], elemData);
+                        for (int m = 0; m < nEqs; m++) {
+                            V[m] = h;
+                            double[] WLh = Mat.plusVec(WL, V);
+                            double[] WRh = eqn.boundaryValue(WLh, n[k][p], TT[k], elemData);
+                            double[] fRh = eqn.numericalConvectiveFlux(WLh, WRh, n[k][p], TT[k], elemData);
+                            V[m] = 0;
+                            for (int q = 0; q < nEqs; q++) {
+                                double derfR = (fRh[q] - fR0[q]) / h;
+                                for (int i = 0; i < nBasis; i++) {
+                                    for (int j = 0; j < nBasis; j++) {
+                                        ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * derfR * baseLeft[i] * baseLeft[j];
                                     }
                                 }
                             }
-                        } else {
-                            for (int m = 0; m < nEqs; m++) {
-                                for (int q = 0; q < nEqs; q++) {
-                                    for (int i = 0; i < nBasis; i++) {
-                                        for (int j = 0; j < nBasis; j++) {
-                                            ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * aL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
-                                        }
+                        }
+                    } else {
+                        for (int m = 0; m < nEqs; m++) {
+                            for (int q = 0; q < nEqs; q++) {
+                                for (int i = 0; i < nBasis; i++) {
+                                    for (int j = 0; j < nBasis; j++) {
+                                        ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * aL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
                                     }
                                 }
                             }
                         }
                     }
 
-//                    double[] WR0 = eqn.boundaryValue(WL, u, n[k][p], TT[k], elemData);
-//                    for (int m = 0; m < nEqs; m++) {
-//                        V[m] = h;
-//                        double[] WRh = eqn.boundaryValue(Mat.plusVec(WL, V), u, n[k][p], TT[k], elemData);
-//                        V[m] = 0;
-//                        for (int q = 0; q < nEqs; q++) {
-//                            double derWR = (WRh[q] - WR0[q]) / h;
-//                            for (int i = 0; i < nBasis; i++) {
-//                                for (int j = 0; j < nBasis; j++) {
-//                                    if (eqn.isConvective()) {
-//                                        ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * derWR * baseLeft[i] * baseLeft[j];
-//                                    }
-//                                    if (eqn.isDiffusive()) {
-//                                        ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * adL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
-//                                        for (int d = 0; d < dim; d++) {
-//                                            ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * adL[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBaseLeft[i][d] * baseLeft[j];
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
+                    if (eqn.isDiffusive()) {
+                        double[] fvR0 = eqn.numericalDiffusiveFlux(WL, WR, dWL, dWR, n[k][p], TT[k], elemData);
+                        for (int m = 0; m < nEqs; m++) {
+                            V[m] = h;
+                            double[] WLh = Mat.plusVec(WL, V);
+                            double[] WRh = eqn.boundaryValue(WLh, n[k][p], TT[k], elemData);
+                            double[] fvRh = eqn.numericalDiffusiveFlux(WLh, WRh, dWL, dWR, n[k][p], TT[k], elemData);
+                            for (int q = 0; q < nEqs; q++) {
+                                double derfvR = (fvRh[q] - fvR0[q]) / h;
+                                double derIP = c_IP * (WLh[q]-WL[q] - (WRh[q] - WR[q])) / h;
+                                for (int i = 0; i < nBasis; i++) {
+                                    for (int j = 0; j < nBasis; j++) {
+                                        if (eqn.isDiffusive()) {
+                                            ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * derfvR * baseLeft[i] * baseLeft[j];
+                                            if (eqn.isIPFace(TT[k])) {
+                                                ADiag[nBasis * m + i][nBasis * q + j] += Jac * weight * derIP * baseLeft[i] * baseLeft[j];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            V[m] = 0;
+                        }
+                        double[] dV = new double[nEqs * dim];
+                        for (int d = 0; d < dim; d++) {
+                            for (int m = 0; m < nEqs; m++) {
+                                dV[nEqs * d + m] = h;
+                                double[] dWLh = Mat.plusVec(dWL, dV);
+                                double[] fvRh = eqn.numericalDiffusiveFlux(WL, WR, dWLh, dWLh, n[k][p], TT[k], elemData);
+                                dV[nEqs * d + m] = 0;
+                                for (int q = 0; q < nEqs; q++) {
+                                    double derfvR = (fvRh[q] - fvR0[q]) / h;
+                                    for (int i = 0; i < nBasis; i++) {
+                                        for (int j = 0; j < nBasis; j++) {
+                                            if (eqn.isDiffusive()) {
+                                                ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * derfvR * dBaseLeft[i][d] * baseLeft[j];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

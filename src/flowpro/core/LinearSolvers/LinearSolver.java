@@ -121,7 +121,7 @@ abstract public class LinearSolver {
                     break;    
                     
                 default:
-                    solver = new Gmres(elems, dofs, 50, 5, par.iterativeSolverTol, par.nThreads);
+                    solver = new Gmres(elems, dofs, 30, 5, par.iterativeSolverTol, par.nThreads);
                     break;
             }
         } catch (Exception e) {
