@@ -682,7 +682,7 @@ public class Mesh implements Serializable {
                                     for (int j = 0; j < nBasis; j++) {
                                         if (eqn.isConvective()) {
                                             ADiag[nBasis * m + i][nBasis * q + j] -= Jac * weight * a[nEqs * q + m] * base[i] * dBase[j][d];
-                                            if(m == q){
+                                            if (m == q) {
                                                 ADiag[nBasis * m + i][nBasis * q + j] += (eps + par.dampConst) * Jac * weight * dBase[i][d] * dBase[j][d];
                                             }
                                         }
@@ -840,7 +840,7 @@ public class Mesh implements Serializable {
                                 for (int j = 0; j < nBasis; j++) {
                                     if (eqn.isConvective()) {
                                         ADiag[nBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
-                                        if(m == q){
+                                        if (m == q) {
                                             ADiag[nBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumL[i] * baseLeft[j];
                                         }
                                     }
@@ -861,7 +861,7 @@ public class Mesh implements Serializable {
                                 for (int j = 0; j < nBasis; j++) {
                                     if (eqn.isConvective()) {
                                         Sous.MR[nRBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aR[nEqs * q + m] * baseRight[i] * baseLeft[j];
-                                        if(m == q){
+                                        if (m == q) {
                                             Sous.MR[nRBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
                                         }
                                     }
@@ -914,7 +914,7 @@ public class Mesh implements Serializable {
                             double[] fvRh = eqn.numericalDiffusiveFlux(WLh, WRh, dWL, dWR, n[k][p], TT[k], elemData);
                             for (int q = 0; q < nEqs; q++) {
                                 double derfvR = (fvRh[q] - fvR0[q]) / h;
-                                double derIP = c_IP * (WLh[q]-WL[q] - (WRh[q] - WR[q])) / h;
+                                double derIP = c_IP * (WLh[q] - WL[q] - (WRh[q] - WR[q])) / h;
                                 for (int i = 0; i < nBasis; i++) {
                                     for (int j = 0; j < nBasis; j++) {
                                         if (eqn.isDiffusive()) {
@@ -1979,11 +1979,12 @@ public class Mesh implements Serializable {
             if (V == null) {
                 V = new double[nBasis * nEqs];
             }
-            double f = 0;
+            int nF = optimalisationFunctional.getN();
+            double[] f = new double[nF];
 
             // vypocet toku hranici
             for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
-                f += computeFunctionalWall(k, V);
+                Mat.plusVecToVec(f, computeFunctionalsWall(k, V));
             }
 
             for (int p = 0; p < Int.nIntVolume; p++) {
@@ -2005,14 +2006,18 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
-                f += Jac * weight * optimalisationFunctional.insideValue(WInt, dWInt, elemData);
+                double[] aux = optimalisationFunctional.insideValue(WInt, dWInt, elemData);
+                for (int i = 0; i < nF; i++) {
+                    f[i] += Jac * weight * aux[i];
+                }
             }
-            return f;
+            return optimalisationFunctional.combineFunctionals(f);
         }
 
         // tato funkce vypocitava reziduum__________________________________________
-        public double computeFunctionalWall(int k, double[] V) {
-            double f = 0;
+        public double[] computeFunctionalsWall(int k, double[] V) {
+            int nF = optimalisationFunctional.getN();
+            double[] f = new double[nF];
             int[] edgeIndex = Int.faces[k].faceIndexes;
 
             for (int p = 0; p < Int.faces[k].nIntEdge; p++) { // edge integral
@@ -2037,7 +2042,10 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
-                f += Jac * weight * optimalisationFunctional.boundaryValue(WL, dWL, n[k][p], TT[k], elemData);
+                double[] aux = optimalisationFunctional.boundaryValue(WL, dWL, n[k][p], TT[k], elemData);
+                for (int i = 0; i < nF; i++) {
+                    f[i] += Jac * weight * aux[i];
+                }
             }
             return f;
         }
