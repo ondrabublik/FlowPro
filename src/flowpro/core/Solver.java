@@ -928,12 +928,14 @@ public class Solver {
                 } else {
                     res = alfa * res + (1 - alfa) * residuum; // low pass filter
                 }
-                int logRes = (int) Math.log(residuum);
+                int logRes = (int) Math.log(res);
                 if (logRes < logResOld) {
-                    maxCFL *= 1.2;
-                    logResOld = logRes;
+                    maxCFL *= 1.3;
+                } else{
+                    maxCFL *= 0.8;
                 }
-                actualCFL += maxCFL / 20;
+                logResOld = logRes;
+                actualCFL += maxCFL / 5;
                 if (actualCFL > maxCFL) {
                     actualCFL = maxCFL;
                 }

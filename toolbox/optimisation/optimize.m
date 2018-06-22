@@ -10,6 +10,9 @@ global meshPath optimisationPath
     meshPath = strcat(geometryPath, '/mesh/');
     simulationPath = strcat(geometryPath, simulation, '/');
     optimisationPath = strcat(geometryPath, simulation, '/optimisation/');
+    if(~isdir(optimisationPath))
+        mkdir(optimisationPath);
+    end
     paramFile = [simulationPath,'parameters.txt'];
 
     % vlastni optimalizace
@@ -19,7 +22,7 @@ global meshPath optimisationPath
     alphaEvo = [alpha];
     IEvo = [];
     derI = [];
-    optStep = 20;
+    optStep = 10;
     optTol = 1e-4;
     
     % initMesh
@@ -53,7 +56,7 @@ global meshPath optimisationPath
         end
         % run computation
         cd(getFlowProPath);
-        nDomains = 2;
+        nDomains = 1;
         if(nDomains > 1)
             simpleMetis(nDomains,'x');
             system(['java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)])
@@ -67,7 +70,7 @@ global meshPath optimisationPath
         
         % export residuals
         cd(getFlowProPath);
-        optimalisationExport;
+        optimalisationExport('all');
         cd(currentPath);
         
         % compute gradient using adjoint method

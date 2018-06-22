@@ -34,7 +34,7 @@ public class Parameters implements Serializable {
     public final double newtonIterTol;
     public final double penalty;    // interior penalty constant
     public final double meshScale; // mesh scale
-    boolean useJacobiMatrix;
+    public boolean useJacobiMatrix;
     
     // solver type
     public String linearSolver;

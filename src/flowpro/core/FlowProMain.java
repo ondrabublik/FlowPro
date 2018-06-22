@@ -556,7 +556,7 @@ public class FlowProMain {
         for (int i = 0; i < TT.length; i++) {
             TEale[i] = new int[TT[i].length];
             for (int k = 0; k < TT[i].length; k++) {
-                if (TT[i][k] < 0) {
+                //if (TT[i][k] < 0) {
                     int[] faceIndexes = elemType[i].getFaceIndexes(k);
                     for (int j = 0; j < faceIndexes.length; j++) {
                         faceIndexes[j] = TP[i][faceIndexes[j]];
@@ -572,7 +572,7 @@ public class FlowProMain {
                     } else {
                         TEale[i][k] = 0;
                     }
-                }
+                //}
             }
         }
         return TEale;

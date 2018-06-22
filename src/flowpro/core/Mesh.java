@@ -358,7 +358,7 @@ public class Mesh implements Serializable {
 
         // optimalisation
         public Functional optimalisationFunctional; // functional for optimalisation
-        double[] optimFunDer;
+        double[][] optimFunDer;
 
         // matice globalnich indexu a globalni matice s pravou stranou
         public int[] gi_U;
@@ -787,7 +787,7 @@ public class Mesh implements Serializable {
                     if (TT[k] > -1) {
                         for (int i = 0; i < nBasis; i++) {
                             for (int d = 0; d < dim; d++) {
-                                dBazeSumL[i] += dBaseLeft[i][d] * n[k][p][d] / 2;
+                                dBazeSumL[i] += dBaseLeft[i][d] * n[k][p][d];
                             }
                         }
                     }
@@ -795,7 +795,7 @@ public class Mesh implements Serializable {
                     if (TT[k] > -1) {
                         for (int i = 0; i < nRBasis; i++) {
                             for (int d = 0; d < dim; d++) {
-                                dBazeSumR[i] += dBaseRight[i][d] * n[k][p][d] / 2;
+                                dBazeSumR[i] += dBaseRight[i][d] * n[k][p][d];
                             }
                         }
                     }
@@ -841,7 +841,7 @@ public class Mesh implements Serializable {
                                     if (eqn.isConvective()) {
                                         ADiag[nBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aL[nEqs * q + m] * baseLeft[i] * baseLeft[j];
                                         if (m == q) {
-                                            ADiag[nBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumL[i] * baseLeft[j];
+                                            ADiag[nBasis * m + i][nBasis * q + j] -= 0.5 * (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumL[i] * baseLeft[j];
                                         }
                                     }
                                     if (eqn.isDiffusive()) {
@@ -862,7 +862,7 @@ public class Mesh implements Serializable {
                                     if (eqn.isConvective()) {
                                         Sous.MR[nRBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aR[nEqs * q + m] * baseRight[i] * baseLeft[j];
                                         if (m == q) {
-                                            Sous.MR[nRBasis * m + i][nBasis * q + j] -= (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
+                                            Sous.MR[nRBasis * m + i][nBasis * q + j] -= 0.5 * (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
                                         }
                                     }
                                     if (eqn.isDiffusive()) {
@@ -1911,13 +1911,16 @@ public class Mesh implements Serializable {
         // optimalisation
         // for optimization toolbox, generate residuum(W)
         public void exportLocalFunctionalDerivative() {
-            optimFunDer = new double[nBasis * nEqs];
+            int nFunctional = optimalisationFunctional.getN();
+            optimFunDer = new double[nBasis * nEqs][nFunctional];
             double[] V = new double[nBasis * nEqs];
-            double Iw = computeFunctional(W);
+            double[] Iw = computeFunctional(W);
             for (int i = 0; i < nBasis * nEqs; i++) {
                 V[i] = par.h;
-                double Iwh = computeFunctional(Mat.plusVec(W, V));
-                optimFunDer[i] = (Iwh - Iw) / par.h;
+                double[] Iwh = computeFunctional(Mat.plusVec(W, V));
+                for(int j = 0; j < nFunctional; j++){
+                    optimFunDer[i][j] = (Iwh[j] - Iw[j]) / par.h;
+                }
                 V[i] = 0;
             }
         }
@@ -1975,7 +1978,7 @@ public class Mesh implements Serializable {
             }
         }
 
-        double computeFunctional(double[] V) {
+        double[] computeFunctional(double[] V) {
             if (V == null) {
                 V = new double[nBasis * nEqs];
             }
@@ -2011,7 +2014,7 @@ public class Mesh implements Serializable {
                     f[i] += Jac * weight * aux[i];
                 }
             }
-            return optimalisationFunctional.combineFunctionals(f);
+            return f;
         }
 
         // tato funkce vypocitava reziduum__________________________________________

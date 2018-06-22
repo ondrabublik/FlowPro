@@ -137,12 +137,37 @@ public class OptimisationToolExport {
 
     public void exportFunctionalDerivative() throws IOException {
         Element[] elems = mesh.getElems();
+        // compute functional I0
+        int nFunctional = elems[0].optimalisationFunctional.getN();
+        double[] f = new double[nFunctional];
+        for (Element elem : elems) {
+            double[] aux = elem.computeFunctional(null);
+            for (int j = 0; j < nFunctional; j++) {
+                f[j] += aux[j];
+            }
+        }
+        double combinedFunctional0 = elems[0].optimalisationFunctional.combineFunctionals(f);
+
+        // compute combined function derivatives
+        double[] derivativeCombinedFunctional = new double[nFunctional];
+        double h = 1e-6;
+        for (int j = 0; j < nFunctional; j++) {
+            f[j] += h;
+            derivativeCombinedFunctional[j] = (elems[0].optimalisationFunctional.combineFunctionals(f) - combinedFunctional0) / h;
+            f[j] -= h;
+        }
+
+        // compute functional derivative
         FileWriter fw = new FileWriter(optimisationPath + "dIdw.txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
-            for (int i = 0; i < mesh.nElems; i++) {
-                elems[i].exportLocalFunctionalDerivative();
-                for (int j = 0; j < elems[i].optimFunDer.length; j++) {
-                    out.write(elems[i].optimFunDer[j] + " ");
+            for (int k = 0; k < mesh.nElems; k++) {
+                elems[k].exportLocalFunctionalDerivative();
+                for (int i = 0; i < elems[k].optimFunDer.length; i++) {
+                    double dfdwi = 0;
+                    for (int j = 0; j < nFunctional; j++) {
+                        dfdwi += derivativeCombinedFunctional[j] * elems[k].optimFunDer[i][j];
+                    }
+                    out.write(dfdwi + " ");
                     out.newLine();
                 }
             }
@@ -152,13 +177,18 @@ public class OptimisationToolExport {
 
     public void exportFunctional(int alpha) throws IOException {
         Element[] elems = mesh.getElems();
-        double f = 0;
+        int nFunctional = elems[0].optimalisationFunctional.getN();
+        double[] f = new double[nFunctional];
         for (Element elem : elems) {
-            f += elem.computeFunctional(null);
+            double[] aux = elem.computeFunctional(null);
+            for (int j = 0; j < nFunctional; j++) {
+                f[j] += aux[j];
+            }
         }
+        double combinedFunctional = elems[0].optimalisationFunctional.combineFunctionals(f);
         FileWriter fw = new FileWriter(optimisationPath + "I" + alpha + ".txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
-            out.write(f + " ");
+            out.write(combinedFunctional + " ");
             out.newLine();
             out.close();
         }

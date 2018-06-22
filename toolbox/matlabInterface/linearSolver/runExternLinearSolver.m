@@ -4,7 +4,7 @@ close all;
 % start flowpro
 run
 disp('pausing ...')
-pause(10)
+pause(5)
 disp('runing ...')
 
 javaaddpath(pwd);
@@ -63,10 +63,13 @@ while 1
             
             % gmres =================================================
 %             setup.type = 'nofill';
-%             setup.droptol = 0.01;
-%             [L,U] = ilu(A,setup);
+%             setup.droptol = 0;
+%             setup.udiag = 0;
 %             tic
-%             x = gmres(A,rhs,50,1e-3,5,L,U);
+%             [L,U] = ilu(A,setup);
+%             toc
+%             tic
+%             x = gmres(A,rhs,10,1e-3,5,L,U);
 %             toc
             % gmres =================================================
             

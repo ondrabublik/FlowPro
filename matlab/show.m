@@ -20,7 +20,7 @@ function show(varargin)
     cd(getFlowProPath);
     system(str);
     cd(path)
-%     return
+    return
     try
         [meshPath, simulPath, outputPath] = getPath;
         vertices = load([outputPath,'vertices.txt']);
