@@ -125,6 +125,16 @@ if strcmp(action,'initialize')
     % zelena hranice
     uicontrol('Style','text', 'Units','normalized', 'Position',[0.65 0.56 0.4 0.04],'background','blue', 'foregroundcolor', 'white','String', 'Mesh generation');
     
+    uicontrol(...
+        'Style','radiobutton', ...
+        'Units','normalized', ...
+        'Position',[0.67 0.50 0.07 0.04], ...
+        'BackGroundColor',[0.8,0.8,0.8], ...
+        'visible', 'on', ...
+        'HitTest', 'off', ...
+        'String','Load?', ...
+        'Tag','loadMesh');
+    
     % tlacitko pro generovani site
     uicontrol('Style','text', 'Units','normalized', 'Position',[0.75 0.50 0.04 0.04],'BackGroundColor',[0.8,0.8,0.8],'visible', 'on', 'String','hmax');
     uicontrol('Style','edit', 'Units','normalized', 'Position',[0.79 0.50 0.04 0.04],'BackGroundColor','w','visible', 'on', 'String','0.1','tag','hmax');
@@ -163,7 +173,7 @@ if strcmp(action,'initialize')
         'Units','normalized', ...
         'Position',[0.75 0.38 0.1 0.05], ...
         'BackGroundColor','w', ...
-        'String',{'inlet','outlet','wall','inviscid wall'}, ...
+        'String',{'inlet','outlet','wall','inviscid wall','userdef'}, ...
         'tag','druhZobraz');
     
     uicontrol(...
@@ -299,12 +309,26 @@ elseif strcmp(action,'generator') % generujesit
         hdata.fun = @fun;
     end
     
-    [P,T,junk,stat] = meshfaces(node,cnect,[],hdata,[]); % vypujceny kod
+    if(get(findobj('tag','loadMesh'),'Value') == 0)
+        [P,T,junk,stat] = meshfaces(node,cnect,[],hdata,[]); % vypujceny kod
+    else
+        load mesh;
+        P = mesh{1};
+        T = mesh{2};
+        stat.Triangles = size(T,1);
+        stat.Nodes = size(P,1);
+        stat.Mean_quality = -1;
+        stat.Min_quality = -1;
+    end
     
     set(findobj('tag','pocTroj'),'String',num2str(stat.Triangles));
     set(findobj('tag','pocBod'),'String',num2str(stat.Nodes));
     set(findobj('tag','prumKval'),'String',num2str(stat.Mean_quality));
     set(findobj('tag','minKval'),'String',num2str(stat.Min_quality));
+    
+%     load mesh;
+%     P = mesh{1};
+%     T = mesh{2};
     
     typ = zeros(length(P(:,1)),1);
     %P je matice, ktera ma v prvnim radku souradnice bodu X, ve druhem sloupci je souradnice Y, ve
@@ -453,6 +477,9 @@ elseif strcmp(action,'priradtyp') % prirazuje zvoleny typ hranici
        case 4
             bound(IB,5) = -4;
             plot(bound(IB,1),bound(IB,2),'.','Color','m');
+       case 5
+            bound(IB,5) = -5;
+            plot(bound(IB,1),bound(IB,2),'.','Color','y');
     end 
     hold off;
 
@@ -473,6 +500,8 @@ elseif strcmp(action,'vypoctisit') % vypocitava vsechny hodnoty site potrebne pr
                 plot([P(bound(i,3),1),P(bound(i,4),1)],[P(bound(i,3),2),P(bound(i,4),2)],'k','linewidth',2);
             case -4
                 plot([P(bound(i,3),1),P(bound(i,4),1)],[P(bound(i,3),2),P(bound(i,4),2)],'m','linewidth',2);
+            case -5
+                plot([P(bound(i,3),1),P(bound(i,4),1)],[P(bound(i,3),2),P(bound(i,4),2)],'y','linewidth',2);
         end
     end
     hold off;

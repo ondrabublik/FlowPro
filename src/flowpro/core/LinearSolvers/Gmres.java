@@ -57,7 +57,7 @@ public class Gmres extends LinearSolver {
         e1[0] = 1;
 
         for (int iter = 0; iter < iterationLimit; iter++) {          // begin iteration
-            ComputeResiduum(x, r, 1, nThreads);
+            //ComputeResiduum(x, r, 1, nThreads);
             norm_r = norm(r);
             for (int j = 0; j < n; j++) {
                 V[0][j] = r[j] / norm_r;

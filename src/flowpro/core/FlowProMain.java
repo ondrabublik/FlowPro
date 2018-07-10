@@ -85,7 +85,7 @@ public class FlowProMain {
                 case "local":
                     dgfem = new FlowProMain();
                     solver = dgfem.solverFactory(false, false, 0);
-                    solution = solver.lonerSolve();
+                    solution = solver.localSolve();
                     solver.saveData(solution);
                     break;
 
@@ -96,7 +96,7 @@ public class FlowProMain {
                     Thread proxyThread = new Thread(proxy);
                     proxyThread.start();
                     solver = dgfem.solverFactory(false, false, 0);
-                    solution = solver.lonerSolve();
+                    solution = solver.localSolve();
                     solver.saveData(solution);
                     synchronized (lock) {
                         proxy.stop();

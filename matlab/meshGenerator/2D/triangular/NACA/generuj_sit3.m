@@ -8,7 +8,7 @@ n2 = 50;
 X = zeros(n1+1,n2+1);
 Y = zeros(n1+1,n2+1);
 
-data = NACA(np);
+data = NACA(np,0);
 xs1 = linspace(1,0,ns+1)';
 xs2 = linspace(0,1,ns+1)';
 

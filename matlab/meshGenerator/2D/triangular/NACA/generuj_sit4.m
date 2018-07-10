@@ -1,13 +1,13 @@
 function generuj_sit4
-np = 40; % pocet elementu profilu
+np = 80; % pocet elementu profilu
 n1 = 2*np;
-n2 = 30;
+n2 = 60;
 
 X = zeros(n1,n2);
 Y = zeros(n1,n2);
 
-% data = NACA(np);
-data = OVAL(2*np);
+data = NACA(np,0);
+% data = OVAL(2*np);
 
 I = 1:n1;
 X(I,1) = data(I,1);
@@ -72,12 +72,16 @@ save 'P' P;
 T = TP;
 save 'T' T;
 
+mesh{1} = P;
+mesh{2} = T;
+save mesh mesh;
+
 %__________________________________________________________________________
 function [Xp,Yp] = Hyp_gen4(X,Y)
 n1 = length(X(:,1));
 n2 = length(X(1,:));
 K = 12;
-lambda = 5;
+lambda = 8;
 
 de = 1/n1;
 dn = 3*1/n2;

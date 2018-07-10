@@ -629,15 +629,15 @@ public class Solver {
     }
 
     // vlastni vypocet
-    public Solution lonerSolve() throws IOException {
+    public Solution localSolve() throws IOException {
         if (par.explicitTimeIntegration) {
-            return lonerSolveExplicit();
+            return localSolveExplicit();
         } else {
-            return lonerSolveImplicit();
+            return localSolveImplicit();
         }
     }
 
-    public Solution lonerSolveImplicit() throws IOException {
+    public Solution localSolveImplicit() throws IOException {
         int nElems = elems.length;
         LinearSolver linSolver = LinearSolver.factory(par, elems, dofs);
         JacobiAssembler assembler = new JacobiAssembler(elems, par);
@@ -781,7 +781,7 @@ public class Solver {
         return solution;
     }
 
-    public Solution lonerSolveExplicit() throws IOException {
+    public Solution localSolveExplicit() throws IOException {
         if (par.movingMesh) {
             LOG.error("Moving mesh not supported for local time stepping explicit method!");
         }

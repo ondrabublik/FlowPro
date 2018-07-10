@@ -1,9 +1,12 @@
 package flowpro.core.LinearSolvers;
 
+import eigenwrapper.EigenWrapper;
 import flowpro.core.Mesh;
 import flowpro.core.Parameters;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import umfpackwrapper.UmfpackWrapper;
 
 /**
  *
@@ -15,8 +18,8 @@ public class ExternCppSolver extends LinearSolver {
     int nnz;
     public int[] IA, JA;
     public double[] HA, b; // CRS matrix format
-    
-    public native void solveEigen(int[] I, int[] J, double[] H, double[] b, double[] x);
+    //EigenWrapper eigenWrap;
+    UmfpackWrapper umfWrap;
 
     ExternCppSolver(Mesh.Element[] elems, int dofs, Parameters par) {
         this.elems = elems;
@@ -26,17 +29,18 @@ public class ExternCppSolver extends LinearSolver {
         JA = new int[nnz];
         HA = new double[nnz];
         b = new double[dofs];
-        
-        System.loadLibrary("libJ2C");
-        System.out.println("Eigen dll library was loaded!");
+        buildCRSStructure();
+        //eigenWrap = new EigenWrapper();
+        umfWrap = new UmfpackWrapper();
     }
 
     @Override
     public boolean solve(double[] x) {
         try {
-            buildCRSStructure();
             fillAb();
-            solveEigen(IA, JA, HA, b, x);
+            umfWrap.solveUmfpack(IA, JA, HA, b, x);
+            //buildMatrix();
+            //eigenWrap.solveEigen(IA, JA, HA, b, x);
             return true;
         } catch (Exception ex) {
             Logger.getLogger(ExternSolver.class.getName()).log(Level.SEVERE, null, ex);
@@ -44,6 +48,47 @@ public class ExternCppSolver extends LinearSolver {
         }
     }
 
+    public void buildMatrix() throws IOException {
+        int s = 0;
+        for (Mesh.Element elem : elems) {
+            int n = elem.getNEqs() * elem.nBasis;
+            int[] glob = elem.gi_U;
+            double[][] Ad = elem.ADiag;
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    IA[s] = glob[i];
+                    JA[s] = glob[j];
+                    HA[s] = Ad[j][i];
+                    s++;
+                }
+            }
+            for (int k = 0; k < elem.nFaces; k++) {
+                if (elem.TT[k] > -1) {
+                    int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
+                    int[] globe = elems[elem.TT[k]].gi_U;
+                    double[][] An = elem.ANeighs[k].MR;
+                    for (int i = 0; i < n; i++) {
+                        for (int j = 0; j < ne; j++) {
+                            IA[s] = glob[i];
+                            JA[s] = globe[j];
+                            HA[s] = An[j][i];
+                            s++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        s = 0;
+        for (Mesh.Element elem : elems) {
+            int n = elem.getNEqs() * elem.nBasis;
+            for (int i = 0; i < n; i++) {
+                b[s] = elem.RHS_loc[i];
+                s++;
+            }
+        }
+    }
+    
     public void buildCRSStructure() {
         int[] IAaux = new int[nnz];
         int si = 0;

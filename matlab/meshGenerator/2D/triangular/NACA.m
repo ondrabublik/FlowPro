@@ -7,7 +7,7 @@ m = str2double(designation(1))/100;
 p = str2double(designation(2))/10;
 
 a0= 0.2969;
-a1=-0.1260;
+a1=-0.1260 - 0.0021;
 a2=-0.3516;
 a3= 0.2843;
 a4=-0.1015;
@@ -16,7 +16,7 @@ c = 1;
 x = linspace(0,c,n+1)';
 
 % neekvidistantni deleni
-% x = c*(x/c).^2;
+x = c*(x/c).^2;
 r = x/c;
 x = c*((1-r).*r.^4 + r.*sqrt(r));
 

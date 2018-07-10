@@ -368,6 +368,9 @@ public class Mesh implements Serializable {
         public double[] Wo;    // hodnota v n te casove hladine
         public double[] Wo2;   // hodnota v n-1 casove hladine
 
+        // derivative correction
+        double[] R;
+
         // external field
         double[][] externalField;
 
@@ -1079,6 +1082,16 @@ public class Mesh implements Serializable {
                     dBaseRight = Int.faces[k].dXbasisFaceRight[p];
                 }
 
+                double dL = 0;
+                for (int d = 0; d < dim; d++) {
+                    if (TT[k] > -1) {
+                        dL += (Xs[d] - elems[TT[k]].Xs[d]) * n[k][p][d];
+                    } else {
+                        dL += (Xs[d] - Xes[k][d]) * n[k][p][d];
+                    }
+                }
+                dL = Math.abs(dL);
+
                 // interpolation of mesh velocity
                 double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
 
@@ -1089,11 +1102,11 @@ public class Mesh implements Serializable {
 
                 // values from boundary inlet (WL, dWL)
                 if (elemType.order > 1) { // Discontinuous Galerkin Method
-                    for (int j = 0; j < nEqs; j++) {
-                        for (int m = 0; m < nBasis; m++) {
-                            WL[j] += (W[j * nBasis + m] + V[j * nBasis + m]) * baseLeft[m];
+                    for (int m = 0; m < nEqs; m++) {
+                        for (int j = 0; j < nBasis; j++) {
+                            WL[m] += (W[m * nBasis + j] + V[m * nBasis + j]) * baseLeft[j];
                             for (int d = 0; d < dim; d++) {
-                                dWL[nEqs * d + j] += (W[j * nBasis + m] + V[j * nBasis + m]) * dBaseLeft[m][d];
+                                dWL[nEqs * d + m] += (W[m * nBasis + j] + V[m * nBasis + j]) * dBaseLeft[j][d];
                             }
                         }
                     }
@@ -1104,12 +1117,12 @@ public class Mesh implements Serializable {
                         dWL = volumeDerivative(k, V, null, u, elemData);
                     }
                     double sigmaL = FVMlimiter(dWL, par.FVMlimiter);
-                    for (int j = 0; j < nEqs; j++) {
+                    for (int m = 0; m < nEqs; m++) {
                         double dW = 0;
                         for (int d = 0; d < dim; d++) {
-                            dW = dW + (Int.faces[k].coordinatesFace[p][d] - Xs[d]) * dWL[nEqs * d + j];
+                            dW = dW + (Int.faces[k].coordinatesFace[p][d] - Xs[d]) * dWL[nEqs * d + m];
                         }
-                        WL[j] = W[j] + V[j] + sigmaL * dW;
+                        WL[m] = W[m] + V[m] + sigmaL * dW;
                     }
                 }
 
@@ -1178,8 +1191,26 @@ public class Mesh implements Serializable {
                 }
 
                 // viscid flux in integration point
+                // DDG
+                double beta0 = 2;
+                double[] Wc = new double[nEqs];
+                double[] dWc = new double[nEqs * dim];
+                for (int m = 0; m < nEqs; m++) {
+                    if (TT[k] > 0) {
+                        Wc[m] = (WL[m] + WR[m]) / 2;
+                    } else {
+                        Wc[m] = WR[m];
+                    }
+                    for (int d = 0; d < dim; d++) {
+                        dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
+                    }
+                }
+                
+                // DDG
                 if (eqn.isDiffusive()) {
-                    fvn = eqn.numericalDiffusiveFlux(WL, WR, dWL, dWR, n[k][p], TT[k], elemData); // vazky tok
+                    fvn = eqn.numericalDiffusiveFlux(Wc, Wc, dWc, dWc, n[k][p], TT[k], elemData);
+                    //fvn = eqn.diffusiveFlux(Wc, dWc, n[k][p], elemData);
+                    //fvn = eqn.numericalDiffusiveFlux(WL, WR, dWL, dWR, n[k][p], TT[k], elemData); // vazky tok
                 }
 
                 for (int m = 0; m < nEqs; m++) {
@@ -1200,7 +1231,7 @@ public class Mesh implements Serializable {
                         if (eqn.isDiffusive()) {
                             K[nBasis * m + j] += jwb * fvn[m];
                             if (TT[k] > -1) {
-                                K[nBasis * m + j] -= (c_IP + elems[TT[k]].c_IP) / 2 * jwb * (WL[m] - WR[m]);
+                                K[nBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
                             } else if (eqn.isIPFace(TT[k])) {
                                 K[nBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
                             }
@@ -1419,7 +1450,8 @@ public class Mesh implements Serializable {
             return u;
         }
 
-        void updateRHS(double[] x) {
+        void updateRHS(double[] x
+        ) {
             int n = nEqs * nBasis;
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
@@ -1440,7 +1472,8 @@ public class Mesh implements Serializable {
          * @param dt
          * @return L1norm(W - Wo)
          */
-        double calculateResiduumW(double dt) {
+        double calculateResiduumW(double dt
+        ) {
             double rez = 0;
             for (int m = 0; m < nEqs; m++) {
                 for (int j = 0; j < nBasis; j++) {
@@ -1918,7 +1951,7 @@ public class Mesh implements Serializable {
             for (int i = 0; i < nBasis * nEqs; i++) {
                 V[i] = par.h;
                 double[] Iwh = computeFunctional(Mat.plusVec(W, V));
-                for(int j = 0; j < nFunctional; j++){
+                for (int j = 0; j < nFunctional; j++) {
                     optimFunDer[i][j] = (Iwh[j] - Iw[j]) / par.h;
                 }
                 V[i] = 0;

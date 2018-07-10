@@ -20,6 +20,35 @@ Y(:,1) = [zeros(ns+1,1);data(2:2*np,2);zeros(ns+1,1)];
 
 [X,Y] = Hyp_gen2(X,Y);
 
+[n1,n2] = size(X);
+PX = zeros(n1*n2,1);
+PY = zeros(n1*n2,1);
+Ip = zeros(n1,n2);
+k = 1;
+for i = 1:n1
+    for j = 1:n2
+        PX(k) = X(i,j);
+        PY(k) = Y(i,j);
+        Ip(i,j) = k;
+        k = k + 1; 
+    end
+end
+
+k = 1;
+TP = zeros((n1-1)*(n2-1),4);
+for i = 1:n1-1
+    for j = 1:n2-1
+        TP(k,:) = [Ip(i,j),Ip(i+1,j),Ip(i+1,j+1),Ip(i,j+1)];
+        k = k + 1; 
+    end
+end
+
+P = [PX,PY];
+Q = TP;
+
+save 'P' P
+save 'Q' Q
+
 figure;
 hold on;
 for i = 1:n1
