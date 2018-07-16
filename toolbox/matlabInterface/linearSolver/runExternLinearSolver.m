@@ -1,5 +1,6 @@
 function runExternLinearSolver
 close all;
+clc
 
 % start flowpro
 run
