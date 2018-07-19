@@ -39,7 +39,7 @@ public abstract class Deformation implements Serializable {
 
     abstract public void nextTimeLevel(Element[] elems);
 
-    abstract public void calculateForces(Element[] elems);
+    abstract public void calculateForces(Element[] elems, MeshMove[] mshMov);
 
     public void recalculateMesh(Element[] elems, int order) { // dodelat paralelni verzi
         for (Element elem : elems) {

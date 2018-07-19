@@ -15,13 +15,12 @@ oos = ObjectOutputStream(BufferedOutputStream(s.getOutputStream));
 oos.writeObject('OK');
 oos.flush();
 
-figure
 while 1
     try
         tag = ois.readObject;
     catch
         disp('Connection closed!');
-        close all;
+%         close all;
         break;
     end
     switch tag
@@ -42,9 +41,28 @@ while 1
             Fyo = zeros(nBody,1);
             Mo = zeros(nBody,1);
             
-            m = 100;
-            I = 1000;
+            m = 10;
+            I = 100;
             
+            xt = 0;
+            yt = 0;
+            alfat = 0;
+            fxt = 0;
+            fyt = 0;
+            Mt = 0;
+            tt = 0;
+            
+            figure
+            subplot(1,2,1)
+            hold on
+            tiskFx = plot(tt,fxt);
+            tiskFy = plot(tt,fyt,'r');
+            tiskM = plot(tt,Mt,'g');
+            subplot(1,2,2)
+            hold on
+            tiskx = plot(tt,xt);
+            tisky = plot(tt,yt,'r');
+            tiskalfa = plot(tt,alfat,'g');
         case 'def'
             % read data from FlowPro
             t = ois.readDouble();
@@ -53,8 +71,9 @@ while 1
             Fy = ois.readObject();
             M = ois.readObject();
             %-------------------------
-            u(2) = uo(2) + dt*(3/2*Fx(2)-1/2*Fxo(2))/m;
-            v(2) = vo(2) + dt*(3/2*Fy(2)-1/2*Fyo(2))/m;
+            Fthrust = 0.1;
+            u(2) = uo(2) + dt*(3/2*Fx(2)-1/2*Fxo(2) + Fthrust*sin(alfa(2)))/m;
+            v(2) = vo(2) + dt*(3/2*Fy(2)-1/2*Fyo(2) + Fthrust*cos(alfa(2)))/m;
             om(2) = omo(2) + dt*(3/2*M(2)-1/2*Mo(2))/I;
             x(2) = x(2) + dt*(3/2*u(2)-1/2*uo(2));
             y(2) = y(2) + dt*(3/2*v(2)-1/2*vo(2));
@@ -69,7 +88,7 @@ while 1
             omo = om;
             Fxo = Fx;
             Fyo = Fy;
-            Mo = M;   
+            Mo = M;
             
             % write data to FlowPro
             oos.writeObject(x);
@@ -77,6 +96,22 @@ while 1
             oos.writeObject(alfa);
             oos.flush;
             %-------------------------
+            
+            tt = [tt,t];
+            xt = [xt,x(2)];
+            yt = [yt,y(2)];
+            alfat = [alfat,alfa(2)];
+            fxt = [fxt,Fxo(2)];
+            fyt = [fyt,Fyo(2)];
+            Mt = [Mt,M(2)];
+            
+            set(tiskx,'Xdata',tt,'Ydata',xt);
+            set(tisky,'Xdata',tt,'Ydata',yt);
+            set(tiskalfa,'Xdata',tt,'Ydata',alfat);
+            set(tiskFx,'Xdata',tt,'Ydata',fxt);
+            set(tiskFy,'Xdata',tt,'Ydata',fyt);
+            set(tiskM,'Xdata',tt,'Ydata',Mt);
+            drawnow;
         case 'next'
             
     end

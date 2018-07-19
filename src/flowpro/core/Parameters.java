@@ -33,6 +33,7 @@ public class Parameters implements Serializable {
     public final int newtonIters;   // pocet vnitrnich iteraci    
     public final double newtonIterTol;
     public final double penalty;    // interior penalty constant
+    public final double beta0;  // direct discontinuous constant 
     public final double meshScale; // mesh scale
     public boolean useJacobiMatrix;
     
@@ -147,6 +148,12 @@ public class Parameters implements Serializable {
                 penalty = props.getDouble("penalty");
             } else {
                 penalty = 0;
+            }
+            
+            if (props.containsKey("beta0")) {
+                beta0 = props.getDouble("beta0");
+            } else {
+                beta0 = 2;
             }
 
             if (props.containsKey("FVMlimiter")) {

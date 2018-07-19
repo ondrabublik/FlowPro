@@ -71,10 +71,11 @@ public class Deformation3DRigid extends Deformation {
         }
     }
 
-    public void calculateForces(Element[] elems) {
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         totalTranslationForce = new double[3][nBodies];
         totalRotationForce = new double[3][nBodies];
         for (int b = 0; b < nBodies; b++) {
+            double[] moveTranslation = mshMov[b].getTranslation();
             for (Element elem : elems) {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
@@ -95,7 +96,7 @@ public class Deformation3DRigid extends Deformation {
                             }
                         }
                         double[] Xcenter = new double[]{center[0][b], center[1][b], center[2][b]};
-                        double[] M = Mat.cross(f, Mat.minusVec(elem.Xes[k], Xcenter));
+                        double[] M = Mat.cross(f, Mat.minusVec(elem.Xes[k], Mat.plusVec(Xcenter,moveTranslation)));
                         for (int d = 0; d < elem.dim; d++) {
                             totalTranslationForce[d][b] += f[d];
                             totalRotationForce[d][b] += M[d];

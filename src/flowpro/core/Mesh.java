@@ -732,6 +732,16 @@ public class Mesh implements Serializable {
                 // interpolation of mesh velocity
                 double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
 
+                double dL = 0;
+                for (int d = 0; d < dim; d++) {
+                    if (TT[k] > -1) {
+                        dL += (Xs[d] - elems[TT[k]].Xs[d]) * n[k][p][d];
+                    } else {
+                        dL += (Xs[d] - Xes[k][d]) * n[k][p][d];
+                    }
+                }
+                dL = Math.abs(dL);
+                
                 double[] WL = new double[nEqs];
                 double[] WR = new double[nEqs];
                 double[] dWL = new double[dim * nEqs];
@@ -909,12 +919,32 @@ public class Mesh implements Serializable {
                     }
 
                     if (eqn.isDiffusive()) {
-                        double[] fvR0 = eqn.numericalDiffusiveFlux(WL, WR, dWL, dWR, n[k][p], TT[k], elemData);
+                        double[] Wc = new double[nEqs];
+                        double[] dWc = new double[nEqs * dim];
+                        for (int m = 0; m < nEqs; m++) {
+                            if (TT[k] > 0) {
+                                Wc[m] = (WL[m] + WR[m]) / 2;
+                            } else {
+                                Wc[m] = WR[m];
+                            }
+                            for (int d = 0; d < dim; d++) {
+                                dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + par.beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
+                            }
+                        }
+                        double[] fvR0 = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][p], TT[k], elemData);
                         for (int m = 0; m < nEqs; m++) {
                             V[m] = h;
                             double[] WLh = Mat.plusVec(WL, V);
                             double[] WRh = eqn.boundaryValue(WLh, n[k][p], TT[k], elemData);
-                            double[] fvRh = eqn.numericalDiffusiveFlux(WLh, WRh, dWL, dWR, n[k][p], TT[k], elemData);
+                            double[] Wch = new double[nEqs];
+                            for (int q = 0; q < nEqs; q++) {
+                                if (TT[k] > 0) {
+                                    Wch[q] = (WLh[q] + WRh[q]) / 2;
+                                } else {
+                                    Wch[q] = WRh[q];
+                                }
+                            }
+                            double[] fvRh = eqn.numericalDiffusiveFlux(Wch, dWc, n[k][p], TT[k], elemData);
                             for (int q = 0; q < nEqs; q++) {
                                 double derfvR = (fvRh[q] - fvR0[q]) / h;
                                 double derIP = c_IP * (WLh[q] - WL[q] - (WRh[q] - WR[q])) / h;
@@ -936,7 +966,14 @@ public class Mesh implements Serializable {
                             for (int m = 0; m < nEqs; m++) {
                                 dV[nEqs * d + m] = h;
                                 double[] dWLh = Mat.plusVec(dWL, dV);
-                                double[] fvRh = eqn.numericalDiffusiveFlux(WL, WR, dWLh, dWLh, n[k][p], TT[k], elemData);
+                                double[] dWch = new double[nEqs * dim];
+                                for (int q = 0; q < nEqs; q++) {
+
+                                    for (int r = 0; r < dim; r++) {
+                                        dWch[nEqs * r + q] = (dWLh[nEqs * r + q] + dWR[nEqs * r + q]) / 2 + par.beta0 * (WR[q] - WL[q]) / dL * n[k][p][r];
+                                    }
+                                }
+                                double[] fvRh = eqn.numericalDiffusiveFlux(Wc, dWch, n[k][p], TT[k], elemData);
                                 dV[nEqs * d + m] = 0;
                                 for (int q = 0; q < nEqs; q++) {
                                     double derfvR = (fvRh[q] - fvR0[q]) / h;
@@ -1192,25 +1229,21 @@ public class Mesh implements Serializable {
 
                 // viscid flux in integration point
                 // DDG
-                double beta0 = 2;
-                double[] Wc = new double[nEqs];
-                double[] dWc = new double[nEqs * dim];
-                for (int m = 0; m < nEqs; m++) {
-                    if (TT[k] > 0) {
-                        Wc[m] = (WL[m] + WR[m]) / 2;
-                    } else {
-                        Wc[m] = WR[m];
-                    }
-                    for (int d = 0; d < dim; d++) {
-                        dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
-                    }
-                }
-                
-                // DDG
                 if (eqn.isDiffusive()) {
-                    fvn = eqn.numericalDiffusiveFlux(Wc, Wc, dWc, dWc, n[k][p], TT[k], elemData);
-                    //fvn = eqn.diffusiveFlux(Wc, dWc, n[k][p], elemData);
-                    //fvn = eqn.numericalDiffusiveFlux(WL, WR, dWL, dWR, n[k][p], TT[k], elemData); // vazky tok
+                    // DDG
+                    double[] Wc = new double[nEqs];
+                    double[] dWc = new double[nEqs * dim];
+                    for (int m = 0; m < nEqs; m++) {
+                        if (TT[k] > 0) {
+                            Wc[m] = (WL[m] + WR[m]) / 2;
+                        } else {
+                            Wc[m] = WR[m];
+                        }
+                        for (int d = 0; d < dim; d++) {
+                            dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + par.beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
+                        }
+                    }
+                    fvn = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][p], TT[k], elemData);
                 }
 
                 for (int m = 0; m < nEqs; m++) {

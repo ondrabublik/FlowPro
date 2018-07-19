@@ -79,7 +79,7 @@ public class Deformation3DBeam extends Deformation {
         }
     }
 
-    public void calculateForces(Element[] elems) {
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         boundaryForce = null;
         faceIndexes = null;
 

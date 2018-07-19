@@ -10,6 +10,7 @@ import fetcher.FetcherServer;
 import fetcher.ZipFile;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
+import flowpro.api.MeshMove;
 import flowpro.core.meshDeformation.*;
 import flowpro.core.parallel.Domain.Subdomain;
 import litempi.*;
@@ -262,7 +263,8 @@ public class Solver {
                         break;
 
                     case Tag.ALE_CALCULATE_FORCES:
-                        dfm.calculateForces(elems);
+                        MeshMove[] mshMov = (MeshMove[]) inMsg.getData();
+                        dfm.calculateForces(elems, mshMov);
                         outMsg = new MPIMessage(Tag.FORCES, new ForcesAndDisplacements(dfm.getFluidForces()));
                         break;
 
@@ -508,7 +510,7 @@ public class Solver {
                 for (int newtonIter = 0; newtonIter < par.newtonIters; newtonIter++) {
                     // mesh deformation
                     if (par.movingMesh) {
-                        mpi.sendAll(new MPIMessage(Tag.ALE_CALCULATE_FORCES));
+                        mpi.sendAll(new MPIMessage(Tag.ALE_CALCULATE_FORCES, dyn.getMeshMove()));
                         ForcesAndDisplacements[] forDis = new ForcesAndDisplacements[nDoms];
                         for (int d = 0; d < nDoms; ++d) {
                             forDis[d] = (ForcesAndDisplacements) mpi.receive(d, Tag.FORCES).getData();
@@ -692,7 +694,7 @@ public class Solver {
             for (int s = 0; s < par.newtonIters; s++) {  // vnitrni iterace (Newton)
                 // mesh deformation
                 if (par.movingMesh) {
-                    dfm.calculateForces(elems);
+                    dfm.calculateForces(elems, dyn.getMeshMove());
                     dyn.computeBodyMove(dt, state.t, dfm.getFluidForces());
                     dfm.newMeshPosition(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
                     if (state.t == 0) {

@@ -71,7 +71,7 @@ public class Deformation2DTest extends Deformation {
         }
     }
     
-    public void calculateForces(Element[] elems) {
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         totalTranslationForce = new double[2][nBodies];
         totalRotationForce = new double[1][nBodies];
         for (int b = 0; b < nBodies; b++) {

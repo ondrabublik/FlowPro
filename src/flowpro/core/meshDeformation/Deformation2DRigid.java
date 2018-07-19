@@ -16,13 +16,13 @@ public class Deformation2DRigid extends Deformation {
     public double[][] totalTranslationForce;
     public double[][] totalRotationForce;
     public double[][] userDef;
-    
+
     public Deformation2DRigid(Parameters par, Equation eqn, int[][] TEale) throws IOException {
-        super(par,eqn,TEale);
+        super(par, eqn, TEale);
     }
 
     public void newMeshPosition(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
-        
+
         double a1 = 1.0 / dt;
         double a2 = -1.0 / dt;
         double a3 = 0;
@@ -32,7 +32,7 @@ public class Deformation2DRigid extends Deformation {
             a2 = -(dt + dto) / (dt * dto);  // -2/dt;
             a3 = dt / (dto * (dt + dto));  // 1/(2*dt);
         }
-        
+
         // multiple blending function
         for (int i = 0; i < elems.length; i++) {
             for (int j = 0; j < elems[i].nVertices; j++) {
@@ -47,7 +47,7 @@ public class Deformation2DRigid extends Deformation {
                     elems[i].vertices[j][0] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][0] + elems[i].blendFun[j][k] * xNew) / nBodies;
                     elems[i].vertices[j][1] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][1] + elems[i].blendFun[j][k] * yNew) / nBodies;
                 }
-                               
+
                 for (int d = 0; d < elems[i].dim; d++) {
                     elems[i].U[j][d] = a1 * elems[i].vertices[j][d] + a2 * elems[i].verticesOld[j][d] + a3 * elems[i].verticesOld2[j][d];
                 }
@@ -65,11 +65,12 @@ public class Deformation2DRigid extends Deformation {
             }
         }
     }
-    
-    public void calculateForces(Element[] elems) {
+
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         totalTranslationForce = new double[2][nBodies];
         totalRotationForce = new double[1][nBodies];
         for (int b = 0; b < nBodies; b++) {
+            double[] moveTranslation = mshMov[b].getTranslation();
             for (Element elem : elems) {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
@@ -91,7 +92,7 @@ public class Deformation2DRigid extends Deformation {
                         }
                         totalTranslationForce[0][b] += fx;
                         totalTranslationForce[1][b] += fy;
-                        totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - center[1][b]) + fy * (elem.Xes[k][0] - center[0][b]);
+                        totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));
                     }
                 }
             }
@@ -129,8 +130,8 @@ public class Deformation2DRigid extends Deformation {
             }
         }
     }
-    
-    public FluidForces getFluidForces(){
+
+    public FluidForces getFluidForces() {
         return new FluidForces(totalTranslationForce, totalRotationForce, null, null, userDef);
     }
 }

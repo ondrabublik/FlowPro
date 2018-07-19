@@ -75,7 +75,7 @@ public class Deformation2DElastic extends Deformation {
         }
     }
     
-    public void calculateForces(Element[] elems) {
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         boundaryForce = null;
         faceIndexes = null;
 
