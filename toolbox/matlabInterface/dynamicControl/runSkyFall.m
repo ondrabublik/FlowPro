@@ -1,6 +1,7 @@
 function runSkyFall
 
 % start flowpro
+clc
 run
 pause(3)
 
@@ -42,7 +43,7 @@ while 1
             Mo = zeros(nBody,1);
             
             m = 10;
-            I = 100;
+            I = 10;
             
             xt = 0;
             yt = 0;
@@ -71,9 +72,9 @@ while 1
             Fy = ois.readObject();
             M = ois.readObject();
             %-------------------------
-            Fthrust = -1;
-            u(2) = uo(2) + dt*(3/2*Fx(2)-1/2*Fxo(2) + Fthrust*sin(alfa(2)))/m;
-            v(2) = vo(2) + dt*(3/2*Fy(2)-1/2*Fyo(2) + Fthrust*cos(alfa(2)))/m;
+            Fg = -0.3;
+            u(2) = uo(2) + dt*(3/2*Fx(2)-1/2*Fxo(2))/m;
+            v(2) = vo(2) + dt*(3/2*Fy(2)-1/2*Fyo(2) + Fg)/m;
             om(2) = omo(2) + dt*(3/2*M(2)-1/2*Mo(2))/I;
             x(2) = x(2) + dt*(3/2*u(2)-1/2*uo(2));
             y(2) = y(2) + dt*(3/2*v(2)-1/2*vo(2));
@@ -87,7 +88,7 @@ while 1
             % kormidlo
             h = 2;
             x(3) = x(2) + h*sin(alfa(2));
-            y(3) = y(2) + h*cos(alfa(2));
+            y(3) = y(2) + h*(1-cos(alfa(2)));
             alfa(3) = alfa(2);
             
             uo = u;

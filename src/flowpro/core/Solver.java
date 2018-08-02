@@ -740,7 +740,7 @@ public class Solver {
             state.residuum = calculateResiduumW(dt);
             if (state.residuum == 0) {
                 LOG.error(" computation error ");
-                break;
+                //break;
             }
             state.executionTime = watch.getTime();
             state.t += dt;
