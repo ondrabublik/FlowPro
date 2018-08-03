@@ -20,7 +20,7 @@ function show(varargin)
     cd(getFlowProPath);
     system(str);
     cd(path)
-    return
+
     try
         [meshPath, simulPath, outputPath] = getPath;
         vertices = load([outputPath,'vertices.txt']);
@@ -47,8 +47,8 @@ function show(varargin)
             end
         end
     catch
-        close all;
-        display('Unable to show results in matlab!');
+%         close all;
+%         display('Unable to show results in matlab!');
     end
 end
 

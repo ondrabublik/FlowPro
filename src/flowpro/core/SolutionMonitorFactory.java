@@ -25,13 +25,10 @@ public class SolutionMonitorFactory {
 
         String simpleClassName;
         try {
-            simpleClassName = props.getString("solutionMonitor").split("\'")[1];
+            simpleClassName = props.getString("solutionMonitor");
         } catch (IOException ex) {
             throw new IOException("file " + parameterFilePath
                     + " has a wrong format: " + ex.getMessage(), ex);
-        } catch (ArrayIndexOutOfBoundsException ex) {
-            throw new IOException("file " + parameterFilePath + " has a wrong format: "
-                    + "the name of the model is required to be surrounded by apostrophe, e.g. \'myModel\'", ex);
         }
 
         String className = "flowpro.user.solutionMonitor." + simpleClassName;

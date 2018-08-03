@@ -2,7 +2,7 @@
 %%% physical parameters %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-model = 'NavierStokes'
+model = NavierStokes
 
 dimension = 2
 

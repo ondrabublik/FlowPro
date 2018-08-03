@@ -5,6 +5,7 @@ import flowpro.api.Dynamics;
 import flowpro.api.Equation;
 import java.io.FileInputStream;
 import java.io.IOException;
+
 /**
  *
  * @author obublik
@@ -21,13 +22,10 @@ public class DynamicsFactory {
 
         String simpleClassName;
         try {
-            simpleClassName = props.getString("dynamicsModel").split("\'")[1];
+            simpleClassName = props.getString("dynamicsModel");
         } catch (IOException ex) {
             throw new IOException("file " + parameterFilePath
                     + " has a wrong format: " + ex.getMessage(), ex);
-        } catch (ArrayIndexOutOfBoundsException ex) {
-            throw new IOException("file " + parameterFilePath + " has a wrong format: "
-                    + "the name of the model is required to be surrounded by apostrophe, e.g. \'myModel\'", ex);
         }
 
         String className = "flowpro.user.dynamics." + simpleClassName;

@@ -197,11 +197,6 @@ public class Parameters implements Serializable {
             
             if (props.containsKey("timeMethod")) {                
                 timeMethod = props.getString("timeMethod");
-                if (timeMethod.charAt(0) != '\'' || timeMethod.charAt(timeMethod.length()-1) != '\'') {
-                    throw new IOException("file " + parameterFilePath + " has a wrong format: "
-                    + "the name of the timeMethod is required to be surrounded by apostrophe, e.g. \'secondDerivative\'");
-                }
-                timeMethod = timeMethod.substring(1, timeMethod.length()-1);
                 if (timeMethod.equals("dualTime")) {
                     coeffsPhys = props.getDoubleArray("coeffsPhys");
                     coeffsDual = props.getDoubleArray("coeffsDual");
