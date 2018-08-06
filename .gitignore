@@ -1,6 +1,5 @@
 nbproject/private
 build
-dist
 simulations/*
 !simulations/examples/
 tasks
