@@ -16,6 +16,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Stack;
 
@@ -29,6 +30,7 @@ public class ResultsPlot {
     String simulationPath;
     String outputPath;
     String[] args;
+    URL[] jarURLList;
 
     Equation eqn;
 
@@ -48,10 +50,11 @@ public class ResultsPlot {
     double lRef;
     double meshScale;
 
-    ResultsPlot(String meshPath, String simulationPath, String[] args) throws IOException {
+    ResultsPlot(String meshPath, String simulationPath, String[] args, URL[] jarURLList) throws IOException {
         this.meshPath = meshPath;
         this.simulationPath = simulationPath;
         this.args = args;
+        this.jarURLList = jarURLList;
         outputPath = simulationPath + "/output/";
     }
 
@@ -60,7 +63,7 @@ public class ResultsPlot {
         // equations model
         Equation eqn = null;
         try {
-            eqn = (new EquationFactory()).getEquation(simulationPath + "parameters.txt");   // read physical parameters
+            eqn = (new EquationFactory()).getEquation(simulationPath + "parameters.txt", jarURLList);   // read physical parameters
         } catch (Exception e) {
             System.out.println("Error in model." + e);
         }

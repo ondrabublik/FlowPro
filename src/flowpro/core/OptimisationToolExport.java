@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URL;
 
 /**
  *
@@ -21,12 +22,14 @@ public class OptimisationToolExport {
     String simulationPath;
     String optimisationPath;
     String mode;
+    URL[] jarURLList;
     public static final String PARAMETER_FILE_NAME = "parameters.txt";
 
-    OptimisationToolExport(Solver solver, String simulationPath, String mode) throws IOException {
+    OptimisationToolExport(Solver solver, String simulationPath, String mode, URL[] jarURLList) throws IOException {
         this.mesh = solver.getMesh();
         this.simulationPath = simulationPath;
         this.mode = mode;
+        this.jarURLList = jarURLList;
         optimisationPath = simulationPath + "/optimisation/";
     }
 
@@ -37,7 +40,7 @@ public class OptimisationToolExport {
         int numberOfAlpha = props.getInt("numberOfAlpha");
         System.out.println("Number of optimalization parameters: " + numberOfAlpha);
 
-        fun = (new FunctionalFactory()).getFunctional(simulationPath + PARAMETER_FILE_NAME);
+        fun = (new FunctionalFactory()).getFunctional(simulationPath + PARAMETER_FILE_NAME, jarURLList);
         for (Element elem : mesh.getElems()) {
             elem.optimalisationFunctional = fun;
         }

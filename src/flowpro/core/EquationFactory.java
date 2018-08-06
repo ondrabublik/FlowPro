@@ -4,6 +4,8 @@ import flowpro.api.FlowProProperties;
 import flowpro.api.Equation;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 //import java.lang.reflect.Constructor;
 //import java.lang.reflect.InvocationTargetException;
 
@@ -13,7 +15,7 @@ import java.io.IOException;
  */
 public class EquationFactory {
 
-    public Equation getEquation(String parameterFilePath) throws IOException {
+    public Equation getEquation(String parameterFilePath, URL[] jarURLList) throws IOException {
         FlowProProperties props = new FlowProProperties();
 
         try {
@@ -33,9 +35,7 @@ public class EquationFactory {
         String className = "flowpro.user.equation." + simpleClassName;
 
         try {
-            Class<Equation> eqnClass = (Class<Equation>) Class.forName(className);
-//            Constructor constructor = eqnClass.getConstructor();  // new Class[]{FlowProProperties.class}
-//            Object obj = constructor.newInstance(props);
+            Class<Equation> eqnClass = (Class<Equation>) Class.forName(className,true, new URLClassLoader(jarURLList));
             Equation eqn = (Equation) eqnClass.newInstance();
 
             try {
@@ -48,12 +48,7 @@ public class EquationFactory {
         } catch (ClassNotFoundException ex) {
             throw new IOException("class \"" + className + "\" not found, parameter \"model\" in file "
                     + parameterFilePath + " must have the same name as the class that defines the model", ex);
-//        } catch (NoSuchMethodException ex) {
-//            throw new IOException("incorrect implementation of class \"" + className +
-//                    "\", one-parameter constructor of form \"public "
-//            + simpleClassName + "(" + FlowProProperties.class.getSimpleName() + ")\" is required");
         } catch (InstantiationException | IllegalAccessException | SecurityException | IllegalArgumentException ex) {
-//                | InvocationTargetException | NoSuchMethodException ex) {
             throw new IOException("error while loading class \"" + className + "\": " + ex, ex);
         }
     }

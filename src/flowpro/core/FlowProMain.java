@@ -13,11 +13,14 @@ import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.meshDeformation.*;
 import litempi.MPIException;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import org.slf4j.Logger;
@@ -29,6 +32,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FlowProMain {
 
+    private static URL[] jarURLList;
     private static final Logger LOG = LoggerFactory.getLogger(FlowProMain.class);
 
     public static final String ARG_FILE_NAME = "args.txt";
@@ -41,6 +45,7 @@ public class FlowProMain {
     private final Object lock;
 
     public FlowProMain() throws IOException {
+        jarURLList = gerJarsURLList("modules");
         lock = new Object();
 
         BufferedReader reader;
@@ -129,7 +134,7 @@ public class FlowProMain {
 
                 case "postprocessing": // plot data
                     dgfem = new FlowProMain();
-                    ResultsPlot plot = new ResultsPlot(dgfem.meshPath, dgfem.simulationPath, args);
+                    ResultsPlot plot = new ResultsPlot(dgfem.meshPath, dgfem.simulationPath, args, jarURLList);
                     plot.generateResults();
                     LOG.info("results were generated into " + dgfem.simulationPath + "output directory");
                     break;
@@ -138,7 +143,7 @@ public class FlowProMain {
                     dgfem = new FlowProMain();
                     //solver = dgfem.solverFactory(false, true, 0);
                     solver = dgfem.solverFactory(false, false, 0);
-                    new OptimisationToolExport(solver, dgfem.simulationPath, args[1].toLowerCase()).export();
+                    new OptimisationToolExport(solver, dgfem.simulationPath, args[1].toLowerCase(), jarURLList).export();
                     LOG.info("Optimalisation arrays were exported..");
                     break;
 
@@ -175,7 +180,7 @@ public class FlowProMain {
     }
 
     private Solver solverFactory(boolean parallelMode, boolean optimalisation, int nDomains) throws IOException {
-        Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME);   // read physical parameters
+        Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
         Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode); // read numerical parameters            
 
         LOG.info("loading data...");
@@ -342,7 +347,7 @@ public class FlowProMain {
         // create solution monitor
         SolutionMonitor solMonitor = null;
         if (par.solutionMonitorOn) {
-            solMonitor = (new SolutionMonitorFactory()).getSolutionMonitor(simulationPath + PARAMETER_FILE_NAME);
+            solMonitor = (new SolutionMonitorFactory()).getSolutionMonitor(simulationPath + PARAMETER_FILE_NAME, jarURLList);
         }
 
         // create file for residuum
@@ -364,7 +369,7 @@ public class FlowProMain {
         Deformation dfm = new DeformationFactory().getDeformation(par, eqn, TEale);
         Dynamics dyn = null;
         if (par.movingMesh) {
-            dyn = (new DynamicsFactory()).getDynamicsModel(simulationPath + PARAMETER_FILE_NAME, dfm.nBodies, simulationPath, meshPath, eqn);
+            dyn = (new DynamicsFactory()).getDynamicsModel(simulationPath + PARAMETER_FILE_NAME, jarURLList, dfm.nBodies, simulationPath, meshPath, eqn);
             dfm.setCenters(dyn.getCenter());
             dfm.calculateBlendingFunctions(PXY, TP, TT, TEale, elemsType, meshPath);
         }
@@ -701,5 +706,37 @@ public class FlowProMain {
             }
         }
         return part;
+    }
+    
+    public static URL[] gerJarsURLList(String s) throws IOException{
+        URL[] u = null;
+        try{
+        File currentDir = new File(s); // current directory
+        ArrayList<URL> URLs = new ArrayList();
+        System.out.print("Found libraries: ");
+        addDirectoryContents(currentDir, URLs);
+        System.out.println();
+        u = new URL[URLs.size()];
+        URLs.toArray(u);
+        } catch (Exception e){
+            System.out.println(e);
+        }
+        return u;
+    }
+
+    public static void addDirectoryContents(File dir, ArrayList<URL> URLs) {
+        try {
+            File[] files = dir.listFiles();
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    addDirectoryContents(file, URLs);
+                } else {
+                    URLs.add(file.toURI().toURL());
+                    System.out.print(file.getName() + ", ");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error " + e);
+        }
     }
 }
