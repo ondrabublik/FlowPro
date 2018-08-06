@@ -38,6 +38,18 @@ jar {
     }
 }
 
+task finalize << {
+    // copy jar into the project directory
+    def srcFile = jar.outputs.files.getFiles()[0]    
+    def destFile = new File("${projectDir}/FlowPro.jar")
+    if (srcFile != null) {
+        throw new StopActionException('error during copying of the .jar file - .jar file not found')
+    }
+    destFile << srcFile.bytes
+}
+
+build.finalizedBy(finalize)
+
 // task createFatJar(type: OneJar) {
 //     mainClass = 'com.mycompany.myawesomeapp.MyAppMainClass'
 //     archiveName = 'myawesomeapp-all.jar'
