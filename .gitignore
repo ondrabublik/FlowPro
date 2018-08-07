@@ -1,8 +1,5 @@
-nbproject/private
 build
 modules
-simulations/*
-!simulations/examples/
 tasks
 matlab/pclist.txt
 matlab/flowProPath.txt
@@ -12,3 +9,7 @@ log.*
 testkeystor
 fetcherState.txt
 *.tmp
+
+# all simulations except for some chosen examles
+simulations/*
+!simulations/examples/

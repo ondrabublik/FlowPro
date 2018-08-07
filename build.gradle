@@ -1,68 +1,60 @@
-// Note: "common.gradle" in the root project contains additional initialization
-//   for this project. This initialization is applied in the "build.gradle"
-//   of the root project.
+apply plugin: 'com.github.johnrengelman.shadow'
 
-// NetBeans will automatically add "run" and "debug" tasks relying on the
-// "mainClass" property. You may however define the property prior executing
-// tasks by passing a "-PmainClass=<QUALIFIED_CLASS_NAME>" argument.
-//
-// Note however, that you may define your own "run" and "debug" task if you
-// prefer. In this case NetBeans will not add these tasks but you may rely on
-// your own implementation.
 def mainClassName = 'flowpro.core.FlowProMain'
+
 if (!hasProperty('mainClass')) {
     ext.mainClass = mainClassName
 }
 
 dependencies {
     implementation fileTree(dir: 'lib', include: ['*.jar'])
-    implementation fileTree(dir: '../Modules', include: ['*.jar'])
     
-    implementation 'org.slf4j:slf4j-api:1.7.21'
-    implementation 'org.slf4j:slf4j-log4j12:1.7.21'
-    implementation 'log4j:log4j:1.2.17'
+//    implementation 'org.slf4j:slf4j-api:1.7.21'
+//    implementation 'org.slf4j:slf4j-log4j12:1.7.21'
+//    implementation 'log4j:log4j:1.2.17'
     
     implementation 'org.apache.commons:commons-lang3:3.0'
     implementation 'commons-cli:commons-cli:1.4'        
 }
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+    }
+}
+
 jar {
     manifest {
         attributes(
-            'Class-Path': configurations.compileClasspath.files.collect {"$it.name"}.join(' '),
             'Main-Class': mainClassName
         )
     }
-    from {
-        configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+}
+
+task copyJar(type: Copy) {
+    from shadowJar
+    into "${projectDir}"
+    rename { String fileName ->
+        fileName = "FlowPro.jar"
     }
 }
 
-task finalize << {
-    // copy jar into the project directory
-    def srcFile = jar.outputs.files.getFiles()[0]    
-    def destFile = new File("${projectDir}/FlowPro.jar")
-    if (srcFile != null) {
-        throw new StopActionException('error during copying of the .jar file - .jar file not found')
-    }
-    destFile << srcFile.bytes
+task zip2Fetch(type: Zip) {
+   from "${projectDir}"
+   include 'modules/**', 'FlowPro.jar'
+   archiveName 'FlowPro.zip'
+   destinationDir(file("${projectDir}"))
 }
 
-build.finalizedBy(finalize)
+jar.finalizedBy copyJar
+copyJar.finalizedBy zip2Fetch
 
-// task createFatJar(type: OneJar) {
-//     mainClass = 'com.mycompany.myawesomeapp.MyAppMainClass'
-//     archiveName = 'myawesomeapp-all.jar'
-//     targetConfiguration = configurations.fatJarBuild
-// }
 
-// apply plugin: 'com.github.johnrengelman.shadow'
-
-// task listJars << {
-//     configurations.compile.each { File file -> println file.name }
-// }
-
-// println 'beg'
-// println configurations.compile.collect { it.getName() }.join(' ')
-//println configurations.runtime.collect { it.getName() }.join(' ')
-//println 'end'
+// xlint for more info
+//tasks.withType(JavaCompile) {
+//    options.compilerArgs << '-Xlint:unchecked'
+//    options.deprecation = true
+//}

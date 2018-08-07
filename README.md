@@ -27,12 +27,11 @@ To show results run at commandline
 java -jar FlowPro.jar postprocessing mach pressure -fvtk
 
 ## Built With
-
-* [Ant] - build.xml
+* [Gradle](https://gradle.org/)
 
 ## Authors
-Ondrej Bublik [obublik@kme.zcu.cz]
-Ales Pecka [pecka@kme.zcu.cz]
+Ondrej Bublik [obublik@kme.zcu.cz]  
+Ales Pecka [pecka@kme.zcu.cz]  
 Jan Vimmr [jvimmr@kme.zcu.cz]
 
 ## License
