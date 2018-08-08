@@ -45,7 +45,6 @@ public class FlowProMain {
     private final Object lock;
 
     public FlowProMain() throws IOException {
-        jarURLList = gerJarsURLList("modules");
         lock = new Object();
 
         BufferedReader reader;
@@ -76,8 +75,9 @@ public class FlowProMain {
         return lock;
     }
 
-    public static void main(String args[]) throws InterruptedException {
+    public static void main(String args[]) throws InterruptedException, IOException {
         LOG.info("starting FlowPro...");
+        jarURLList = gerJarsURLList("modules");
         try {
             if (args == null || args.length == 0) {
                 throw new IllegalArgumentException("no argument was specified");

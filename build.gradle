@@ -34,20 +34,11 @@ jar {
     }
 }
 
-task copyJar(type: Copy) {
-    //    from shadowJar
-    //    into "${projectDir}"
-    //    rename { String fileName ->
-    //        fileName = "FlowPro.jar"
-    //    }
-    doLast{
-        copy {
-            from shadowJar
-            into "${projectDir}"
-            rename { String fileName ->
-                fileName = "FlowPro.jar"
-            }
-        }
+task copyJar {
+    doLast {
+        def src = shadowJar.outputs.files[0]
+        def dst = new File("${projectDir}/FlowPro.jar")
+        dst << src.bytes
     }
 }
 
@@ -58,7 +49,8 @@ task zip2Fetch(type: Zip) {
     destinationDir(file("${projectDir}"))
 }
 
-jar.finalizedBy copyJar
+jar.finalizedBy shadowJar
+shadowJar.finalizedBy copyJar
 copyJar.finalizedBy zip2Fetch
 
 
