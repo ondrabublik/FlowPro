@@ -9,9 +9,9 @@ if (!hasProperty('mainClass')) {
 dependencies {
     implementation fileTree(dir: 'lib', include: ['*.jar'])
     
-//    implementation 'org.slf4j:slf4j-api:1.7.21'
-//    implementation 'org.slf4j:slf4j-log4j12:1.7.21'
-//    implementation 'log4j:log4j:1.2.17'
+    //    implementation 'org.slf4j:slf4j-api:1.7.21'
+    //    implementation 'org.slf4j:slf4j-log4j12:1.7.21'
+    //    implementation 'log4j:log4j:1.2.17'
     
     implementation 'org.apache.commons:commons-lang3:3.0'
     implementation 'commons-cli:commons-cli:1.4'        
@@ -35,18 +35,27 @@ jar {
 }
 
 task copyJar(type: Copy) {
-    from shadowJar
-    into "${projectDir}"
-    rename { String fileName ->
-        fileName = "FlowPro.jar"
+    //    from shadowJar
+    //    into "${projectDir}"
+    //    rename { String fileName ->
+    //        fileName = "FlowPro.jar"
+    //    }
+    doLast{
+        copy {
+            from shadowJar
+            into "${projectDir}"
+            rename { String fileName ->
+                fileName = "FlowPro.jar"
+            }
+        }
     }
 }
 
 task zip2Fetch(type: Zip) {
-   from "${projectDir}"
-   include 'modules/**', 'FlowPro.jar'
-   archiveName 'FlowPro.zip'
-   destinationDir(file("${projectDir}"))
+    from "${projectDir}"
+    include 'modules/**', 'FlowPro.jar'
+    archiveName 'FlowPro.zip'
+    destinationDir(file("${projectDir}"))
 }
 
 jar.finalizedBy copyJar
