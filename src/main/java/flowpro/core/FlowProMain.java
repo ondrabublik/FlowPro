@@ -141,7 +141,6 @@ public class FlowProMain {
 
                 case "optimalisationexport":
                     dgfem = new FlowProMain();
-                    //solver = dgfem.solverFactory(false, true, 0);
                     solver = dgfem.solverFactory(false, false, 0);
                     new OptimisationToolExport(solver, dgfem.simulationPath, args[1].toLowerCase(), jarURLList).export();
                     LOG.info("Optimalisation arrays were exported..");

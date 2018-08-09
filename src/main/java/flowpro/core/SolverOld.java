@@ -2,7 +2,6 @@
 //
 //import flowpro.api.Mat;
 //import flowpro.core.parallel.*;
-//import flowpro.core.iterativeLinearSolvers.IterativeLinearSolver;
 //import flowpro.api.Equation;
 //import static flowpro.core.FlowProMain.*;
 //import flowpro.core.Mesh.Element;
@@ -10,6 +9,7 @@
 //import fetcher.ZipFile;
 //import flowpro.api.Dynamics;
 //import flowpro.api.FluidForces;
+//import flowpro.core.LinearSolvers.LinearSolver;
 //import flowpro.core.meshDeformation.*;
 //import flowpro.core.parallel.Domain.Subdomain;
 //import litempi.*;
@@ -217,7 +217,7 @@
 //        MPISlave mpi = mpiSlave;
 //        mesh = meshes[0];
 //        try {
-//            IterativeLinearSolver linSolver = IterativeLinearSolver.factory(par, elems, dofs);
+//            LinearSolver linSolver = LinearSolver.factory(par, elems, dofs);
 //            JacobiAssembler assembler = new JacobiAssembler(elems, par);
 //            double[] x = new double[dofs];
 //            double[] y = new double[dofs];
@@ -240,7 +240,8 @@
 //                        break;
 //
 //                    case Tag.ALE_CALCULATE_FORCES:
-//                        dfm.calculateForces(elems);
+//                        //MeshMove[] mshMov = (MeshMove[]) inMsg.getData();
+//                        dfm.calculateForces(elems,null);
 //                        outMsg = new MPIMessage(Tag.FORCES, new ForcesAndDisplacements(dfm.getFluidForces()));
 //                        break;
 //
@@ -586,9 +587,9 @@
 //    }
 //    // vlastni vypocet
 //
-//    public Solution lonerSolve() throws IOException {
+//    public Solution localSolve() throws IOException {
 //        int nElems = elems.length;
-//        IterativeLinearSolver linSolver = IterativeLinearSolver.factory(par, elems, dofs);
+//        LinearSolver linSolver = LinearSolver.factory(par, elems, dofs);
 //        JacobiAssembler assembler = new JacobiAssembler(elems, par);
 //        double[] x = new double[dofs];
 //        StopWatch watch = new StopWatch();
@@ -636,7 +637,7 @@
 //            for (int s = 0; s < par.newtonIters; s++) {  // vnitrni iterace (Newton)
 //                // mesh deformation
 //                if (par.movingMesh) {
-//                    dfm.calculateForces(elems);
+//                    dfm.calculateForces(elems,null);
 //                    dyn.computeBodyMove(dt, state.t, dfm.getFluidForces());
 //                    dfm.newMeshPosition(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
 //                    if (state.t == 0) {

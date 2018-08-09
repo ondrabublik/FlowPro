@@ -488,7 +488,7 @@ public class Solver {
 
                 mpi.sendAll(new MPIMessage(Tag.TIME_STEP_REQ, state.cfl));
                 double dt = Mat.min(mpi.receiveAllDouble(Tag.TIME_STEP));
-
+                
                 // solution monitor
                 if (par.solutionMonitorOn) {
                     double[] monitorGlobal = null;
@@ -528,7 +528,7 @@ public class Solver {
                             convergesNewton = false;
                         }
                     }
-
+                    
                     transferWatch.resume();
                     exchangeData(liteElems, mpi);
                     mpi.waitForAll(Tag.DATA_UPDATED);
@@ -1024,7 +1024,7 @@ public class Solver {
             }
 
             AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
-
+            
             // vlastni vypocet, parallelni beh
             for (int v = 0; v < assemblers.length; v++) {
                 assemblers[v] = new AssemblerThread(v);

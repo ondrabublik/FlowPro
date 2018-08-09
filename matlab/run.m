@@ -20,11 +20,11 @@ else
 %         metis(nDomains);
 %     catch
         disp('Metis does not work. Running simple script for domain division.');
-        simpleMetis(nDomains,'y');
+        simpleMetis(nDomains,'x');
 %     end
     
     path = pwd;
     cd(getFlowProPath);
-    system(['java -d64 -Xmx8g -jar FlowPro.jar master ',num2str(nDomains)]);
+    system(['start java -d64 -Xmx8g -jar FlowPro.jar master ',num2str(nDomains)]);
     cd(path)
 end
