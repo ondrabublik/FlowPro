@@ -61,7 +61,6 @@ public class OptimisationToolExport {
 
         if (mode.equalsIgnoreCase("all")) {
             exportJacobiTranspose();
-            exportMassMatrix();
             exportResiduum(0);
             exportFunctionalDerivative();
 
@@ -82,6 +81,41 @@ public class OptimisationToolExport {
                         }
                     }
                     mesh.init();
+                    exportFunctional(alpha + 1);
+                    exportResiduum(alpha + 1);
+                } catch (Exception e) {
+                    System.out.println("Error, file " + optimisationPath + "vertices" + (alpha + 1) + ".txt not found!");
+                }
+            }
+
+            // export sparse vector print
+            exportPrintMatrix();
+        }
+        
+        if (mode.equalsIgnoreCase("allmass")) {
+            exportJacobiTranspose();
+            exportMassMatrix(0);
+            exportResiduum(0);
+            exportFunctionalDerivative();
+
+            for (int alpha = 0; alpha < numberOfAlpha; alpha++) {
+                try {
+                    Element[] elems = mesh.getElems();
+                    double[][] PXY = Mat.loadDoubleMatrix(optimisationPath + "vertices" + (alpha + 1) + ".txt"); // mesh vertices coordinates
+                    if (meshScale != 1) {
+                        for (int i = 0; i < PXY.length; i++) {
+                            for (int j = 0; j < PXY[i].length; j++) {
+                                PXY[i][j] *= meshScale;
+                            }
+                        }
+                    }
+                    for (int i = 0; i < mesh.nElems; i++) {
+                        for (int j = 0; j < elems[i].vertices.length; j++) {
+                            System.arraycopy(PXY[elems[i].TP[j]], 0, elems[i].vertices[j], 0, mesh.getEqn().dim());
+                        }
+                    }
+                    mesh.init();
+                    exportMassMatrix(alpha + 1);
                     exportFunctional(alpha + 1);
                     exportResiduum(alpha + 1);
                 } catch (Exception e) {
@@ -197,9 +231,9 @@ public class OptimisationToolExport {
         }
     }
 
-    public void exportMassMatrix() throws IOException {
+    public void exportMassMatrix(int alpha) throws IOException {
         Element[] elems = mesh.getElems();
-        FileWriter fw = new FileWriter(optimisationPath + "M.txt");
+        FileWriter fw = new FileWriter(optimisationPath + "M" + alpha + ".txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
             for (int k = 0; k < mesh.nElems; k++) {
                 int nb = elems[k].nBasis;

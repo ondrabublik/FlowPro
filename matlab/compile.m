@@ -1,8 +1,6 @@
 path = pwd;
 cd(getFlowProPath);
-% copyfile('../FlowProUser/dist/FlowProUser.jar','lib/FlowProUser.jar')
-%copyfile('../FlowProAPI/dist/FlowProAPI.jar','lib/FlowProAPI.jar')
-system('ant');
+system('gradle build');
 cd(path)
 
-%updatePackage
+updatePackage

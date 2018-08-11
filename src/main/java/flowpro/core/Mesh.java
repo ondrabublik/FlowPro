@@ -1122,7 +1122,11 @@ public class Mesh implements Serializable {
                 double dL = 0;
                 for (int d = 0; d < dim; d++) {
                     if (TT[k] > -1) {
-                        dL += (Xs[d] - elems[TT[k]].Xs[d]) * n[k][p][d];
+                        if(elems[TT[k]].insideComputeDomain){
+                            dL += (Xs[d] - elems[TT[k]].Xs[d]) * n[k][p][d];
+                        } else {
+                            dL += 2*(Xs[d] - Xes[k][d]) * n[k][p][d];
+                        }
                     } else {
                         dL += (Xs[d] - Xes[k][d]) * n[k][p][d];
                     }
