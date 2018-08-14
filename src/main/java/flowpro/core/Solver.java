@@ -1003,20 +1003,21 @@ public class Solver {
                 a2 = new double[nEqs];
                 a3 = new double[nEqs];
                 dual = new double[nEqs];
-                if (par.orderInTime == 1) {
-                    for (int i = 0; i < nEqs; i++) {
-                        a1[i] = coeffsPhys[i] / dt;
-                        a2[i] = -coeffsPhys[i] / dt;
-                        a3[i] = 0.0;
-                    }
-                } else if (par.orderInTime == 2) {
-                    for (int i = 0; i < nEqs; i++) {
-                        a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt); 
-                        a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
-                        a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
-                    }
-                } else {
-                    throw new RuntimeException("solver supports only first and second order in time");
+                switch (par.orderInTime) {
+                    case 1:
+                        for (int i = 0; i < nEqs; i++) {
+                            a1[i] = coeffsPhys[i] / dt;
+                            a2[i] = -coeffsPhys[i] / dt;
+                            a3[i] = 0.0;
+                        }   break;
+                    case 2:
+                        for (int i = 0; i < nEqs; i++) {
+                            a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
+                            a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
+                            a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
+                        }   break;
+                    default:
+                        throw new RuntimeException("solver supports only first and second order in time");
                 }
                 for (int i = 0; i < nEqs; i++) {
                     dual[i] = coeffsDual[i] / dt;

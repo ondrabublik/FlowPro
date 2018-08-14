@@ -9,6 +9,8 @@ log.*
 testkeystor
 fetcherState.txt
 *.tmp
+*.jar
+*.zip
 
 # all simulations except for some chosen examles
 simulations/*
