@@ -1,5 +1,11 @@
 function mshow(varargin)
 
+args = '';
+for i = 1:nargin
+    args = [args,' ', varargin{i}];
+end
+show(args);
+
 [meshPath, simulPath, outputPath] = getPath;
 
 par = loadParam(simulPath);
