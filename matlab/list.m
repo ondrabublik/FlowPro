@@ -1,7 +1,7 @@
 function list
 flowProPath = getFlowProPath;
 
-searchDir([flowProPath,'/simulations'], '');
+searchDir([flowProPath,'/simulations/'], '');
 
 end
 
@@ -11,11 +11,11 @@ function searchDir(absPath, relPath)
     for i = 1 : length(dirContent)
         if dirContent(i).isdir && ~strcmp(dirContent(i).name, '.') && ~strcmp(dirContent(i).name , '..')
             name = dirContent(i).name;
-            if exist([relPath, name, '/', 'mesh'], 'dir')
+            if exist([absPath, name, '/', 'mesh'], 'dir')
                 fprintf(1, '%s%s: ', relPath, name);
-                searchGeom([dirContent(i).folder, '/', name])
+                searchGeom([absPath, name, '/'])
             else
-                searchDir([dirContent(i).folder, '/', name], [relPath, name, '/']);
+                searchDir([absPath, name, '/'], [relPath, name, '/']);
             end            
         end
     end
