@@ -1,12 +1,19 @@
 function mshow(varargin)
 
+[meshPath, simulPath, outputPath] = getPath;
+
 args = '';
 for i = 1:nargin
-    args = [args,' ', varargin{i}];
+    quantityName = varargin{i};
+    filePath = [outputPath, quantityName, '.txt'];
+    if ~exist(filePath, 'file')    
+        args = [args,' ', quantityName];
+    end
 end
-show(args);
 
-[meshPath, simulPath, outputPath] = getPath;
+if args ~= ""
+    show(args);
+end
 
 par = loadParam(simulPath);
 vertices = load([outputPath,'vertices.txt']);
@@ -17,8 +24,6 @@ elements = dlmread([meshPath, 'elements.txt'], ' ');
 elementType = load([meshPath, 'elementType.txt']);
 
 tri = convert2Triangular(elements, elementType);
-
-show(varargin{:});
 
 for k = 1 : nargin
     q = varargin{k};
