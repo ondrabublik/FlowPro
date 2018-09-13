@@ -154,10 +154,11 @@ public class Solver {
         }
     }
 
-    private void copyWo2W() {
+    private void getTimeLevelBack() {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                elem.copyWo2W();
+                elem.tim.getTimeLevelBack(elem.W);
+                //elem.copyWo2W();
             }
         }
     }
@@ -169,6 +170,26 @@ public class Solver {
             }
         }
     }
+
+    //------------------------------------------------------------------------------------------------------
+    private void saveTimeLevel(double t) {
+        for (Element elem : elems) {
+            if (elem.insideComputeDomain) {
+                int nBasis = elem.nBasis;
+                int nEqs = eqn.nEqs();
+                double[] MV = new double[nBasis * nEqs];
+                for (int m = 0; m < nEqs; m++) {
+                    for (int i = 0; i < nBasis; i++) {
+                        for (int j = 0; j < nBasis; j++) {
+                            MV[nBasis * m + i] += elem.M[i][j] * elem.W[m * nBasis + j];
+                        }
+                    }
+                }
+                elem.tim.saveTimeLevel(t, elem.W, MV, elem.RHS_loc);
+            }
+        }
+    }
+    //------------------------------------------------------------------------------------------------------
 
     private void computeInvertMassMatrix() {
         for (Element elem : elems) {
@@ -214,10 +235,10 @@ public class Solver {
         double resid = 0;
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                resid += elem.calculateResiduumW(dt);
+                resid += elem.tim.calculateResiduumW(state.t + dt, elem.W);
+//                resid += elem.calculateResiduumW(dt);
             }
         }
-
         return resid / elems.length;
     }
 
@@ -360,7 +381,7 @@ public class Solver {
                         break;
 
                     case Tag.PREVIOUS_TIME_LEVEL: // GMRES does not converge, go to previous time level
-                        copyWo2W();
+                        getTimeLevelBack();
                         break;
 
                     case Tag.RESET_OUTPUT_WRITER:
@@ -488,7 +509,7 @@ public class Solver {
 
                 mpi.sendAll(new MPIMessage(Tag.TIME_STEP_REQ, state.cfl));
                 double dt = Mat.min(mpi.receiveAllDouble(Tag.TIME_STEP));
-                
+
                 // solution monitor
                 if (par.solutionMonitorOn) {
                     double[] monitorGlobal = null;
@@ -528,7 +549,7 @@ public class Solver {
                             convergesNewton = false;
                         }
                     }
-                    
+
                     transferWatch.resume();
                     exchangeData(liteElems, mpi);
                     mpi.waitForAll(Tag.DATA_UPDATED);
@@ -672,7 +693,7 @@ public class Solver {
                 return mesh.getSolution();
             }
 
-            // nastaveni dt
+            // setting time step size - dt
             double dt = timeStep(state.cfl);
             if (dto == -1) {
                 dto = dt;
@@ -702,19 +723,16 @@ public class Solver {
                     }
                     dfm.recalculateMesh(elems, par.order);
                 }
-                
-                //long startTime = System.currentTimeMillis();
+
+                // matrix assembly
                 assembler.assemble(dt, dto);
-                //System.out.println("Assemble: " + (System.currentTimeMillis() - startTime));
-                
-                //startTime = System.currentTimeMillis();
-                // reseni soustavy rovnic
+
+                // solve linear system
                 Arrays.fill(x, 0.0);
                 converges = linSolver.solve(x);
-                //System.out.println("Solve: " + (System.currentTimeMillis() - startTime));
 
                 if (!converges) {
-                    copyWo2W();
+                    getTimeLevelBack();
                     state.cfl = cflObj.reduceCFL(state.cfl);
                     --state.steps;
                     LOG.warn("GMRES does not converge, CFL reduced to " + state.cfl);
@@ -750,7 +768,10 @@ public class Solver {
             for (int i = 0; i < nElems; i++) {
                 elems[i].limitUnphysicalValues();
             }
+            
             copyW2Wo();
+//            saveTimeLevel(state.t); // aaaaaaaaaaaaaaaaaaaaaaaaaa
+            
             mesh.updateTime(dt);
             if (par.movingMesh) {
                 dfm.nextTimeLevel(elems);
@@ -819,12 +840,12 @@ public class Solver {
             if (state.t + dt > par.tEnd) {
                 dt = par.tEnd - state.t;
             }
-            
+
             //compute domain 
             if (par.solutionMonitorOn) {
                 mesh.computeSolutionMonitor();
             }
-            
+
             // computation
             ltsIter.iterate(state.t + dt);
 
@@ -933,7 +954,7 @@ public class Solver {
                 int logRes = (int) Math.log(res);
                 if (logRes < logResOld) {
                     maxCFL *= 1.3;
-                } else{
+                } else {
                     maxCFL *= 0.8;
                 }
                 logResOld = logRes;
@@ -961,12 +982,7 @@ public class Solver {
         public Element[] elems;
         private int nEqs;
         private final Parameters par;
-        private double[] a1;
-        private double[] a2;
-        private double[] a3;
-        private double[] dual;
-        private double[] coeffsPhys;
-        private double[] coeffsDual;
+        double[] timeCoef;
 
         public JacobiAssembler(Element[] elems, Parameters par) {
             this.elems = elems;
@@ -976,58 +992,26 @@ public class Solver {
 
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
         public void assemble(double dt, double dto) {  // , int newtonIter
-            if ("secondDerivative".equals(par.timeMethod)) { // second order derivative
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                for (int i = 0; i < nEqs; i++) {
-                    a1[i] = 2.0 / (dt * dt + dt * dto);
-                    a2[i] = -2.0 / (dt * dto);
-                    a3[i] = 2.0 / (dto * dto + dt * dto);
-                }
-            } else { // first order derivative
-                if ("dualTime".equals(par.timeMethod)) {
-                    coeffsPhys = par.coeffsPhys;
-                    coeffsDual = par.coeffsDual;
-                } else {
-                    coeffsPhys = new double[nEqs]; // user defined
-                    coeffsDual = new double[nEqs];
-                    for (int i = 0; i < nEqs; i++) {
-                        coeffsPhys[i] = 1;
-                        coeffsDual[i] = 0;
-                    }
-                }
-
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                switch (par.orderInTime) {
-                    case 1:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] / dt;
-                            a2[i] = -coeffsPhys[i] / dt;
-                            a3[i] = 0.0;
-                        }   break;
-                    case 2:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
-                            a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
-                            a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
-                        }   break;
-                    default:
-                        throw new RuntimeException("solver supports only first and second order in time");
-                }
-                for (int i = 0; i < nEqs; i++) {
-                    dual[i] = coeffsDual[i] / dt;
-                }
+            timeCoef = new double[3];
+            switch (par.orderInTime) {
+                case 1:
+                    timeCoef[0] = 1 / dt;
+                    timeCoef[1] = -1 / dt;
+                    break;
+                case 2:
+                    timeCoef[0] = (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
+                    timeCoef[1] = -(dt + dto) / (dt * dto);  // -2/dt;
+                    timeCoef[2] = dt / (dto * (dt + dto));  // 1/(2*dt);
+                default:
+                    throw new RuntimeException("solver supports only first and second order in time");
             }
 
             AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
-            
+
             // vlastni vypocet, parallelni beh
-            for (int v = 0; v < assemblers.length; v++) {
+            for (int v = 0;
+                    v < assemblers.length;
+                    v++) {
                 assemblers[v] = new AssemblerThread(v);
                 assemblers[v].start();
             }
@@ -1054,7 +1038,7 @@ public class Solver {
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
-                        elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
+                        elems[i].assembleJacobiMatrix(timeCoef);
                         elems[i].computeJacobiPreconditioner();
                     }
                 }

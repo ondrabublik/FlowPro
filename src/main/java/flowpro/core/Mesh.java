@@ -363,6 +363,7 @@ public class Mesh implements Serializable {
         // matice globalnich indexu a globalni matice s pravou stranou
         public int[] gi_U;
 
+        public StorageTimeLevels tim;
         double[] initW;
         public double[] W;     // hodnota W v n+1 te casove hladine
         public double[] Wo;    // hodnota v n te casove hladine
@@ -434,7 +435,9 @@ public class Mesh implements Serializable {
                     U[i][d] = 0;
                 }
             }
-
+            
+            tim = new StorageTimeLevels(1, initW, nBasis, nEqs, basis);
+            
             // fill the solution vector with initial condition
             W = new double[nBasis * nEqs];
             Wo = new double[nBasis * nEqs];
@@ -555,19 +558,20 @@ public class Mesh implements Serializable {
             limitUnphysicalValues();
         }
 
-        void assembleRHS(double[] Rw, double[] a1, double[] a2, double[] a3) {
+        void assembleRHS(double[] Rw, double[] timeCoef) {
             System.arraycopy(Rw, 0, RHS_loc, 0, Rw.length);
+//            timeLevels.calculateRHS(RHS_loc, M, W, timeCoef);
             for (int m = 0; m < nEqs; m++) {
                 for (int i = 0; i < nBasis; i++) {
                     for (int j = 0; j < nBasis; j++) {
-                        RHS_loc[nBasis * m + i] -= M[i][j] * a1[m] * W[m * nBasis + j] + Mo[i][j] * a2[m] * Wo[m * nBasis + j] + Mo2[i][j] * a3[m] * Wo2[m * nBasis + j];
+                        RHS_loc[nBasis * m + i] -= M[i][j] * timeCoef[0] * W[m * nBasis + j] + Mo[i][j] * timeCoef[1] * Wo[m * nBasis + j] + Mo2[i][j] * timeCoef[2] * Wo2[m * nBasis + j];
                     }
                 }
             }
         }
 
         // Generovani radku globalni matice a vektoru prave strany
-        public void assembleJacobiMatrix(double[] a1, double[] a2, double[] a3, double[] dual) {
+        public void assembleJacobiMatrix(double[] timeCoef) {
             nullJacobiMatrixBlocks();
 
             // vnitrni element - krivkovy i objemovy integral
@@ -575,7 +579,7 @@ public class Mesh implements Serializable {
             double[] Rw = new double[nBasis * nEqs];
             residuum(V, ANeighs, Rw);
 
-            assembleRHS(Rw, a1, a2, a3);
+            assembleRHS(Rw, timeCoef);
 
             if (par.useJacobiMatrix && eqn.isEquationsJacobian()) { // fast assemble when jacobian of equations is known
 
@@ -622,7 +626,7 @@ public class Mesh implements Serializable {
             for (int m = 0; m < nEqs; m++) {
                 for (int i = 0; i < nBasis; i++) {
                     for (int j = 0; j < nBasis; j++) {
-                        ADiag[nBasis * m + i][nBasis * m + j] += (a1[m] + dual[m]) * M[i][j];
+                        ADiag[nBasis * m + i][nBasis * m + j] += timeCoef[0] * M[i][j];
                     }
                 }
             }
@@ -1235,16 +1239,20 @@ public class Mesh implements Serializable {
                 // DDG
                 if (eqn.isDiffusive()) {
                     // DDG
+                    double beta0 = par.beta0;
+                    if(par.order == 1){
+                        beta0 = 0;
+                    }
                     double[] Wc = new double[nEqs];
                     double[] dWc = new double[nEqs * dim];
                     for (int m = 0; m < nEqs; m++) {
-                        if (TT[k] > 0) {
+                        if (TT[k] > -1) {
                             Wc[m] = (WL[m] + WR[m]) / 2;
                         } else {
                             Wc[m] = WR[m];
                         }
                         for (int d = 0; d < dim; d++) {
-                            dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + par.beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
+                            dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
                         }
                     }
                     fvn = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][p], TT[k], elemData);

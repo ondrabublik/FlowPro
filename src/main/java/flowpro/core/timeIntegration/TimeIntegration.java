@@ -3,15 +3,20 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package flowpro.core;
+package flowpro.core.timeIntegration;
+
+import flowpro.api.FlowProProperties;
+import flowpro.core.Parameters;
+import java.io.Serializable;
 
 /**
  *
  * @author obublik
  */
-public class TimeIntegration {
+abstract public class TimeIntegration implements Serializable {
     String method;
     int order;
+    double[][] WHistory;
     double[][] MWHistory;
     double[][] RHSHistory;
     double[] timeHistory;
@@ -20,4 +25,12 @@ public class TimeIntegration {
         this.method = par.timeMethod;
         this.order = par.orderInTime;
     }
+    
+    abstract void init(FlowProProperties props);
+    
+    abstract void saveTimeIteration(double[] W, double[] MW, double[] RHS);
+    
+    abstract double[] getWnm1();
+    
+    abstract void getBack();
 }

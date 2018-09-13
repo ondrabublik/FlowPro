@@ -1,7 +1,11 @@
-function val = getValue(propName)
+function val = getValue(propName,file)
 
 [meshPath, simulPath, outputPath] = getPath;
-fileName = [simulPath,'parameters.txt'];
+if(nargin == 1)
+    fileName = [simulPath,'parameters.txt'];
+else
+    fileName = [simulPath,file];
+end
 
 % Read txt into cell A
 try
