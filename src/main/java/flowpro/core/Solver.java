@@ -13,6 +13,7 @@ import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
 import flowpro.core.meshDeformation.*;
 import flowpro.core.parallel.Domain.Subdomain;
+import flowpro.core.timeIntegration.TimeIntegration;
 import litempi.*;
 
 import java.io.*;
@@ -36,6 +37,7 @@ public class Solver {
     private final Deformation dfm;
     private final Dynamics dyn;
     private final Equation eqn;
+    private final TimeIntegration tim;
     private final Parameters par;
 
     // master and loner parameters
@@ -59,17 +61,19 @@ public class Solver {
      * @param meshes
      * @param dyn
      * @param eqn
+     * @param tim
      * @param par
      * @param state
      * @param domain
      * @param lock
      */
     public Solver(String simulationPath, Mesh[] meshes, Dynamics dyn,
-            Equation eqn, Parameters par, State state, Domain domain, Object lock) {
+            Equation eqn, TimeIntegration tim, Parameters par, State state, Domain domain, Object lock) {
         this.simulationPath = simulationPath;
         this.meshes = meshes;
         this.dyn = dyn;
         this.eqn = eqn;
+        this.tim = tim;
         this.par = par;
         this.state = state;
         this.domain = domain;
@@ -103,6 +107,7 @@ public class Solver {
 
         par = mesh.getPar();
         eqn = mesh.getEqn();
+        tim = mesh.getTim();
         dfm = mesh.getDfm();
         dyn = null;
         dofs = mesh.dofs;
@@ -157,39 +162,18 @@ public class Solver {
     private void getTimeLevelBack() {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                elem.tim.getTimeLevelBack(elem.W);
-                //elem.copyWo2W();
+                elem.timeStorage.getTimeLevelBack(elem.W);
             }
         }
     }
 
-    private void copyW2Wo() {
-        for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
-                elem.copyW2Wo();
-            }
-        }
-    }
-
-    //------------------------------------------------------------------------------------------------------
     private void saveTimeLevel(double t) {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                int nBasis = elem.nBasis;
-                int nEqs = eqn.nEqs();
-                double[] MV = new double[nBasis * nEqs];
-                for (int m = 0; m < nEqs; m++) {
-                    for (int i = 0; i < nBasis; i++) {
-                        for (int j = 0; j < nBasis; j++) {
-                            MV[nBasis * m + i] += elem.M[i][j] * elem.W[m * nBasis + j];
-                        }
-                    }
-                }
-                elem.tim.saveTimeLevel(t, elem.W, MV, elem.RHS_loc);
+                elem.timeStorage.saveTimeLevel(t, elem.M, elem.W, elem.RHS_loc);
             }
         }
     }
-    //------------------------------------------------------------------------------------------------------
 
     private void computeInvertMassMatrix() {
         for (Element elem : elems) {
@@ -199,11 +183,6 @@ public class Solver {
         }
     }
 
-    /**
-     * b = b - Ax
-     *
-     * @param x
-     */
     private void updateRHS(double x[]) {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
@@ -218,25 +197,11 @@ public class Solver {
         }
     }
 
-    private void nextTimeLevelMassMatrixes() {
-        for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
-                elem.nextTimeLevelMassMatrixes();
-            }
-        }
-    }
-
-    /**
-     *
-     * @param dt
-     * @return L1norm(W - Wo)
-     */
     private double calculateResiduumW(double dt) {
         double resid = 0;
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                resid += elem.tim.calculateResiduumW(state.t + dt, elem.W);
-//                resid += elem.calculateResiduumW(dt);
+                resid += elem.timeStorage.calculateResiduumW(dt, elem.W);
             }
         }
         return resid / elems.length;
@@ -301,7 +266,6 @@ public class Solver {
 
                     case Tag.ALE_NEXT_TIME_LEVEL:
                         dfm.nextTimeLevel(elems);
-                        nextTimeLevelMassMatrixes();
                         outMsg = new MPIMessage(Tag.NEW_MESH_POSITION_UPDATED);
                         break;
 
@@ -335,9 +299,10 @@ public class Solver {
                         break;
 
                     case Tag.LIMITER_and_NEXT_TIME_LEVEL: // next time level
+                        double t = (double) inMsg.getData();
                         double residuum = calculateResiduumW(dt);
                         callLimiters();
-                        copyW2Wo();
+                        saveTimeLevel(t);
                         mesh.updateTime(dt);
                         outMsg = new MPIMessage(Tag.RESIDUUM, residuum);
                         break;
@@ -594,7 +559,7 @@ public class Solver {
                     mpi.waitForAll(Tag.NEWTON_UPDATED);
                 }
 
-                mpi.sendAll(new MPIMessage(Tag.LIMITER_and_NEXT_TIME_LEVEL));
+                mpi.sendAll(new MPIMessage(Tag.LIMITER_and_NEXT_TIME_LEVEL, state.t + dt));
                 double resid = 0.0;
                 for (int d = 0; d < nDoms; ++d) {
                     resid += (double) mpi.receive(d, Tag.RESIDUUM).getData();
@@ -768,18 +733,14 @@ public class Solver {
             for (int i = 0; i < nElems; i++) {
                 elems[i].limitUnphysicalValues();
             }
-            
-            copyW2Wo();
-//            saveTimeLevel(state.t); // aaaaaaaaaaaaaaaaaaaaaaaaaa
-            
+
+            saveTimeLevel(state.t);
+
             mesh.updateTime(dt);
             if (par.movingMesh) {
                 dfm.nextTimeLevel(elems);
                 dyn.nextTimeLevel();
                 dyn.savePositionsAndForces();
-                for (int i = 0; i < nElems; i++) {
-                    elems[i].nextTimeLevelMassMatrixes();
-                }
             }
 
             String info = infoToString(totalSteps, dt);
@@ -853,7 +814,7 @@ public class Solver {
             state.executionTime = watch.getTime();
             state.t += dt;
             saveResiduum(state.residuum, state.t, state.executionTime);
-            copyW2Wo();
+            saveTimeLevel(state.t);
 
             String info = infoToString(totalSteps, dt);
             if ((state.steps % par.saveRate) == 0) {
@@ -980,28 +941,30 @@ public class Solver {
     public class JacobiAssembler {
 
         public Element[] elems;
-        private int nEqs;
         private final Parameters par;
-        double[] timeCoef;
+        double[] timeWCoef;
+        double[] timeRHSCoef;
 
         public JacobiAssembler(Element[] elems, Parameters par) {
             this.elems = elems;
             this.par = par;
-            nEqs = elems[0].getNEqs();
         }
 
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
         public void assemble(double dt, double dto) {  // , int newtonIter
-            timeCoef = new double[3];
+            timeWCoef = tim.getWcoefficient();
+            timeRHSCoef = tim.getRHScoefficient();
             switch (par.orderInTime) {
                 case 1:
-                    timeCoef[0] = 1 / dt;
-                    timeCoef[1] = -1 / dt;
+                    timeWCoef = new double[2];
+                    timeWCoef[0] = 1 / dt;
+                    timeWCoef[1] = -1 / dt;
                     break;
                 case 2:
-                    timeCoef[0] = (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
-                    timeCoef[1] = -(dt + dto) / (dt * dto);  // -2/dt;
-                    timeCoef[2] = dt / (dto * (dt + dto));  // 1/(2*dt);
+                    timeWCoef = new double[3];
+                    timeWCoef[0] = (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
+                    timeWCoef[1] = -(dt + dto) / (dt * dto);  // -2/dt;
+                    timeWCoef[2] = dt / (dto * (dt + dto));  // 1/(2*dt);
                 default:
                     throw new RuntimeException("solver supports only first and second order in time");
             }
@@ -1038,7 +1001,7 @@ public class Solver {
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
-                        elems[i].assembleJacobiMatrix(timeCoef);
+                        elems[i].assembleJacobiMatrix(timeWCoef,timeRHSCoef);
                         elems[i].computeJacobiPreconditioner();
                     }
                 }

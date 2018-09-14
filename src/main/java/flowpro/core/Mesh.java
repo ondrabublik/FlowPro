@@ -13,6 +13,7 @@ import flowpro.core.elementType.ElementType;
 import flowpro.api.Functional;
 import flowpro.api.SolutionMonitor;
 import flowpro.core.parallel.Domain.Subdomain;
+import flowpro.core.timeIntegration.TimeIntegration;
 import java.io.*;
 import java.util.Arrays;
 
@@ -22,6 +23,7 @@ import java.util.Arrays;
 public class Mesh implements Serializable {
 
     private final Equation eqn;
+    private final TimeIntegration tim;
     private final Deformation dfm;
     public final int nEqs;        // number of equations
     private final Parameters par;  // parameters for the solver
@@ -47,6 +49,7 @@ public class Mesh implements Serializable {
      * only in the parallel mode.
      *
      * @param eqn
+     * @param tim
      * @param dfm
      * @param par
      * @param solMonitor
@@ -66,9 +69,10 @@ public class Mesh implements Serializable {
      * @param domain
      * @throws IOException
      */
-    public Mesh(Equation eqn, Deformation dfm, Parameters par, SolutionMonitor solMonitor, QuadratureCentral qRules, double[][] PXY, int[] elemsOrder, double[] wallDistance, double[][] externalField, int[] elemsType, int[][] TP, int[][] TT, int[][] TEale, int[][] TEshift, double[][] shift,
+    public Mesh(Equation eqn, TimeIntegration tim, Deformation dfm, Parameters par, SolutionMonitor solMonitor, QuadratureCentral qRules, double[][] PXY, int[] elemsOrder, double[] wallDistance, double[][] externalField, int[] elemsType, int[][] TP, int[][] TT, int[][] TEale, int[][] TEshift, double[][] shift,
             FaceCurvature[] fCurv, double[][] initW, Subdomain domain) throws IOException {
         this.eqn = eqn;
+        this.tim = tim;
         this.dfm = dfm;
         this.nEqs = eqn.nEqs();
         this.par = par;
@@ -195,6 +199,10 @@ public class Mesh implements Serializable {
 
     public Equation getEqn() {
         return eqn;
+    }
+    
+    public TimeIntegration getTim() {
+        return tim;
     }
 
     public Deformation getDfm() {
@@ -336,8 +344,6 @@ public class Mesh implements Serializable {
         double[] Is; // integral bazove funkce
         double[][] M;	 // matice hmotnosti
         double[][] iM; // inverze matice hmotnosti (pouze pro implicitni metodu)
-        double[][] Mo;	 // matice hmotnosti v predchozi casove hladine
-        double[][] Mo2;	 // matice hmotnosti
         public double[][] ADiag;
         double[][] PrecondJacobi; // inverze ADiag
         public double[] RHS_loc;
@@ -363,11 +369,9 @@ public class Mesh implements Serializable {
         // matice globalnich indexu a globalni matice s pravou stranou
         public int[] gi_U;
 
-        public StorageTimeLevels tim;
+        public StorageTimeLevels timeStorage;
         double[] initW;
         public double[] W;     // hodnota W v n+1 te casove hladine
-        public double[] Wo;    // hodnota v n te casove hladine
-        public double[] Wo2;   // hodnota v n-1 casove hladine
 
         // derivative correction
         double[] R;
@@ -436,37 +440,8 @@ public class Mesh implements Serializable {
                 }
             }
             
-            tim = new StorageTimeLevels(1, initW, nBasis, nEqs, basis);
-            
-            // fill the solution vector with initial condition
-            W = new double[nBasis * nEqs];
-            Wo = new double[nBasis * nEqs];
-            Wo2 = new double[nBasis * nEqs];
-            if (initW.length == nBasis * nEqs) {
-                System.arraycopy(initW, 0, W, 0, nBasis * nEqs);
-                System.arraycopy(initW, 0, Wo, 0, nBasis * nEqs);
-                System.arraycopy(initW, 0, Wo2, 0, nBasis * nEqs);
-            } else {
-                switch (basis.basisType) {
-                    case "lagrange":
-                        for (int i = 0; i < nBasis; i++) {
-                            for (int j = 0; j < nEqs; j++) {
-                                W[j * nBasis + i] = initW[j];
-                                Wo[j * nBasis + i] = initW[j];
-                                Wo2[j * nBasis + i] = initW[j];
-                            }
-                        }
-                        break;
-                    case "orthogonal":
-                    case "taylor":
-                        for (int j = 0; j < nEqs; j++) {
-                            W[j * nBasis] = initW[j];
-                            Wo[j * nBasis] = initW[j];
-                            Wo2[j * nBasis] = initW[j];
-                        }
-                        break;
-                }
-            }
+            timeStorage = new StorageTimeLevels(1, nBasis, nEqs);
+            W = timeStorage.init(t, initW, M, basis);
         }
 
         public void computeInvertMassMatrix() {
@@ -558,20 +533,13 @@ public class Mesh implements Serializable {
             limitUnphysicalValues();
         }
 
-        void assembleRHS(double[] Rw, double[] timeCoef) {
+        void assembleRHS(double[] Rw, double[] timeWCoef, double[] timeRHSCoef) {
             System.arraycopy(Rw, 0, RHS_loc, 0, Rw.length);
-//            timeLevels.calculateRHS(RHS_loc, M, W, timeCoef);
-            for (int m = 0; m < nEqs; m++) {
-                for (int i = 0; i < nBasis; i++) {
-                    for (int j = 0; j < nBasis; j++) {
-                        RHS_loc[nBasis * m + i] -= M[i][j] * timeCoef[0] * W[m * nBasis + j] + Mo[i][j] * timeCoef[1] * Wo[m * nBasis + j] + Mo2[i][j] * timeCoef[2] * Wo2[m * nBasis + j];
-                    }
-                }
-            }
-        }
+            timeStorage.calculateRHS(RHS_loc, M, W, timeWCoef, timeRHSCoef);
+       }
 
         // Generovani radku globalni matice a vektoru prave strany
-        public void assembleJacobiMatrix(double[] timeCoef) {
+        public void assembleJacobiMatrix(double[] timeWCoef, double[] timeRHSCoef) {
             nullJacobiMatrixBlocks();
 
             // vnitrni element - krivkovy i objemovy integral
@@ -579,7 +547,7 @@ public class Mesh implements Serializable {
             double[] Rw = new double[nBasis * nEqs];
             residuum(V, ANeighs, Rw);
 
-            assembleRHS(Rw, timeCoef);
+            assembleRHS(Rw, timeWCoef, timeRHSCoef);
 
             if (par.useJacobiMatrix && eqn.isEquationsJacobian()) { // fast assemble when jacobian of equations is known
 
@@ -626,7 +594,7 @@ public class Mesh implements Serializable {
             for (int m = 0; m < nEqs; m++) {
                 for (int i = 0; i < nBasis; i++) {
                     for (int j = 0; j < nBasis; j++) {
-                        ADiag[nBasis * m + i][nBasis * m + j] += timeCoef[0] * M[i][j];
+                        ADiag[nBasis * m + i][nBasis * m + j] += timeWCoef[0] * M[i][j];
                     }
                 }
             }
@@ -1517,28 +1485,28 @@ public class Mesh implements Serializable {
          * @param dt
          * @return L1norm(W - Wo)
          */
-        double calculateResiduumW(double dt
-        ) {
-            double rez = 0;
-            for (int m = 0; m < nEqs; m++) {
-                for (int j = 0; j < nBasis; j++) {
-                    rez = rez + Math.abs(W[m * nBasis + j] - Wo[m * nBasis + j]) / dt;
-                }
-            }
+//        double calculateResiduumW(double dt
+//        ) {
+//            double rez = 0;
+//            for (int m = 0; m < nEqs; m++) {
+//                for (int j = 0; j < nBasis; j++) {
+//                    rez = rez + Math.abs(W[m * nBasis + j] - Wo[m * nBasis + j]) / dt;
+//                }
+//            }
+//
+//            return rez;
+//        }
 
-            return rez;
-        }
-
-        // ulozeni W do Wo
-        void copyW2Wo() {
-            System.arraycopy(Wo, 0, Wo2, 0, nBasis * nEqs);
-            System.arraycopy(W, 0, Wo, 0, nBasis * nEqs);
-        }
-
-        // ulozeni Wo do W (pri potizich s resenim)
-        void copyWo2W() {
-            System.arraycopy(Wo, 0, W, 0, nBasis * nEqs);
-        }
+//        // ulozeni W do Wo
+//        void copyW2Wo() {
+//            System.arraycopy(Wo, 0, Wo2, 0, nBasis * nEqs);
+//            System.arraycopy(W, 0, Wo, 0, nBasis * nEqs);
+//        }
+//
+//        // ulozeni Wo do W (pri potizich s resenim)
+//        void copyWo2W() {
+//            System.arraycopy(Wo, 0, W, 0, nBasis * nEqs);
+//        }
 
         //__________________________________________________________________________
         double delta_t(double CFL) { //vypocet maximalniho casoveho kroku
@@ -1801,16 +1769,6 @@ public class Mesh implements Serializable {
                     Is[i] = Is[i] + Jac[p] * weights[p] * base[p][i] / area;
                 }
             }
-
-            // initialization of mass matrixes
-            Mo = new double[nBasis][nBasis];
-            Mo2 = new double[nBasis][nBasis];
-            for (int i = 0; i < nBasis; i++) {
-                for (int j = 0; j < nBasis; j++) {
-                    Mo[i][j] = M[i][j];
-                    Mo2[i][j] = M[i][j];
-                }
-            }
         }
 
         public void recalculateMassMatrix() {
@@ -1832,14 +1790,6 @@ public class Mesh implements Serializable {
             }
         }
 
-        void nextTimeLevelMassMatrixes() {
-            for (int i = 0; i < nBasis; i++) {
-                for (int j = 0; j < nBasis; j++) {
-                    Mo2[i][j] = Mo[i][j];
-                    Mo[i][j] = M[i][j];
-                }
-            }
-        }
 
         public void computeOrderTruncationMatrix() { // truncation to linear order matrix
             if (elemType.order > 2) {

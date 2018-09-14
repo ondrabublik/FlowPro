@@ -11,6 +11,8 @@ import flowpro.core.parallel.Domain;
 import flowpro.core.elementType.ElementType;
 import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.meshDeformation.*;
+import flowpro.core.timeIntegration.TimeIntegration;
+import flowpro.core.timeIntegration.TimeIntegrationFactory;
 import litempi.MPIException;
 import java.io.BufferedReader;
 import java.io.File;
@@ -179,7 +181,8 @@ public class FlowProMain {
     }
 
     private Solver solverFactory(boolean parallelMode, boolean optimalisation, int nDomains) throws IOException {
-        Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
+        Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read equation object
+        TimeIntegration tim = (new TimeIntegrationFactory()).getTimeIntegrationMethod(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read time integration object
         Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode); // read numerical parameters            
 
         LOG.info("loading data...");
@@ -378,14 +381,14 @@ public class FlowProMain {
         for (int d = 0; d < nDoms; ++d) {
             LOG.info("domain " + d + " from " + (nDoms - 1) + ":");
             Domain.Subdomain subdom = domain.getSubdomain(d);
-            mesh[d] = new Mesh(eqn, dfm, par, solMonitor, qRules, PXY, subdom.elemsOrder, wallDistance, externalField, subdom.elemsType,
+            mesh[d] = new Mesh(eqn, tim, dfm, par, solMonitor, qRules, PXY, subdom.elemsOrder, wallDistance, externalField, subdom.elemsType,
                     subdom.TP, subdom.TT, subdom.TEale, subdom.TEshift, shift, subdom.fCurv, subdom.initW, subdom);
             if (!parallelMode) {
                 mesh[d].init();
             }
         }
 
-        return new Solver(simulationPath, mesh, dyn, eqn, par, state, domain, lock);
+        return new Solver(simulationPath, mesh, dyn, eqn, tim, par, state, domain, lock);
     }
 
     public static String millisecsToTime(long nanoseconds) {

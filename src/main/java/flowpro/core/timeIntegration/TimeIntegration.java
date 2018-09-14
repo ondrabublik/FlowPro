@@ -16,21 +16,21 @@ import java.io.Serializable;
 abstract public class TimeIntegration implements Serializable {
     String method;
     int order;
-    double[][] WHistory;
-    double[][] MWHistory;
-    double[][] RHSHistory;
-    double[] timeHistory;
+    int nW;
+    int nRHS;
     
     TimeIntegration(Parameters par){
         this.method = par.timeMethod;
         this.order = par.orderInTime;
     }
     
-    abstract void init(FlowProProperties props);
+    abstract public void init(FlowProProperties props);
     
-    abstract void saveTimeIteration(double[] W, double[] MW, double[] RHS);
+    abstract public double[] getWcoefficient();
     
-    abstract double[] getWnm1();
+    abstract public double[] getRHScoefficient();
     
-    abstract void getBack();
+    abstract public int getWHistoryLength();
+    
+    abstract public int getRHSHistoryLength();
 }
