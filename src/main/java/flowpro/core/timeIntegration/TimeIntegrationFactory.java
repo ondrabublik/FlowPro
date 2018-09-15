@@ -9,7 +9,6 @@ import flowpro.api.FlowProProperties;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLClassLoader;
 
 /**
  *
@@ -34,19 +33,12 @@ public class TimeIntegrationFactory {
                     + " has a wrong format: " + ex.getMessage(), ex);
         }
 
-        String className = "flowpro.core.timeIntegration" + simpleClassName;
+        String className = "flowpro.core.timeIntegration." + simpleClassName;
 
         try {
-            Class<TimeIntegration> timClass = (Class<TimeIntegration>) Class.forName(className,true, new URLClassLoader(jarURLList));
-            TimeIntegration tim = (TimeIntegration) timClass.newInstance();
-
-//            try {
-                tim.init(props);
-                return tim;
-//            } catch (IOException ex) {
-//                throw new IOException("file " + parameterFilePath
-//                        + " has a wrong format: " + ex.getMessage());
-//            }
+            TimeIntegration tim = (TimeIntegration) Class.forName(className).newInstance();
+            tim.init(props);
+            return tim;
         } catch (ClassNotFoundException ex) {
             throw new IOException("class \"" + className + "\" not found, parameter \"model\" in file "
                     + parameterFilePath + " must have the same name as the class that defines the model", ex);

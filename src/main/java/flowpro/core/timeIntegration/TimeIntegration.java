@@ -6,7 +6,7 @@
 package flowpro.core.timeIntegration;
 
 import flowpro.api.FlowProProperties;
-import flowpro.core.Parameters;
+import java.io.IOException;
 import java.io.Serializable;
 
 /**
@@ -14,23 +14,30 @@ import java.io.Serializable;
  * @author obublik
  */
 abstract public class TimeIntegration implements Serializable {
-    String method;
+
     int order;
-    int nW;
-    int nRHS;
-    
-    TimeIntegration(Parameters par){
-        this.method = par.timeMethod;
-        this.order = par.orderInTime;
+    int nMWcoef;
+    int nRHScoef;
+    double[] Wcoef;
+    double[] RHScoef;
+
+    abstract public void init(FlowProProperties props) throws IOException;
+
+    abstract public void computeTimecoefficient(double[] dt);
+
+    public double[] getWcoefficient() {
+        return Wcoef;
     }
-    
-    abstract public void init(FlowProProperties props);
-    
-    abstract public double[] getWcoefficient();
-    
-    abstract public double[] getRHScoefficient();
-    
-    abstract public int getWHistoryLength();
-    
-    abstract public int getRHSHistoryLength();
+
+    public double[] getRHScoefficient() {
+        return RHScoef;
+    }
+
+    public int getWHistoryLength() {
+        return nMWcoef - 1;
+    }
+
+    public int getRHSHistoryLength() {
+        return nRHScoef - 1;
+    }
 }

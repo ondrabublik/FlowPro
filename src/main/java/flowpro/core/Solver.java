@@ -31,6 +31,7 @@ public class Solver {
     private static final Logger LOG = LoggerFactory.getLogger(Solver.class);
     private static final StopWatch tempWatch = new StopWatch();
     private static final StopWatch tempWatch2 = new StopWatch();
+    private double[] dtHistory;
 
 //    private final Object lock;
     // common parameters
@@ -167,10 +168,10 @@ public class Solver {
         }
     }
 
-    private void saveTimeLevel(double t) {
+    private void saveTimeLevel() {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                elem.timeStorage.saveTimeLevel(t, elem.M, elem.W, elem.RHS_loc);
+                elem.timeStorage.storeTimeLevel(elem.M, elem.W, elem.RHS_loc);
             }
         }
     }
@@ -207,6 +208,13 @@ public class Solver {
         return resid / elems.length;
     }
 
+    public void saveDt(double dt) {
+        for (int i = dtHistory.length - 1; i > 0; i--) {
+            dtHistory[i] = dtHistory[i - 1];
+        }
+        dtHistory[0] = dt;
+    }
+
     public void slaveSolve() throws IOException, MPIException {
         LOG.info("slave is running...");
         MPISlave mpi = mpiSlave;
@@ -216,8 +224,8 @@ public class Solver {
             JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double[] x = new double[dofs];
             double[] y = new double[dofs];
+            dtHistory = new double[Mat.max(tim.getWHistoryLength(), tim.getRHSHistoryLength())];
             double dt = -1.0;
-            double dto;
             boolean firstTimeStep = true;
 
             while (true) {
@@ -270,16 +278,13 @@ public class Solver {
                         break;
 
                     case Tag.ASSEMBLE_AND_SOLVE: // inicialization if equation Ax=b
-                        // dalo by se tomu vyhnout kdybysme ukladali souboru dt a dto
-                        if (firstTimeStep) {  //  if dt has not yet been set
-                            dt = (double) inMsg.getData();
-                            dto = dt;
-                            firstTimeStep = false;
-                        } else {  // if dt has already been set
-                            dto = dt;
-                            dt = (double) inMsg.getData();
+                        // dalo by se tomu vyhnout kdybysme ukladali dt a dto
+                        dt = (double) inMsg.getData();
+                        if (dtHistory[0] == 0) {
+                            Arrays.fill(dtHistory, dt);
                         }
-                        assembler.assemble(dt, dto);
+                        saveDt(dt);
+                        assembler.assemble(dtHistory);
                         Arrays.fill(y, 0.0);
                     // NO BREAK! continue to the following tag
 
@@ -299,10 +304,9 @@ public class Solver {
                         break;
 
                     case Tag.LIMITER_and_NEXT_TIME_LEVEL: // next time level
-                        double t = (double) inMsg.getData();
                         double residuum = calculateResiduumW(dt);
                         callLimiters();
-                        saveTimeLevel(t);
+                        saveTimeLevel();
                         mesh.updateTime(dt);
                         outMsg = new MPIMessage(Tag.RESIDUUM, residuum);
                         break;
@@ -559,7 +563,7 @@ public class Solver {
                     mpi.waitForAll(Tag.NEWTON_UPDATED);
                 }
 
-                mpi.sendAll(new MPIMessage(Tag.LIMITER_and_NEXT_TIME_LEVEL, state.t + dt));
+                mpi.sendAll(new MPIMessage(Tag.LIMITER_and_NEXT_TIME_LEVEL));
                 double resid = 0.0;
                 for (int d = 0; d < nDoms; ++d) {
                     resid += (double) mpi.receive(d, Tag.RESIDUUM).getData();
@@ -633,7 +637,7 @@ public class Solver {
         StopWatch watch = new StopWatch();
 
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
-        double dto = -1;
+        dtHistory = new double[Mat.max(tim.getWHistoryLength(), tim.getRHSHistoryLength())];
         boolean converges = true;
         int totalSteps = state.steps + par.steps;
 
@@ -660,9 +664,12 @@ public class Solver {
 
             // setting time step size - dt
             double dt = timeStep(state.cfl);
-            if (dto == -1) {
-                dto = dt;
+            if (dtHistory[0] == 0) {
+                Arrays.fill(dtHistory, dt);
             }
+            double dto = dtHistory[0];
+            saveDt(dt);
+
             if (state.t + dt > par.tEnd) {
                 dt = par.tEnd - state.t;
             }
@@ -690,7 +697,7 @@ public class Solver {
                 }
 
                 // matrix assembly
-                assembler.assemble(dt, dto);
+                assembler.assemble(dtHistory);
 
                 // solve linear system
                 Arrays.fill(x, 0.0);
@@ -727,14 +734,14 @@ public class Solver {
             }
             state.executionTime = watch.getTime();
             state.t += dt;
-            dto = dt;
+            
             saveResiduum(state.residuum, state.t, state.executionTime);
             // limiter
             for (int i = 0; i < nElems; i++) {
                 elems[i].limitUnphysicalValues();
             }
 
-            saveTimeLevel(state.t);
+            saveTimeLevel();
 
             mesh.updateTime(dt);
             if (par.movingMesh) {
@@ -814,7 +821,7 @@ public class Solver {
             state.executionTime = watch.getTime();
             state.t += dt;
             saveResiduum(state.residuum, state.t, state.executionTime);
-            saveTimeLevel(state.t);
+            saveTimeLevel();
 
             String info = infoToString(totalSteps, dt);
             if ((state.steps % par.saveRate) == 0) {
@@ -951,23 +958,10 @@ public class Solver {
         }
 
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
-        public void assemble(double dt, double dto) {  // , int newtonIter
+        public void assemble(double[] dt) {  // , int newtonIter
+            tim.computeTimecoefficient(dt);
             timeWCoef = tim.getWcoefficient();
             timeRHSCoef = tim.getRHScoefficient();
-            switch (par.orderInTime) {
-                case 1:
-                    timeWCoef = new double[2];
-                    timeWCoef[0] = 1 / dt;
-                    timeWCoef[1] = -1 / dt;
-                    break;
-                case 2:
-                    timeWCoef = new double[3];
-                    timeWCoef[0] = (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
-                    timeWCoef[1] = -(dt + dto) / (dt * dto);  // -2/dt;
-                    timeWCoef[2] = dt / (dto * (dt + dto));  // 1/(2*dt);
-                default:
-                    throw new RuntimeException("solver supports only first and second order in time");
-            }
 
             AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
 
@@ -1001,7 +995,7 @@ public class Solver {
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
-                        elems[i].assembleJacobiMatrix(timeWCoef,timeRHSCoef);
+                        elems[i].assembleJacobiMatrix(timeWCoef, timeRHSCoef);
                         elems[i].computeJacobiPreconditioner();
                     }
                 }

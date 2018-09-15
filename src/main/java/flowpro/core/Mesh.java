@@ -440,8 +440,8 @@ public class Mesh implements Serializable {
                 }
             }
             
-            timeStorage = new StorageTimeLevels(1, nBasis, nEqs);
-            W = timeStorage.init(t, initW, M, basis);
+            timeStorage = new StorageTimeLevels(tim.getWHistoryLength(),tim.getRHSHistoryLength(), nBasis, nEqs);
+            W = timeStorage.init(initW, M, basis);
         }
 
         public void computeInvertMassMatrix() {

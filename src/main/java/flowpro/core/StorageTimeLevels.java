@@ -13,31 +13,34 @@ import flowpro.core.basis.Basis;
  */
 public class StorageTimeLevels {
 
-    int timeLevels;
     int size;
-    int position;
+    int posW;
+    int posRHS;
     double[] Wo;
     double[][] MWHistory;
     double[][] RHSHistory;
-    double[] timeHistory;
     int nEqs;
     int nBasis;
+    int nMW;
+    int nRHS;
 
-    StorageTimeLevels(int timeLevels, int nBasis, int nEqs) {
-        this.timeLevels = timeLevels;
+    StorageTimeLevels(int nW, int nRHS, int nBasis, int nEqs) {
         this.nBasis = nBasis;
         this.nEqs = nEqs;
-
+        this.nMW = nW;
+        this.nRHS = nRHS;
     }
 
-    double[] init(double t, double[] initW, double[][] M, Basis basis) {
-        this.timeLevels = timeLevels;
+    double[] init(double[] initW, double[][] M, Basis basis) {
         size = nBasis * nEqs;
         double[] W = new double[size];
         Wo = new double[size];
-        MWHistory = new double[timeLevels][size];
-        RHSHistory = new double[timeLevels][size];
-        timeHistory = new double[timeLevels];
+        if (nMW > 0) {
+            MWHistory = new double[nMW][size];
+        }
+        if (nRHS > 0) {
+            RHSHistory = new double[nRHS][size];
+        }
         this.nEqs = nEqs;
         this.nBasis = nBasis;
 
@@ -67,7 +70,7 @@ public class StorageTimeLevels {
 
         // init MW history
         if (M != null) {
-            for (int k = 0; k < timeLevels; k++) {
+            for (int k = 0; k < nMW; k++) {
                 for (int m = 0; m < nEqs; m++) {
                     for (int i = 0; i < nBasis; i++) {
                         MWHistory[k][nBasis * m + i] = 0;
@@ -79,11 +82,7 @@ public class StorageTimeLevels {
             }
         }
 
-        for (int k = 0; k < timeLevels; k++) {
-            timeHistory[k] = t;
-        }
-
-        position = timeLevels - 1;
+        posW = nMW - 1;
 
         return W;
     }
@@ -94,30 +93,38 @@ public class StorageTimeLevels {
                 for (int j = 0; j < nBasis; j++) {
                     RHS[nBasis * m + i] -= WCoef[0] * M[i][j] * W[nBasis * m + j];
                 }
-                for (int k = 1; k < WCoef.length; k++) {
-                    RHS[nBasis * m + i] -= WCoef[k] * MWHistory[(position - k) % timeLevels][nBasis * m + i];
+                if (nMW > 0) {
+                    for (int k = 1; k < WCoef.length; k++) {
+                        RHS[nBasis * m + i] -= WCoef[k] * MWHistory[(posW - k + 1 + nMW) % nMW][nBasis * m + i];
+                    }
                 }
-                for (int k = 0; k < RHSCoef.length; k++) {
-                    RHS[nBasis * m + i] += RHSCoef[k] * RHSHistory[(position - k)%timeLevels][nBasis * m + i];
-                } 
-           }
+                if (nRHS > 0) {
+                    for (int k = 1; k < RHSCoef.length; k++) {
+                        RHS[nBasis * m + i] += RHSCoef[k] * RHSHistory[(posRHS - k + 1 + nRHS) % nRHS][nBasis * m + i];
+                    }
+                }
+            }
         }
     }
 
     // ulozeni W do Wo
-    void saveTimeLevel(double t, double[][] M, double[] W, double[] RHS) {
-        position = plus(position);
+    void storeTimeLevel(double[][] M, double[] W, double[] RHS) {
+        posW = (posW+1) % nMW;
+        posRHS = (posRHS++) % nRHS;
         if (RHS != null) { //implicit method
-            for (int m = 0; m < nEqs; m++) {
-                for (int i = 0; i < nBasis; i++) {
-                    MWHistory[position][nBasis * m + i] = 0;
-                    for (int j = 0; j < nBasis; j++) {
-                        MWHistory[position][nBasis * m + i] += M[i][j] * W[nBasis * m + j];
+            if (nMW > 0) {
+                for (int m = 0; m < nEqs; m++) {
+                    for (int i = 0; i < nBasis; i++) {
+                        MWHistory[posW][nBasis * m + i] = 0;
+                        for (int j = 0; j < nBasis; j++) {
+                            MWHistory[posW][nBasis * m + i] += M[i][j] * W[nBasis * m + j];
+                        }
                     }
                 }
             }
-            timeHistory[position] = t;
-            System.arraycopy(RHS, 0, RHSHistory[position], 0, size);
+            if (nRHS > 0) {
+                System.arraycopy(RHS, 0, RHSHistory[posRHS], 0, size);
+            }
         }
         System.arraycopy(W, 0, Wo, 0, size);
     }
@@ -135,17 +142,5 @@ public class StorageTimeLevels {
     // ulozeni Wo do W (pri potizich s resenim)
     void getTimeLevelBack(double[] W) {
         System.arraycopy(Wo, 0, W, 0, size);
-    }
-
-    double getDto(double t){
-        return t - timeHistory[position];
-    }
-    
-    int plus(int i) {
-        return (i++) % timeLevels;
-    }
-
-    int minus(int i) {
-        return (i--) % timeLevels;
     }
 }
