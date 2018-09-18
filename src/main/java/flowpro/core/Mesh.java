@@ -34,7 +34,7 @@ public class Mesh implements Serializable {
     /* atributes for the prallel mode */
     private int[] boundary;
     public int[] save;
-    private double t; // time
+    public double t; // time
 
     // domain monitor
     SolutionMonitor solMonitor;
@@ -741,7 +741,7 @@ public class Mesh implements Serializable {
                     }
                 }
                 dL = Math.abs(dL);
-                
+
                 double[] WL = new double[nEqs];
                 double[] WR = new double[nEqs];
                 double[] dWL = new double[dim * nEqs];
@@ -919,6 +919,10 @@ public class Mesh implements Serializable {
                     }
 
                     if (eqn.isDiffusive()) {
+                        double beta0 = par.beta0;
+                        if (par.order == 1) {
+                            beta0 = 0;
+                        }
                         double[] Wc = new double[nEqs];
                         double[] dWc = new double[nEqs * dim];
                         for (int m = 0; m < nEqs; m++) {
@@ -928,7 +932,7 @@ public class Mesh implements Serializable {
                                 Wc[m] = WR[m];
                             }
                             for (int d = 0; d < dim; d++) {
-                                dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + par.beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
+                                dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
                             }
                         }
                         double[] fvR0 = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][p], TT[k], elemData);
@@ -1072,28 +1076,27 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
-            } else { // production term for FVM
-                if (eqn.isSourcePresent()) {
-                    double[] Jac = Int.JacobianVolume;
-                    double[] weights = Int.weightsVolume;
+            } else // production term for FVM
+            if (eqn.isSourcePresent()) {
+                double[] Jac = Int.JacobianVolume;
+                double[] weights = Int.weightsVolume;
 
-                    // interpolation of mesh velocity
-                    double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[0]);
+                // interpolation of mesh velocity
+                double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[0]);
 
-                    double[] WInt = new double[nEqs];
-                    for (int j = 0; j < nEqs; j++) {
-                        WInt[j] = W[j] + V[j];
+                double[] WInt = new double[nEqs];
+                for (int j = 0; j < nEqs; j++) {
+                    WInt[j] = W[j] + V[j];
 
-                    }
-                    double[] dWInt = volumeDerivative(0, V, null, u, elemData);
+                }
+                double[] dWInt = volumeDerivative(0, V, null, u, elemData);
 
-                    // production
-                    double[] product = eqn.sourceTerm(WInt, dWInt, elemData);
+                // production
+                double[] product = eqn.sourceTerm(WInt, dWInt, elemData);
 
-                    for (int m = 0; m < nEqs; m++) {
-                        if (eqn.isSourcePresent()) {
-                            K[m] += Jac[0] * weights[0] * product[m];
-                        }
+                for (int m = 0; m < nEqs; m++) {
+                    if (eqn.isSourcePresent()) {
+                        K[m] += Jac[0] * weights[0] * product[m];
                     }
                 }
             }
@@ -1122,10 +1125,10 @@ public class Mesh implements Serializable {
                 double dL = 0;
                 for (int d = 0; d < dim; d++) {
                     if (TT[k] > -1) {
-                        if(elems[TT[k]].insideComputeDomain){
+                        if (elems[TT[k]].insideComputeDomain) {
                             dL += (Xs[d] - elems[TT[k]].Xs[d]) * n[k][p][d];
                         } else {
-                            dL += 2*(Xs[d] - Xes[k][d]) * n[k][p][d];
+                            dL += 2 * (Xs[d] - Xes[k][d]) * n[k][p][d];
                         }
                     } else {
                         dL += (Xs[d] - Xes[k][d]) * n[k][p][d];
@@ -1235,6 +1238,10 @@ public class Mesh implements Serializable {
                 // DDG
                 if (eqn.isDiffusive()) {
                     // DDG
+                    double beta0 = par.beta0;
+                    if (par.order == 1) {
+                        beta0 = 0;
+                    }
                     double[] Wc = new double[nEqs];
                     double[] dWc = new double[nEqs * dim];
                     for (int m = 0; m < nEqs; m++) {
@@ -1244,7 +1251,7 @@ public class Mesh implements Serializable {
                             Wc[m] = WR[m];
                         }
                         for (int d = 0; d < dim; d++) {
-                            dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + par.beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
+                            dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
                         }
                     }
                     fvn = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][p], TT[k], elemData);
@@ -1455,6 +1462,7 @@ public class Mesh implements Serializable {
             }
             elemData.currentT = t;
             elemData.integralMonitor = integralMonitor;
+            elemData.elemIndex = index;
 
             return u;
         }
@@ -1483,7 +1491,8 @@ public class Mesh implements Serializable {
             }
             elemData.currentT = t;
             elemData.integralMonitor = integralMonitor;
-
+            elemData.elemIndex = index;
+            
             return u;
         }
 

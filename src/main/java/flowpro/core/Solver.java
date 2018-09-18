@@ -294,6 +294,9 @@ public class Solver {
                             dto = dt;
                             dt = (double) inMsg.getData();
                         }
+                        // set equation object state
+                        eqn.setState(mesh.t + dt, dt);
+                        
                         assembler.assemble(dt, dto);
                         Arrays.fill(y, 0.0);
                     // NO BREAK! continue to the following tag
@@ -680,6 +683,8 @@ public class Solver {
             if (state.t + dt > par.tEnd) {
                 dt = par.tEnd - state.t;
             }
+            // set equation object state
+            eqn.setState(state.t + dt, dt);
 
             //compute domain 
             if (par.solutionMonitorOn) {
