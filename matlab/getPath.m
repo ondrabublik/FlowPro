@@ -21,10 +21,11 @@ if ~exist(meshPath, 'dir')
 end
 
 if ~exist(simulPath, 'dir')
-    display('Simulation %s does not exist.');
+    warning('Simulation %s does not exist.', simulation);
     simulPath = [];
 end
 
 if ~exist(outputPath, 'dir')
+    warning('Output directory does not exist.');
     outputPath = [];
 end

@@ -890,6 +890,13 @@ public class Solver {
             if (par.movingMesh) {
                 Mat.save(sol.vertices, simulationPath + "PXY.txt");
             }
+            File[] content = new File(simulationPath + "output").listFiles();
+            if (content != null) {
+                for (File file : content) {
+                    file.delete();
+                }
+            }
+            
             lock.notify();
         }
         LOG.info("results have been saved into " + simulationPath);

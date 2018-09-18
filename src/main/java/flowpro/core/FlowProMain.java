@@ -77,7 +77,7 @@ public class FlowProMain {
 
     public static void main(String args[]) throws InterruptedException, IOException {
         LOG.info("starting FlowPro...");
-        jarURLList = gerJarsURLList("modules");
+        jarURLList = getJarURLList("modules");
         try {
             if (args == null || args.length == 0) {
                 throw new IllegalArgumentException("no argument was specified");
@@ -707,7 +707,7 @@ public class FlowProMain {
         return part;
     }
     
-    public static URL[] gerJarsURLList(String s) throws IOException{
+    public static URL[] getJarURLList(String s) throws IOException{
         URL[] u = null;
         try{
         File currentDir = new File(s); // current directory
