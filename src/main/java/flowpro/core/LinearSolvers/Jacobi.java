@@ -38,4 +38,49 @@ public class Jacobi extends LinearSolver {
 
         return false;
     }
+    
+    double ComputeResiduumJacobi(double[] x, double[] xn, int nThreads) {
+        double residuum = 0;
+        // vlastni vypocet, parallelni beh
+        JacobiThread[] parallel = new JacobiThread[nThreads];
+        for (int v = 0; v < nThreads; v++) {
+            parallel[v] = new JacobiThread(v, nThreads, x, xn);
+            parallel[v].start();
+        }
+        try {
+            for (int v = 0; v < nThreads; v++) {
+                parallel[v].join();
+                residuum += parallel[v].residuumJacobi;
+            }
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e);
+        }
+
+        return residuum;
+    }
+
+    class JacobiThread extends Thread {
+
+        int nStart, nThreads, par, nt;
+        double[] x, xn, r;
+        double residuumJacobi;
+
+        JacobiThread(int nStart, int nThreads, double[] x, double[] xn) {
+            this.nStart = nStart;
+            this.nThreads = nThreads;
+            this.x = x;
+            this.xn = xn;
+            nt = elems.length;
+        }
+
+        @Override
+        public void run() {
+            residuumJacobi = 0;
+            for (int i = nStart; i < nt; i = i + nThreads) {
+                if (elems[i].insideComputeDomain) {
+                    residuumJacobi += elems[i].residuumJacobi(x, xn);
+                }
+            }
+        }
+    }
 }

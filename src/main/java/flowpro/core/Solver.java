@@ -391,6 +391,13 @@ public class Solver {
         }
     }
 
+    private String infoToString(int totalSteps, double dt, long assembleTime, long solveTime) throws IOException {
+        String timeStr = millisecsToTime(state.getOverallExecutionTime());
+
+        return String.format("%d/%d  resid: %.2e,  dt: %.1e,  t: %.2f,  CFL: %1.2f,  CPU: %s, AT: %dms, ST: %dms",
+                state.steps, totalSteps, state.residuum, dt, state.t, state.cfl, timeStr, assembleTime, solveTime);
+    }
+    
     private String infoToString(int totalSteps, double dt) throws IOException {
         String timeStr = millisecsToTime(state.getOverallExecutionTime());
 
@@ -653,6 +660,8 @@ public class Solver {
         double dto = -1;
         boolean converges = true;
         int totalSteps = state.steps + par.steps;
+        long assembleTime = 0;
+        long solveTime = 0;
 
         // save zero iteration
         if (par.animation && state.steps == 0) {
@@ -708,15 +717,15 @@ public class Solver {
                     dfm.recalculateMesh(elems, par.order);
                 }
                 
-                //long startTime = System.currentTimeMillis();
+                long startTime = System.currentTimeMillis();
                 assembler.assemble(dt, dto);
-                //System.out.println("Assemble: " + (System.currentTimeMillis() - startTime));
+                assembleTime = System.currentTimeMillis() - startTime;
                 
-                //startTime = System.currentTimeMillis();
                 // reseni soustavy rovnic
                 Arrays.fill(x, 0.0);
+                startTime = System.currentTimeMillis();
                 converges = linSolver.solve(x);
-                //System.out.println("Solve: " + (System.currentTimeMillis() - startTime));
+                solveTime = System.currentTimeMillis() - startTime;
 
                 if (!converges) {
                     copyWo2W();
@@ -766,7 +775,7 @@ public class Solver {
                 }
             }
 
-            String info = infoToString(totalSteps, dt);
+            String info = infoToString(totalSteps, dt, assembleTime, solveTime);
             if ((state.steps % par.saveRate) == 0) {
                 Solution solution = mesh.getSolution();
                 if (par.animation) {

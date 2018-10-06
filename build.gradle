@@ -27,10 +27,14 @@ buildscript {
     }
 }
 
-def tree = fileTree(dir: 'modules', include: ['*.jar'])
+println '-------------------------------------------------'
 def modules2manifest = ""
-tree.each {File file ->
-    modules2manifest += " modules/" + file.name
+new File("${projectDir}/modules").eachFileRecurse {file->
+    if (file.isFile() && file.name.endsWith("jar")) {
+        def File projectDir = new File("${projectDir}")
+        def relPath = projectDir.toPath().relativize(file.getParentFile().toPath())
+        modules2manifest += relPath.toString().toLowerCase() + "/" + file.name + " "
+    }
 }
 
 jar {

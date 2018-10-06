@@ -1,6 +1,6 @@
 function generator(a, b, n)
 
-vertices = linspace(a, b, n)';
+nodes = linspace(a, b, n)';
 elements = [(0:n-2)' (1:n-1)'];
 neighbours = [[-2; (0:n-3)'] [(1:n-2)'; -3]];
 type = 2 * ones(n-1, 1);
@@ -20,8 +20,8 @@ else
     mkdir(cesta)
 end
 
-dlmwrite(strcat(cesta, 'mesh/vertices.txt'), nodes, 'delimiter', ' ', 'precision', 16);
-dlmwrite(strcat(cesta, 'mesh/elements.txt'), elements, 'delimiter', ' ');
-dlmwrite(strcat(cesta, 'mesh/neighbors.txt'), neighbours, 'delimiter', ' ');
-dlmwrite(strcat(cesta, 'mesh/elementType.txt'), type, 'delimiter', ' ');
+dlmwrite(strcat(cesta, 'vertices.txt'), nodes, 'delimiter', ' ', 'precision', 16);
+dlmwrite(strcat(cesta, 'elements.txt'), elements, 'delimiter', ' ');
+dlmwrite(strcat(cesta, 'neighbors.txt'), neighbours, 'delimiter', ' ');
+dlmwrite(strcat(cesta, 'elementType.txt'), type, 'delimiter', ' ');
 

@@ -1,24 +1,27 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package flowpro.core.LinearSolvers;
-
-import flowpro.core.Mesh.Element;
 
 /**
  *
- * @author ales
+ * @author obublik
  */
-public class Gmres extends LinearSolver {
+public class Gmres2 {
 
-    int n;
-    int m;
-    int iterationLimit;
-    int nThreads;
+    SparseMatrixCRS A;
+    Preconditioner M;
+    int n, m, iterationLimit, nThreads;
     double tol;
     double[][] V, H;
-    double[] cs, sn, e1, w, r;
+    double[] cs, sn, e1, w, r, aux;
 
-    public Gmres(Element[] elems, int n, int m, int iterationLimit, double tol, int nThreads) {
-        this.elems = elems;
-        this.n = n;
+    Gmres2(SparseMatrixCRS A, Preconditioner M, int m, int iterationLimit, double tol, int nThreads) {
+        this.A = A;
+        this.M = M;
+        this.n = A.getDofs();
         this.m = m;
         this.iterationLimit = iterationLimit;
         this.tol = tol;
@@ -32,16 +35,16 @@ public class Gmres extends LinearSolver {
         e1 = new double[m + 1];
         w = new double[n];
         r = new double[n];
+        aux = new double[n];
     }
 
-    @Override
-    public boolean solve(double[] x) {
+    public boolean solve(double[] x, double[] b) {
         double norm_r, temp;
         double[] s, y;
 
         double bnrm2 = 0;
-        for (Element elem : elems) {
-            bnrm2 = bnrm2 + elem.sqr();
+        for (int i = 0; i < n; i++) {
+            bnrm2 += b[i] * b[i];
         }
         bnrm2 = Math.sqrt(bnrm2);
 
@@ -49,22 +52,24 @@ public class Gmres extends LinearSolver {
             bnrm2 = 1;
         }
 
-        ComputeResiduum(x, r, 1, nThreads);
+        A.SubstrMult(aux, b, x);
+        M.apply(r, aux);
         double error = norm(r) / bnrm2;
+        
         if (error < tol) {
             return true;
         }
         e1[0] = 1;
 
         for (int iter = 0; iter < iterationLimit; iter++) {          // begin iteration
-            //ComputeResiduum(x, r, 1, nThreads);
             norm_r = norm(r);
             for (int j = 0; j < n; j++) {
                 V[0][j] = r[j] / norm_r;
             }
             s = vectorScalarProduct(e1, norm_r);
             for (int i = 0; i < m; i++) {                        // construct orthonormal
-                ComputeResiduum(V[i], w, 0, nThreads);     // basis using Gram-Schmidt
+                A.Mult(aux, V[i]);     // basis using Gram-Schmidt
+                M.apply(w, aux);
                 for (int k = 0; k <= i; k++) {
                     H[k][i] = scalarProduct(w, V[k]);
                     for (int j = 0; j < n; j++) {
@@ -89,19 +94,22 @@ public class Gmres extends LinearSolver {
                 H[i][i] = cs[i] * H[i][i] + sn[i] * H[i + 1][i];
                 H[i + 1][i] = 0;
                 error = Math.abs(s[i + 1]) / bnrm2;
+                
                 if (error <= tol) {                        // update approximation
                     y = lsolve(H, s, i + 1);                 // and exit
-                    updateSolution(V, y, x, i, nThreads);
+                    updateSolution(V, y, x, i);
                     break;
                 }
             }
+            
             if (error <= tol) {
                 break;
             }
 
             y = lsolve(H, s, m);
-            updateSolution(V, y, x, m - 1, nThreads);
-            ComputeResiduum(x, r, 1, nThreads);                      // compute residual
+            updateSolution(V, y, x, m - 1);
+            A.SubstrMult(aux, b, x);                     // compute residual
+            M.apply(r, aux);
             s[m] = norm(r);
             error = s[m] / bnrm2;                     // check convergence
             if (error <= tol) {
@@ -111,20 +119,11 @@ public class Gmres extends LinearSolver {
         return error <= tol;
     }
 
-    // presunout do tridy MAT !!!!!!!
-    void updateSolution(double[][] V, double[] y, double[] x, int i, int nThreads) {
-        // vlastni vypocet, parallelni beh
-        UpdateSolutionThread[] parallel = new UpdateSolutionThread[nThreads];
-        for (int v = 0; v < nThreads; v++) {
-            parallel[v] = new UpdateSolutionThread(v, nThreads, V, y, x, i);
-            parallel[v].start();
-        }
-        try {
-            for (int v = 0; v < nThreads; v++) {
-                parallel[v].join();
+    void updateSolution(double[][] V, double[] y, double[] x, int i) {
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k <= i; k++) {
+                x[j] += V[k][j] * y[k];
             }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
         }
     }
 
@@ -162,6 +161,14 @@ public class Gmres extends LinearSolver {
         n = Math.sqrt(n);
 
         return n;
+    }
+
+    double scalarProduct(double[] a, double[] b) {
+        double s = 0;
+        for (int i = 0; i < a.length; i++) {
+            s = s + a[i] * b[i];
+        }
+        return s;
     }
 
     // Gaussian elimination with partial pivoting
@@ -202,73 +209,5 @@ public class Gmres extends LinearSolver {
             x[i] = (b[i] - sum) / A[i][i];
         }
         return x;
-    }
-    
-    void ComputeResiduum(double[] x, double[] r, int par, int nThreads) {
-        // vlastni vypocet, parallelni beh
-        GmresThread[] parallel = new GmresThread[nThreads];
-        for (int v = 0; v < nThreads; v++) {
-            parallel[v] = new GmresThread(v, nThreads, x, r, par);
-            parallel[v].start();
-        }
-        try {
-            for (int v = 0; v < nThreads; v++) {
-                parallel[v].join();
-            }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
-        }
-    }
-
-    class GmresThread extends Thread {
-
-        int nStart, nThreads, par, nt;
-        double[] x, r;
-        double residuumJacobi;
-
-        GmresThread(int nStart, int nThreads, double[] x, double[] r, int par) {
-            this.nStart = nStart;
-            this.nThreads = nThreads;
-            this.x = x;
-            this.r = r;
-            this.par = par;
-            nt = elems.length;
-        }
-
-        @Override
-        public void run() {
-            for (int i = nStart; i < nt; i = i + nThreads) {
-                if (elems[i].insideComputeDomain) {
-                    elems[i].residuumGmres(x, r, par);
-                }
-            }
-        }
-    }
-}
-
-class UpdateSolutionThread extends Thread {
-
-    int nStart, nThreads, i, n;
-    double[][] V;
-    double[] y, x;
-
-    UpdateSolutionThread(int nStart, int nThreads, double[][] V, double[] y, double[] x, int i) {
-        this.nStart = nStart;
-        this.nThreads = nThreads;
-        this.V = V;
-        this.y = y;
-        this.x = x;
-        this.i = i;
-        n = x.length;
-    }
-
-    @Override
-    public void run() {
-        // paralelni sestavovani a plneni matic
-        for (int j = nStart; j < n; j = j + nThreads) {
-            for (int k = 0; k <= i; k++) {
-                x[j] = x[j] + V[k][j] * y[k];
-            }
-        }
     }
 }

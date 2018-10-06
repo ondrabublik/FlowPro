@@ -6,7 +6,7 @@ args = '';
 for i = 1:nargin
     quantityName = varargin{i};
     
-    if lower(quantityName) == "mesh" || lower(quantityName) == "bodies" || lower(quantityName) == "residuum"
+    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum')
         continue
     end
     
@@ -16,7 +16,7 @@ for i = 1:nargin
     end
 end
 
-if args ~= ""
+if args ~= ''
     show(args);
 end
 
@@ -39,13 +39,13 @@ for k = 1 : nargin
     end
     
     switch lower(q)
-        case "mesh"
+        case 'mesh'
             showMesh;
             continue        
-        case "bodies"
+        case 'bodies'
             showBodies;
             continue        
-        case "residuum"
+        case 'residuum'
             showResiduum;
             continue
     end
@@ -195,12 +195,11 @@ ylabel('resid')
 xlabel('CPU [s]')
 
 function x = reorganise(x)
-n = length(x);
-for i = 2:n
-    if(x(i) < x(i-1))
-        x(i:end) = x(i:end) + x(i-1)-x(i);
+    n = length(x);
+    for i = 2:n
+        if(x(i) < x(i-1))
+            x(i:end) = x(i:end) + x(i-1)-x(i);
+        end
     end
 end
-end
-
 end

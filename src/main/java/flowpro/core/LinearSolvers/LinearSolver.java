@@ -14,92 +14,6 @@ abstract public class LinearSolver {
 
     abstract public boolean solve(double[] x);
 
-    void ComputeResiduum(double[] x, double[] r, int par, int nThreads) {
-        // vlastni vypocet, parallelni beh
-        GmresThread[] parallel = new GmresThread[nThreads];
-        for (int v = 0; v < nThreads; v++) {
-            parallel[v] = new GmresThread(v, nThreads, x, r, par);
-            parallel[v].start();
-        }
-        try {
-            for (int v = 0; v < nThreads; v++) {
-                parallel[v].join();
-            }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
-        }
-    }
-
-    class GmresThread extends Thread {
-
-        int nStart, nThreads, par, nt;
-        double[] x, r;
-        double residuumJacobi;
-
-        GmresThread(int nStart, int nThreads, double[] x, double[] r, int par) {
-            this.nStart = nStart;
-            this.nThreads = nThreads;
-            this.x = x;
-            this.r = r;
-            this.par = par;
-            nt = elems.length;
-        }
-
-        @Override
-        public void run() {
-            for (int i = nStart; i < nt; i = i + nThreads) {
-                if (elems[i].insideComputeDomain) {
-                    elems[i].residuumGmres(x, r, par);
-                }
-            }
-        }
-    }
-
-    double ComputeResiduumJacobi(double[] x, double[] xn, int nThreads) {
-        double residuum = 0;
-        // vlastni vypocet, parallelni beh
-        JacobiThread[] parallel = new JacobiThread[nThreads];
-        for (int v = 0; v < nThreads; v++) {
-            parallel[v] = new JacobiThread(v, nThreads, x, xn);
-            parallel[v].start();
-        }
-        try {
-            for (int v = 0; v < nThreads; v++) {
-                parallel[v].join();
-                residuum += parallel[v].residuumJacobi;
-            }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
-        }
-
-        return residuum;
-    }
-
-    class JacobiThread extends Thread {
-
-        int nStart, nThreads, par, nt;
-        double[] x, xn, r;
-        double residuumJacobi;
-
-        JacobiThread(int nStart, int nThreads, double[] x, double[] xn) {
-            this.nStart = nStart;
-            this.nThreads = nThreads;
-            this.x = x;
-            this.xn = xn;
-            nt = elems.length;
-        }
-
-        @Override
-        public void run() {
-            residuumJacobi = 0;
-            for (int i = nStart; i < nt; i = i + nThreads) {
-                if (elems[i].insideComputeDomain) {
-                    residuumJacobi += elems[i].residuumJacobi(x, xn);
-                }
-            }
-        }
-    }
-
     public static LinearSolver factory(Parameters par, Element[] elems, int dofs) throws IOException {
         LinearSolver solver = null;
         try {
@@ -122,7 +36,11 @@ abstract public class LinearSolver {
                 
                 case "MTJ":
                     //solver = new MTJsolver(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
-                    break;    
+                    break;
+                    
+                case "new":
+                    solver = new NewLinSol(elems, dofs, par);
+                    break;   
                     
                 default:
                     solver = new Gmres(elems, dofs, 30, 5, par.iterativeSolverTol, par.nThreads);

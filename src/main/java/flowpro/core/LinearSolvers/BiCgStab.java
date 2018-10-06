@@ -68,4 +68,45 @@ public class BiCgStab extends LinearSolver {
 
         return false;
     }
+    
+    void ComputeResiduum(double[] x, double[] r, int par, int nThreads) {
+        // vlastni vypocet, parallelni beh
+        BiCgStabThread[] parallel = new BiCgStabThread[nThreads];
+        for (int v = 0; v < nThreads; v++) {
+            parallel[v] = new BiCgStabThread(v, nThreads, x, r, par);
+            parallel[v].start();
+        }
+        try {
+            for (int v = 0; v < nThreads; v++) {
+                parallel[v].join();
+            }
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e);
+        }
+    }
+
+    class BiCgStabThread extends Thread {
+
+        int nStart, nThreads, par, nt;
+        double[] x, r;
+        double residuumJacobi;
+
+        BiCgStabThread(int nStart, int nThreads, double[] x, double[] r, int par) {
+            this.nStart = nStart;
+            this.nThreads = nThreads;
+            this.x = x;
+            this.r = r;
+            this.par = par;
+            nt = elems.length;
+        }
+
+        @Override
+        public void run() {
+            for (int i = nStart; i < nt; i = i + nThreads) {
+                if (elems[i].insideComputeDomain) {
+                    elems[i].residuumGmres(x, r, par);
+                }
+            }
+        }
+    }
 }
