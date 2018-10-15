@@ -5,6 +5,7 @@
  */
 package flowpro.core.LinearSolvers;
 
+import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
 import flowpro.core.Mesh;
 import flowpro.core.Parameters;
 import java.io.BufferedInputStream;
@@ -31,12 +32,13 @@ public class NewLinSol extends LinearSolver {
     //Matlab
     MatlabClient2 mc;
 
-    NewLinSol(Mesh.Element[] elems, int dofs, Parameters par) {
+    NewLinSol(Mesh.Element[] elems, int dofs, Parameters par) throws IOException {
         this.elems = elems;
         this.dofs = dofs;
         b = new double[dofs];
         A = new SparseMatrixCRS(elems);
-        M = new Preconditioner(A);
+        M = Preconditioner.factory(par);
+        M.setMatrix(A);
         solver = new Gmres2(A, M, 30, 5, par.iterativeSolverTol, par.nThreads);
         
 //        // Launching Matlab

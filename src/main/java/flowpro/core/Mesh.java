@@ -1634,7 +1634,7 @@ public class Mesh implements Serializable {
         }
 
         public void computeJacobiPreconditioner() {
-            // vypocitava inverzi diagonaly, ktera se pouzije pro predpodminovac
+            // vypocitava inverzi diagonaly, ktera se pouzije pro predpodminovac // smazat u noveho resice !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             PrecondJacobi = Mat.invert(ADiag);
         }
 

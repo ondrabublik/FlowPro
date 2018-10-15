@@ -5,6 +5,8 @@
  */
 package flowpro.core.LinearSolvers;
 
+import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
+
 /**
  *
  * @author obublik
@@ -52,10 +54,10 @@ public class Gmres2 {
             bnrm2 = 1;
         }
 
-        A.SubstrMult(aux, b, x);
+        A.SubstrMult(aux, b, x, nThreads);
         M.apply(r, aux);
         double error = norm(r) / bnrm2;
-        
+
         if (error < tol) {
             return true;
         }
@@ -68,7 +70,7 @@ public class Gmres2 {
             }
             s = vectorScalarProduct(e1, norm_r);
             for (int i = 0; i < m; i++) {                        // construct orthonormal
-                A.Mult(aux, V[i]);     // basis using Gram-Schmidt
+                A.Mult(aux, V[i], nThreads);     // basis using Gram-Schmidt
                 M.apply(w, aux);
                 for (int k = 0; k <= i; k++) {
                     H[k][i] = scalarProduct(w, V[k]);
@@ -94,21 +96,21 @@ public class Gmres2 {
                 H[i][i] = cs[i] * H[i][i] + sn[i] * H[i + 1][i];
                 H[i + 1][i] = 0;
                 error = Math.abs(s[i + 1]) / bnrm2;
-                
+
                 if (error <= tol) {                        // update approximation
                     y = lsolve(H, s, i + 1);                 // and exit
-                    updateSolution(V, y, x, i);
+                    updateSolution(y, x, i, nThreads);
                     break;
                 }
             }
-            
+
             if (error <= tol) {
                 break;
             }
 
             y = lsolve(H, s, m);
-            updateSolution(V, y, x, m - 1);
-            A.SubstrMult(aux, b, x);                     // compute residual
+            updateSolution(y, x, m - 1, nThreads);
+            A.SubstrMult(aux, b, x, nThreads);                     // compute residual
             M.apply(r, aux);
             s[m] = norm(r);
             error = s[m] / bnrm2;                     // check convergence
@@ -119,10 +121,43 @@ public class Gmres2 {
         return error <= tol;
     }
 
-    void updateSolution(double[][] V, double[] y, double[] x, int i) {
-        for (int j = 0; j < n; j++) {
-            for (int k = 0; k <= i; k++) {
-                x[j] += V[k][j] * y[k];
+    void updateSolution(double[] y, double[] x, int i, int nThreads) {
+        // vlastni vypocet, parallelni beh
+        UpdateSolutionThread[] parallel = new UpdateSolutionThread[nThreads];
+        for (int v = 0; v < nThreads; v++) {
+            parallel[v] = new UpdateSolutionThread(v, nThreads, y, x, i);
+            parallel[v].start();
+        }
+        try {
+            for (int v = 0; v < nThreads; v++) {
+                parallel[v].join();
+            }
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e);
+        }
+    }
+
+    class UpdateSolutionThread extends Thread {
+
+        int nStart, nThreads, i, n;
+        double[] y, x;
+
+        UpdateSolutionThread(int nStart, int nThreads, double[] y, double[] x, int i) {
+            this.nStart = nStart;
+            this.nThreads = nThreads;
+            this.y = y;
+            this.x = x;
+            this.i = i;
+            n = x.length;
+        }
+
+        @Override
+        public void run() {
+            // paralelni sestavovani a plneni matic
+            for (int j = nStart; j < n; j = j + nThreads) {
+                for (int k = 0; k <= i; k++) {
+                    x[j] = x[j] + V[k][j] * y[k];
+                }
             }
         }
     }
@@ -175,21 +210,6 @@ public class Gmres2 {
     double[] lsolve(double[][] A, double[] b, int N) {
         // int N  = b.length;
         for (int p = 0; p < N; p++) {
-            // find pivot row and swap
-            int max = p;
-            for (int i = p + 1; i < N; i++) {
-                if (Math.abs(A[i][p]) > Math.abs(A[max][p])) {
-                    max = i;
-                }
-            }
-            double[] temp = A[p];
-            A[p] = A[max];
-            A[max] = temp;
-            double t = b[p];
-            b[p] = b[max];
-            b[max] = t;
-
-            // pivot within A and b
             for (int i = p + 1; i < N; i++) {
                 double alpha = A[i][p] / A[p][p];
                 b[i] -= alpha * b[p];

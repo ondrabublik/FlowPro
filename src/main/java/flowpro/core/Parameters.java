@@ -39,6 +39,7 @@ public class Parameters implements Serializable {
     
     // solver type
     public String linearSolver;
+    public String preconditioner;
     public double iterativeSolverTol;
 
     // single time / dual time
@@ -183,6 +184,11 @@ public class Parameters implements Serializable {
                 linearSolver = props.getString("linearSolver");
             } else {
                 linearSolver = "gmres";
+            }
+            if (props.containsKey("preconditioner")) {
+                preconditioner = props.getString("preconditioner");
+            } else {
+                preconditioner = "jacobi";
             }
             if (props.containsKey("iterativeSolverTol")) {
                 iterativeSolverTol = props.getDouble("iterativeSolverTol");

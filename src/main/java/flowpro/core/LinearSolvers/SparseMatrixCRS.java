@@ -5,22 +5,22 @@
  */
 package flowpro.core.LinearSolvers;
 
-import flowpro.core.Mesh;
+import flowpro.core.Mesh.Element;
 import java.util.Arrays;
 
 /**
  *
  * @author obublik
  */
-class SparseMatrixCRS {
+public class SparseMatrixCRS {
 
     int dofs, nnz;
     public int[] IA, JA, diagind;
     public double[] HA;
     double[][][][] blocks;
-    Mesh.Element[] elems;
+    Element[] elems;
 
-    SparseMatrixCRS(Mesh.Element[] elems) {
+    SparseMatrixCRS(Element[] elems) {
         this.elems = elems;
         scanMatrixStructure();
     }
@@ -38,7 +38,7 @@ class SparseMatrixCRS {
         int sj = 0;
         blocks = new double[elems.length][][][];
         for (int i = 0; i < elems.length; i++) {
-            Mesh.Element elem = elems[i];
+            Element elem = elems[i];
             int nBlockRow = 1; // number of blocks in a row
             for (int k = 0; k < elem.TT.length; k++) {
                 if (elem.TT[k] > -1) {
@@ -100,7 +100,7 @@ class SparseMatrixCRS {
 
     public int computeNNZ() {
         int s = 0;
-        for (Mesh.Element elem : elems) {
+        for (Element elem : elems) {
             int n = elem.getNEqs() * elem.nBasis;
             s += n * n;
             for (int k = 0; k < elem.nFaces; k++) {
@@ -115,7 +115,7 @@ class SparseMatrixCRS {
 
     public int computeDofs() {
         int s = 0;
-        for (Mesh.Element elem : elems) {
+        for (Element elem : elems) {
             s += elem.getNEqs() * elem.nBasis;
         }
         return s;
@@ -151,7 +151,7 @@ class SparseMatrixCRS {
 
     public void updateB(double[] b) {
         int s = 0;
-        for (Mesh.Element elem : elems) {
+        for (Element elem : elems) {
             int n = elem.getNEqs() * elem.nBasis;
             for (int i = 0; i < n; i++) {
                 b[s] = elem.RHS_loc[i];
@@ -160,7 +160,7 @@ class SparseMatrixCRS {
         }
     }
 
-    void Mult(double[] y, double[] x) {
+    public void Mult(double[] y, double[] x) {
         for (int i = 0; i < dofs; i++) {
             y[i] = 0;
             for (int j = IA[i]; j < IA[i + 1]; j++) {
@@ -168,8 +168,47 @@ class SparseMatrixCRS {
             }
         }
     }
-    
-    void SubstrMult(double[] y, double[] b, double[] x) {
+
+    public void Mult(double[] y, double[] x, int nThreads) {
+        MultThread[] parallel = new MultThread[nThreads];
+        for (int v = 0; v < nThreads; v++) {
+            parallel[v] = new MultThread(v, nThreads, x, y);
+            parallel[v].start();
+        }
+        try {
+            for (int v = 0; v < nThreads; v++) {
+                parallel[v].join();
+            }
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e);
+        }
+    }
+
+    class MultThread extends Thread {
+
+        int n, nStart, nThreads;
+        double[] x, y;
+
+        MultThread(int nStart, int nThreads, double[] x, double[] y) {
+            this.nStart = nStart;
+            this.nThreads = nThreads;
+            this.x = x;
+            this.y = y;
+            n = x.length;
+        }
+
+        @Override
+        public void run() {
+            for (int i = nStart; i < n; i = i + nThreads) {
+                y[i] = 0;
+                for (int j = IA[i]; j < IA[i + 1]; j++) {
+                    y[i] += HA[j] * x[JA[j]];
+                }
+            }
+        }
+    }
+
+    public void SubstrMult(double[] y, double[] b, double[] x) {
         for (int i = 0; i < dofs; i++) {
             y[i] = b[i];
             for (int j = IA[i]; j < IA[i + 1]; j++) {
@@ -178,27 +217,71 @@ class SparseMatrixCRS {
         }
     }
 
-    int[] getRowIndexes() {
+    public void SubstrMult(double[] y, double[] b, double[] x, int nThreads) {
+        SubstrMultThread[] parallel = new SubstrMultThread[nThreads];
+        for (int v = 0; v < nThreads; v++) {
+            parallel[v] = new SubstrMultThread(v, nThreads, x, b, y);
+            parallel[v].start();
+        }
+        try {
+            for (int v = 0; v < nThreads; v++) {
+                parallel[v].join();
+            }
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e);
+        }
+    }
+
+    class SubstrMultThread extends Thread {
+
+        int n, nStart, nThreads;
+        double[] x, b, y;
+
+        SubstrMultThread(int nStart, int nThreads, double[] x, double[] b, double[] y) {
+            this.nStart = nStart;
+            this.nThreads = nThreads;
+            this.x = x;
+            this.b = b;
+            this.y = y;
+            n = x.length;
+        }
+
+        @Override
+        public void run() {
+            for (int i = nStart; i < n; i = i + nThreads) {
+                y[i] = b[i];
+                for (int j = IA[i]; j < IA[i + 1]; j++) {
+                    y[i] -= HA[j] * x[JA[j]];
+                }
+            }
+        }
+    }
+
+    public int[] getRowIndexes() {
         return IA;
     }
 
-    int[] getColumnIndexes() {
+    public int[] getColumnIndexes() {
         return JA;
     }
 
-    double[] getData() {
+    public double[] getData() {
         return HA;
     }
 
-    int[] getDiagonalIndexes() {
+    public int[] getDiagonalIndexes() {
         return diagind;
     }
 
-    int getNNZ() {
+    public int getNNZ() {
         return nnz;
     }
 
-    int getDofs() {
+    public int getDofs() {
         return dofs;
+    }
+
+    public Element[] getElems() {
+        return elems;
     }
 }

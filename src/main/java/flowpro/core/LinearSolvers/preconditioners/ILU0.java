@@ -3,26 +3,34 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package flowpro.core.LinearSolvers;
+package flowpro.core.LinearSolvers.preconditioners;
 
+import flowpro.core.LinearSolvers.SparseMatrixCRS;
+import flowpro.core.Parameters;
 import java.util.Arrays;
 
 /**
  *
  * @author obublik
  */
-class Preconditioner {
+class ILU0 extends Preconditioner {
 
     SparseMatrixCRS A;
     double[] ilu;
     int n;
 
-    Preconditioner(SparseMatrixCRS A) {
+    ILU0(Parameters par) {
+        
+    }
+    
+    @Override
+    public void setMatrix(SparseMatrixCRS A){
         this.A = A;
         ilu = new double[A.getNNZ()];
         n = A.getDofs();
     }
 
+    @Override
     public void factor() {
         // Internal CRS matrix storage 
         int[] IA = A.getRowIndexes();
@@ -62,6 +70,7 @@ class Preconditioner {
         }
     }
 
+    @Override
     public void apply(double[] x, double[] b) {
         int[] IA = A.getRowIndexes();
         int[] JA = A.getColumnIndexes();
