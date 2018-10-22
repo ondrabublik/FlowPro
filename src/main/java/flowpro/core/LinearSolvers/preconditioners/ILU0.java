@@ -5,7 +5,7 @@
  */
 package flowpro.core.LinearSolvers.preconditioners;
 
-import flowpro.core.LinearSolvers.SparseMatrixCRS;
+import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.Parameters;
 import java.util.Arrays;
 
@@ -15,7 +15,7 @@ import java.util.Arrays;
  */
 class ILU0 extends Preconditioner {
 
-    SparseMatrixCRS A;
+    SparseMatrix A;
     double[] ilu;
     int n;
 
@@ -24,7 +24,7 @@ class ILU0 extends Preconditioner {
     }
     
     @Override
-    public void setMatrix(SparseMatrixCRS A){
+    public void setMatrix(SparseMatrix A){
         this.A = A;
         ilu = new double[A.getNNZ()];
         n = A.getDofs();
@@ -33,8 +33,8 @@ class ILU0 extends Preconditioner {
     @Override
     public void factor() {
         // Internal CRS matrix storage 
-        int[] IA = A.getRowIndexes();
-        int[] JA = A.getColumnIndexes();
+        int[] IA = A.getRowIndexesCRS();
+        int[] JA = A.getColumnIndexesCRS();
         double[] HA = A.getData();
         int[] diagind = A.getDiagonalIndexes();
         System.arraycopy(HA, 0, ilu, 0, HA.length);
@@ -72,8 +72,8 @@ class ILU0 extends Preconditioner {
 
     @Override
     public void apply(double[] x, double[] b) {
-        int[] IA = A.getRowIndexes();
-        int[] JA = A.getColumnIndexes();
+        int[] IA = A.getRowIndexesCRS();
+        int[] JA = A.getColumnIndexesCRS();
         int[] diagind = A.getDiagonalIndexes();
         double[] y = new double[x.length];
         Arrays.fill(x, 0);

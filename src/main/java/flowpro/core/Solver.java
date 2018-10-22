@@ -2,7 +2,6 @@ package flowpro.core;
 
 import flowpro.api.Mat;
 import flowpro.core.parallel.*;
-import flowpro.core.LinearSolvers.LinearSolver;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
 import flowpro.core.Mesh.Element;
@@ -11,6 +10,7 @@ import fetcher.ZipFile;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
+import flowpro.core.LinearSolvers.LinearSolver2;
 import flowpro.core.meshDeformation.*;
 import flowpro.core.parallel.Domain.Subdomain;
 import litempi.*;
@@ -226,7 +226,7 @@ public class Solver {
         MPISlave mpi = mpiSlave;
         mesh = meshes[0];
         try {
-            LinearSolver linSolver = LinearSolver.factory(par, elems, dofs);
+            LinearSolver2 linSolver = LinearSolver2.factory(elems, par);
             JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double[] x = new double[dofs];
             double[] y = new double[dofs];
@@ -296,7 +296,7 @@ public class Solver {
                         }
                         // set equation object state
                         eqn.setState(mesh.t + dt, dt);
-                        
+
                         assembler.assemble(dt, dto);
                         Arrays.fill(y, 0.0);
                     // NO BREAK! continue to the following tag
@@ -397,7 +397,7 @@ public class Solver {
         return String.format("%d/%d  resid: %.2e,  dt: %.1e,  t: %.2f,  CFL: %1.2f,  CPU: %s, AT: %dms, ST: %dms",
                 state.steps, totalSteps, state.residuum, dt, state.t, state.cfl, timeStr, assembleTime, solveTime);
     }
-    
+
     private String infoToString(int totalSteps, double dt) throws IOException {
         String timeStr = millisecsToTime(state.getOverallExecutionTime());
 
@@ -498,7 +498,7 @@ public class Solver {
 
                 mpi.sendAll(new MPIMessage(Tag.TIME_STEP_REQ, state.cfl));
                 double dt = Mat.min(mpi.receiveAllDouble(Tag.TIME_STEP));
-                
+
                 // solution monitor
                 if (par.solutionMonitorOn) {
                     double[] monitorGlobal = null;
@@ -538,7 +538,7 @@ public class Solver {
                             convergesNewton = false;
                         }
                     }
-                    
+
                     transferWatch.resume();
                     exchangeData(liteElems, mpi);
                     mpi.waitForAll(Tag.DATA_UPDATED);
@@ -651,7 +651,7 @@ public class Solver {
 
     public Solution localSolveImplicit() throws IOException {
         int nElems = elems.length;
-        LinearSolver linSolver = LinearSolver.factory(par, elems, dofs);
+        LinearSolver2 linSolver = LinearSolver2.factory(elems, par);
         JacobiAssembler assembler = new JacobiAssembler(elems, par);
         double[] x = new double[dofs];
         StopWatch watch = new StopWatch();
@@ -716,11 +716,11 @@ public class Solver {
                     }
                     dfm.recalculateMesh(elems, par.order);
                 }
-                
+
                 long startTime = System.currentTimeMillis();
                 assembler.assemble(dt, dto);
                 assembleTime = System.currentTimeMillis() - startTime;
-                
+
                 // reseni soustavy rovnic
                 Arrays.fill(x, 0.0);
                 startTime = System.currentTimeMillis();
@@ -833,12 +833,12 @@ public class Solver {
             if (state.t + dt > par.tEnd) {
                 dt = par.tEnd - state.t;
             }
-            
+
             //compute domain 
             if (par.solutionMonitorOn) {
                 mesh.computeSolutionMonitor();
             }
-            
+
             // computation
             ltsIter.iterate(state.t + dt);
 
@@ -905,7 +905,7 @@ public class Solver {
                     file.delete();
                 }
             }
-            
+
             lock.notify();
         }
         LOG.info("results have been saved into " + simulationPath);
@@ -918,7 +918,7 @@ public class Solver {
         }
         synchronized (lock) {
             Mat.save(sol.avgW, simulationPath + "animation/W" + (10000000 + step) + ".txt");
-            if (par.order > 2) {
+            if (par.order > 1) {
                 Mat.save(sol.W, simulationPath + "animation/We" + (10000000 + step) + ".txt");
             }
             if (par.movingMesh) {
@@ -954,7 +954,7 @@ public class Solver {
                 int logRes = (int) Math.log(res);
                 if (logRes < logResOld) {
                     maxCFL *= 1.3;
-                } else{
+                } else {
                     maxCFL *= 0.8;
                 }
                 logResOld = logRes;
@@ -1030,13 +1030,15 @@ public class Solver {
                             a1[i] = coeffsPhys[i] / dt;
                             a2[i] = -coeffsPhys[i] / dt;
                             a3[i] = 0.0;
-                        }   break;
+                        }
+                        break;
                     case 2:
                         for (int i = 0; i < nEqs; i++) {
                             a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
                             a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
                             a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
-                        }   break;
+                        }
+                        break;
                     default:
                         throw new RuntimeException("solver supports only first and second order in time");
                 }
@@ -1046,7 +1048,7 @@ public class Solver {
             }
 
             AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
-            
+
             // vlastni vypocet, parallelni beh
             for (int v = 0; v < assemblers.length; v++) {
                 assemblers[v] = new AssemblerThread(v);

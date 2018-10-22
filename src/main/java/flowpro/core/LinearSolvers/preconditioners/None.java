@@ -5,7 +5,7 @@
  */
 package flowpro.core.LinearSolvers.preconditioners;
 
-import flowpro.core.LinearSolvers.SparseMatrixCRS;
+import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.Parameters;
 
 /**
@@ -19,7 +19,7 @@ class None extends Preconditioner {
     }
 
     @Override
-    public void setMatrix(SparseMatrixCRS A) {
+    public void setMatrix(SparseMatrix A) {
     }
 
     @Override

@@ -11,17 +11,16 @@ import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
  *
  * @author obublik
  */
-public class Gmres2 {
+public class Gmres2 extends LinearSolver2{
 
-    SparseMatrixCRS A;
-    Preconditioner M;
     int n, m, iterationLimit, nThreads;
     double tol;
     double[][] V, H;
     double[] cs, sn, e1, w, r, aux;
 
-    Gmres2(SparseMatrixCRS A, Preconditioner M, int m, int iterationLimit, double tol, int nThreads) {
+    Gmres2(SparseMatrix A, Preconditioner M, int m, int iterationLimit, double tol, int nThreads) {
         this.A = A;
+        A.buildCRSformat();
         this.M = M;
         this.n = A.getDofs();
         this.m = m;

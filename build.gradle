@@ -59,7 +59,7 @@ task copyJar {
 
 task zip2Fetch(type: Zip) {
     from "${projectDir}"
-    include 'modules/**', 'FlowPro.jar'
+    include 'modules/**', 'lib/*.dll', 'FlowPro.jar'
     archiveName 'FlowPro.zip'
     destinationDir(file("${projectDir}"))
 }

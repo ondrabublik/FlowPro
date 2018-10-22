@@ -42,8 +42,6 @@ public class ResultsPlot {
     int[][] TT;
     int dim;
     int order;
-    int nEqs;
-    int nBasis;
     boolean curvedBoundary;
     FlowProProperties props;
 
@@ -123,12 +121,12 @@ public class ResultsPlot {
 
         props = new FlowProProperties();
         props.load(new FileInputStream(simulationPath + PARAMETER_FILE_NAME));
-        
+
         boolean movingMesh = false;
-        if(props.containsKey("movingMesh")){
+        if (props.containsKey("movingMesh")) {
             movingMesh = props.getBoolean("movingMesh");
         }
-        
+
         // mesh points
         double[][] PXY = null;
         try {
@@ -201,7 +199,6 @@ public class ResultsPlot {
                         fCurv = new FaceCurvature[TP.length];
                         elemsType = firstDigit(elemsType);
                     }
-                    nEqs = eqn.nEqs();
                     break;
             }
         } catch (FileNotFoundException ex) {
@@ -213,7 +210,7 @@ public class ResultsPlot {
             int listSize = names.size();
             for (int s = 0; s < listSize; s++) {
                 String variableName = names.pop();
-                double[] value = eqn.getResults(W[0], new double[dim], variableName);
+                double[] value = eqn.getResults(W[0], new double[eqn.nEqs()*dim], new double[dim], variableName);
                 double[][] result;
                 if (value.length == 1) {
                     result = new double[PXY.length][1]; // scalar
@@ -230,7 +227,7 @@ public class ResultsPlot {
                             }
                             XCenter[d] /= TP[i].length;
                         }
-                        value = eqn.getResults(W[i], XCenter, variableName);
+                        value = eqn.getResults(W[i], new double[eqn.nEqs()*dim], XCenter, variableName);
                         for (int j = 0; j < TP[i].length; j++) {
                             for (int k = 0; k < value.length; k++) {
                                 result[TP[i][j]][k] += value[k];
@@ -249,14 +246,19 @@ public class ResultsPlot {
                         Basis basis = elemType.getBasis(transform);
                         int nBasis = basis.nBasis;
                         for (int j = 0; j < TP[i].length; j++) {
+                            int nEqs = eqn.nEqs();
                             double[] xiCoord = transform.getXi(PXY[TP[i][j]]);
-                            double[] Wpoint = new double[eqn.nEqs()];
+                            double[] Wpoint = new double[nEqs];
+                            double[] dWpoint = new double[dim * nEqs];
                             for (int k = 0; k < Wpoint.length; k++) {
                                 for (int m = 0; m < nBasis; m++) {
                                     Wpoint[k] += W[i][k * nBasis + m] * basis.basisFun(m, xiCoord);
+                                    for (int d = 0; d < dim; d++) {
+                                        dWpoint[nEqs * d + k] += W[i][k * nBasis + m] * basis.derBasis(m, xiCoord, d);
+                                    }
                                 }
                             }
-                            value = eqn.getResults(Wpoint, vertices[j], variableName);
+                            value = eqn.getResults(Wpoint, dWpoint, vertices[j], variableName);
                             for (int k = 0; k < value.length; k++) {
                                 result[TP[i][j]][k] += value[k];
                             }
@@ -313,7 +315,7 @@ public class ResultsPlot {
                 System.out.println();
                 System.out.println(variableName);
                 System.out.println("|        |");
-                double[] value = eqn.getResults(W[0], new double[dim], variableName);
+                double[] value = eqn.getResults(W[0], new double[eqn.nEqs()*dim], new double[dim], variableName);
                 for (int i = 0; i < TP.length; i++) {
                     double[][] vertices = new double[TP[i].length][dim];
                     for (int j = 0; j < TP[i].length; j++) {
@@ -322,18 +324,23 @@ public class ResultsPlot {
                     ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order);
                     Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i]);
                     Basis basis = elemType.getBasis(transform);
-                    nBasis = basis.nBasis;
+                    int nBasis = basis.nBasis;
                     LocalElementSubdivision triLoc = new LocalElementSubdivision(elemsType[i], precision);
                     double[][] xCoords = transform.getX(triLoc.xiCoord);
                     double[][] values = new double[xCoords.length][value.length];
+                    int nEqs = eqn.nEqs();
                     for (int j = 0; j < xCoords.length; j++) {
-                        double[] Wpoint = new double[eqn.nEqs()];
+                        double[] Wpoint = new double[nEqs];
+                        double[] dWpoint = new double[dim * nEqs];
                         for (int k = 0; k < Wpoint.length; k++) {
                             for (int m = 0; m < nBasis; m++) {
                                 Wpoint[k] += W[i][k * nBasis + m] * basis.basisFun(m, triLoc.xiCoord[j]);
+                                for (int d = 0; d < dim; d++) {
+                                    dWpoint[nEqs * d + k] += W[i][k * nBasis + m] * basis.derBasis(m, triLoc.xiCoord[j], d);
+                                }
                             }
                         }
-                        values[j] = eqn.getResults(Wpoint, xCoords[j], variableName);
+                        values[j] = eqn.getResults(Wpoint, dWpoint, xCoords[j], variableName);
                     }
                     resCol.add(i, xCoords, triLoc.TP, values, triLoc.localType);
 

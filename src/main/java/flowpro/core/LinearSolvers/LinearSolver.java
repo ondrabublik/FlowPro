@@ -16,39 +16,43 @@ abstract public class LinearSolver {
 
     public static LinearSolver factory(Parameters par, Element[] elems, int dofs) throws IOException {
         LinearSolver solver = null;
-        try {
-            switch (par.linearSolver) {
-                case "jacobi":
-                    solver = new Jacobi(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
-                    break;
-
-                case "bicgstab":
-                    solver = new BiCgStab(elems, dofs, 100, par.iterativeSolverTol, par.nThreads);
-                    break;
-
-                case "extern":
-                    solver = new ExternSolver(elems, dofs, par);
-                    break;
-                    
-                case "externcppsolver":
-                    solver = new ExternCppSolver(elems, dofs, par);
-                    break;
-                
-                case "MTJ":
-                    //solver = new MTJsolver(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
-                    break;
-                    
-                case "new":
-                    solver = new NewLinSol(elems, dofs, par);
-                    break;   
-                    
-                default:
-                    solver = new Gmres(elems, dofs, 30, 5, par.iterativeSolverTol, par.nThreads);
-                    break;
-            }
-        } catch (Exception e) {
-            System.out.println("Solver not set!");
-        }
+//        try {
+//            switch (par.linearSolver) {
+//                case "jacobi":
+//                    solver = new Jacobi(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
+//                    break;
+//
+//                case "bicgstab":
+//                    solver = new BiCgStab(elems, dofs, 100, par.iterativeSolverTol, par.nThreads);
+//                    break;
+//
+//                case "extern":
+//                    solver = new ExternSolver(elems, dofs, par);
+//                    break;
+//                    
+//                case "umfpack":
+//                    solver = new UmfpackExternSolver(elems, dofs, par);
+//                    break;
+//                
+//                case "MTJ":
+//                    //solver = new MTJsolver(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
+//                    break;
+//                    
+//                case "new":
+//                    solver = new NewLinSol(elems, dofs, par);
+//                    break;
+//                    
+//                case "matlab":
+//                    solver = new Matlab(elems, dofs, par);
+//                    break;   
+//                    
+//                default:
+//                    solver = new Gmres(elems, dofs, 30, 5, par.iterativeSolverTol, par.nThreads);
+//                    break;
+//            }
+//        } catch (Exception e) {
+//            System.out.println("Solver not set!");
+//        }
 
         return solver;
     }

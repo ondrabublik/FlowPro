@@ -5,7 +5,7 @@
  */
 package flowpro.core.LinearSolvers.preconditioners;
 
-import flowpro.core.LinearSolvers.SparseMatrixCRS;
+import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.Parameters;
 import java.util.Arrays;
 
@@ -19,7 +19,7 @@ public class SSOR extends Preconditioner {
     double omegaF; // Overrelaxation parameter for the forward sweep
     double omegaR; // Overrelaxation parameter for the backwards sweep
 
-    SparseMatrixCRS A;
+    SparseMatrix A;
     int n;
     private double[] xx; // Temporary vector for holding the half-step state
 
@@ -36,7 +36,7 @@ public class SSOR extends Preconditioner {
     }
 
     @Override
-    public void setMatrix(SparseMatrixCRS A) {
+    public void setMatrix(SparseMatrix A) {
         this.A = A;
         n = A.getDofs();
         xx = new double[n];
@@ -48,8 +48,8 @@ public class SSOR extends Preconditioner {
     
     @Override
     public void apply(double[] xd, double[] bd) {
-        int[] rowptr = A.getRowIndexes();
-        int[] colind = A.getColumnIndexes();
+        int[] rowptr = A.getRowIndexesCRS();
+        int[] colind = A.getColumnIndexesCRS();
         int[] diagind = A.getDiagonalIndexes();
         double[] data = A.getData();
         Arrays.fill(xd,0);

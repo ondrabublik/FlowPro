@@ -5,7 +5,7 @@
  */
 package flowpro.core.LinearSolvers.preconditioners;
 
-import flowpro.core.LinearSolvers.SparseMatrixCRS;
+import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.Parameters;
 import java.io.IOException;
 
@@ -50,7 +50,7 @@ abstract public class Preconditioner {
         return M;
     }
     
-    abstract public void setMatrix(SparseMatrixCRS A);
+    abstract public void setMatrix(SparseMatrix A);
     
     abstract public void factor();
     

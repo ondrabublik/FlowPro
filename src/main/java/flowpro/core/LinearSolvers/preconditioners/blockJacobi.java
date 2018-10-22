@@ -6,7 +6,7 @@
 package flowpro.core.LinearSolvers.preconditioners;
 
 import flowpro.api.Mat;
-import flowpro.core.LinearSolvers.SparseMatrixCRS;
+import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
 
@@ -16,7 +16,7 @@ import flowpro.core.Parameters;
  */
 class blockJacobi extends Preconditioner {
 
-    SparseMatrixCRS A;
+    SparseMatrix A;
     int n, nThreads;
 
     blockJacobi(Parameters par) {
@@ -24,7 +24,7 @@ class blockJacobi extends Preconditioner {
     }
 
     @Override
-    public void setMatrix(SparseMatrixCRS A) {
+    public void setMatrix(SparseMatrix A) {
         this.A = A;
         n = A.getDofs();
     }

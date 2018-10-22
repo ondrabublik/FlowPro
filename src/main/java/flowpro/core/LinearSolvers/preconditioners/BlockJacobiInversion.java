@@ -6,7 +6,7 @@
 package flowpro.core.LinearSolvers.preconditioners;
 
 import flowpro.api.Mat;
-import flowpro.core.LinearSolvers.SparseMatrixCRS;
+import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
 
@@ -16,7 +16,7 @@ import flowpro.core.Parameters;
  */
 class BlockJacobiInversion extends Preconditioner {
 
-    SparseMatrixCRS A;
+    SparseMatrix A;
     int n, nThreads;
     double[][][] diagonalInverse;
     Element[] elems;
@@ -26,7 +26,7 @@ class BlockJacobiInversion extends Preconditioner {
     }
 
     @Override
-    public void setMatrix(SparseMatrixCRS A) {
+    public void setMatrix(SparseMatrix A) {
         this.A = A;
         n = A.getDofs();
         diagonalInverse = new double[n][][];
