@@ -73,16 +73,18 @@ class blockJacobi extends Preconditioner {
         public void run() {
             for (int i = nStart; i < nt; i = i + nThreads) {
                 Element elem = elems[i];
-                double[][] Adiag = elem.ADiag;
-                int[] glob = elem.gi_U;
-                double[] bp = new double[glob.length];
-                for (int j = 0; j < glob.length; j++) {
-                    bp[j] = b[glob[j]];
-                }
+                if (elem.insideComputeDomain) {
+                    double[][] Adiag = elem.ADiag;
+                    int[] glob = elem.gi_U;
+                    double[] bp = new double[glob.length];
+                    for (int j = 0; j < glob.length; j++) {
+                        bp[j] = b[glob[j]];
+                    }
 
-                double[] y = Mat.lsolveT(Adiag, bp);
-                for (int j = 0; j < y.length; j++) {
-                    x[glob[j]] = y[j];
+                    double[] y = Mat.lsolveT(Adiag, bp);
+                    for (int j = 0; j < y.length; j++) {
+                        x[glob[j]] = y[j];
+                    }
                 }
             }
         }

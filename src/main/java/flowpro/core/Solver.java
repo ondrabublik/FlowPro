@@ -10,7 +10,7 @@ import fetcher.ZipFile;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
-import flowpro.core.LinearSolvers.LinearSolver2;
+import flowpro.core.LinearSolvers.LinearSolver;
 import flowpro.core.meshDeformation.*;
 import flowpro.core.parallel.Domain.Subdomain;
 import litempi.*;
@@ -226,7 +226,7 @@ public class Solver {
         MPISlave mpi = mpiSlave;
         mesh = meshes[0];
         try {
-            LinearSolver2 linSolver = LinearSolver2.factory(elems, par);
+            LinearSolver linSolver = LinearSolver.factory(elems, par);
             JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double[] x = new double[dofs];
             double[] y = new double[dofs];
@@ -651,7 +651,7 @@ public class Solver {
 
     public Solution localSolveImplicit() throws IOException {
         int nElems = elems.length;
-        LinearSolver2 linSolver = LinearSolver2.factory(elems, par);
+        LinearSolver linSolver = LinearSolver.factory(elems, par);
         JacobiAssembler assembler = new JacobiAssembler(elems, par);
         double[] x = new double[dofs];
         StopWatch watch = new StopWatch();
@@ -1078,7 +1078,6 @@ public class Solver {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
                         elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
-                        elems[i].computeJacobiPreconditioner();
                     }
                 }
             }

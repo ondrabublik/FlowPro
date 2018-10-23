@@ -40,8 +40,7 @@ abstract public class Preconditioner {
                     break;
 
                 default:
-                    M = new ILU0(par);
-                    break;
+                    throw new IOException("unknown preconditioner " + par.preconditioner);
             }
         } catch (Exception e) {
             System.out.println("Solver not set!");

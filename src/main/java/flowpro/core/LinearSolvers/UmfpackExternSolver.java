@@ -9,7 +9,7 @@ import umfpackwrapper.UmfpackWrapper;
  *
  * @author obublik
  */
-public class UmfpackExternSolver extends LinearSolver2 {
+public class UmfpackExternSolver extends LinearSolver {
 
     UmfpackWrapper umfWrap;
 
@@ -25,7 +25,7 @@ public class UmfpackExternSolver extends LinearSolver2 {
             
             return true;
         } catch (Exception ex) {
-            Logger.getLogger(ExternSolver.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(UmfpackExternSolver.class.getName()).log(Level.SEVERE, null, ex);
             return false;
         }
     }

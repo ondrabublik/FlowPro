@@ -34,26 +34,28 @@ public class SparseMatrix {
 
         int s = 0;
         for (Element elem : elems) {
-            int n = elem.getNEqs() * elem.nBasis;
-            int[] glob = elem.gi_U;
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
-                    Icoo[s] = glob[i];
-                    Jcoo[s] = glob[j];
-                    indexMap[s] = s;
-                    s++;
+            if (elem.insideComputeDomain) {
+                int n = elem.getNEqs() * elem.nBasis;
+                int[] glob = elem.gi_U;
+                for (int i = 0; i < n; i++) {
+                    for (int j = 0; j < n; j++) {
+                        Icoo[s] = glob[i];
+                        Jcoo[s] = glob[j];
+                        indexMap[s] = s;
+                        s++;
+                    }
                 }
-            }
-            for (int k = 0; k < elem.nFaces; k++) {
-                if (elem.TT[k] > -1) {
-                    int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                    int[] globe = elems[elem.TT[k]].gi_U;
-                    for (int i = 0; i < n; i++) {
-                        for (int j = 0; j < ne; j++) {
-                            Icoo[s] = glob[i];
-                            Jcoo[s] = globe[j];
-                            indexMap[s] = s;
-                            s++;
+                for (int k = 0; k < elem.nFaces; k++) {
+                    if (elem.TT[k] > -1) {
+                        int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
+                        int[] globe = elems[elem.TT[k]].gi_U;
+                        for (int i = 0; i < n; i++) {
+                            for (int j = 0; j < ne; j++) {
+                                Icoo[s] = glob[i];
+                                Jcoo[s] = globe[j];
+                                indexMap[s] = s;
+                                s++;
+                            }
                         }
                     }
                 }
@@ -85,12 +87,14 @@ public class SparseMatrix {
     public int computeNNZ() {
         int s = 0;
         for (Element elem : elems) {
-            int n = elem.getNEqs() * elem.nBasis;
-            s += n * n;
-            for (int k = 0; k < elem.nFaces; k++) {
-                if (elem.TT[k] > -1) {
-                    int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                    s += n * ne;
+            if (elem.insideComputeDomain) {
+                int n = elem.getNEqs() * elem.nBasis;
+                s += n * n;
+                for (int k = 0; k < elem.nFaces; k++) {
+                    if (elem.TT[k] > -1) {
+                        int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
+                        s += n * ne;
+                    }
                 }
             }
         }
@@ -108,22 +112,24 @@ public class SparseMatrix {
     void updateData() {
         int s = 0;
         for (Element elem : elems) {
-            int n = elem.getNEqs() * elem.nBasis;
-            double[][] Ad = elem.ADiag;
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
-                    H[indexMap[s]] = Ad[j][i];
-                    s++;
+            if (elem.insideComputeDomain) {
+                int n = elem.getNEqs() * elem.nBasis;
+                double[][] Ad = elem.ADiag;
+                for (int i = 0; i < n; i++) {
+                    for (int j = 0; j < n; j++) {
+                        H[indexMap[s]] = Ad[j][i];
+                        s++;
+                    }
                 }
-            }
-            for (int k = 0; k < elem.nFaces; k++) {
-                if (elem.TT[k] > -1) {
-                    int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                    double[][] An = elem.ANeighs[k].MR;
-                    for (int i = 0; i < n; i++) {
-                        for (int j = 0; j < ne; j++) {
-                            H[indexMap[s]] = An[j][i];
-                            s++;
+                for (int k = 0; k < elem.nFaces; k++) {
+                    if (elem.TT[k] > -1) {
+                        int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
+                        double[][] An = elem.ANeighs[k].MR;
+                        for (int i = 0; i < n; i++) {
+                            for (int j = 0; j < ne; j++) {
+                                H[indexMap[s]] = An[j][i];
+                                s++;
+                            }
                         }
                     }
                 }
@@ -134,10 +140,14 @@ public class SparseMatrix {
     public void updateB(double[] b) {
         int s = 0;
         for (Element elem : elems) {
-            int n = elem.getNEqs() * elem.nBasis;
-            for (int i = 0; i < n; i++) {
-                b[s] = elem.RHS_loc[i];
-                s++;
+            if (elem.insideComputeDomain) {
+                int n = elem.getNEqs() * elem.nBasis;
+                for (int i = 0; i < n; i++) {
+                    b[s] = elem.RHS_loc[i];
+                    s++;
+                }
+            } else {
+                s += elem.getNEqs() * elem.nBasis;
             }
         }
     }
@@ -145,9 +155,11 @@ public class SparseMatrix {
     private int[] findDiagonalIndices(int m, int[] colind, int[] rowptr) {
         int[] diagI = new int[m];
         for (int k = 0; k < m; ++k) {
-            diagI[k] = Arrays.binarySearch(colind, rowptr[k], rowptr[k + 1], k);
-            if (diagI[k] < 0) {
-                throw new RuntimeException("Missing diagonal entry on row " + (k + 1));
+            if (rowptr[k] != rowptr[k + 1]) {
+                diagI[k] = Arrays.binarySearch(colind, rowptr[k], rowptr[k + 1], k);
+                if (diagI[k] < 0) {
+                    throw new RuntimeException("Missing diagonal entry on row " + (k + 1));
+                }
             }
         }
 
@@ -296,18 +308,30 @@ public class SparseMatrix {
     }
 
     public int[] compress(int[] I) {
-        int[] J = new int[dofs + 1];
+        int[] Icomp = new int[dofs + 1];
         int s = 0;
-        for (int i = 0; i < nnz; i++) {
-            if (I[i] != s) {
+        for (int i = 1; i < dofs; i++) {
+            int sum = 0;
+            while (I[s] == i - 1) {
                 s++;
-                J[s] = i;
+                sum++;
             }
+            Icomp[i] = Icomp[i - 1] + sum;
         }
-        J[dofs] = nnz;
-        return J;
+        Icomp[dofs] = nnz;
+        return Icomp;
     }
 
+//        int[] J = new int[dofs + 1];
+//        int s = 0;
+//        for (int i = 0; i < nnz; i++) {
+//            if (I[i] != s) {
+//                s++;
+//                J[s] = i;
+//            }
+//        }
+//        J[dofs] = nnz;
+//        return J;
     public static void quicksort(int[] array, int[] array2, int[] index, int left, int right) {
         if (left < right) {
             int boundary = left;
@@ -362,7 +386,7 @@ public class SparseMatrix {
 
     public int[] invertMap(int[] index) {
         int[] index2 = new int[nnz];
-        for(int i = 0; i < nnz; i++){
+        for (int i = 0; i < nnz; i++) {
             index2[i] = i;
         }
         quicksort(index, index2, 0, nnz);

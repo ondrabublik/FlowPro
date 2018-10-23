@@ -1,5 +1,6 @@
 package flowpro.core.LinearSolvers;
 
+import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
 import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
 import java.io.IOException;
@@ -10,14 +11,33 @@ import java.io.IOException;
  */
 abstract public class LinearSolver {
 
-    public Element[] elems;
+    public static SparseMatrix A;
+    public static Preconditioner M;
+    public static double[] b;
 
-    abstract public boolean solve(double[] x);
+    public static LinearSolver solver;
 
-    public static LinearSolver factory(Parameters par, Element[] elems, int dofs) throws IOException {
-        LinearSolver solver = null;
-//        try {
-//            switch (par.linearSolver) {
+    abstract public boolean solve(double[] x, double[] b);
+
+    public static LinearSolver factory(Element[] elems, Parameters par) throws IOException {
+
+        // build matrix structure
+        A = new SparseMatrix(elems);
+
+        // define preconditiner
+        M = Preconditioner.factory(par);
+        M.setMatrix(A);
+
+        // alocate RHS
+        b = new double[A.getDofs()];
+        
+        solver = null;
+        
+        try {
+            switch (par.linearSolver.toLowerCase()) {
+                case "gmres":
+                    solver = new Gmres(A, M, 30, 5, par.iterativeSolverTol, par.nThreads);
+                    break;
 //                case "jacobi":
 //                    solver = new Jacobi(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
 //                    break;
@@ -29,46 +49,32 @@ abstract public class LinearSolver {
 //                case "extern":
 //                    solver = new ExternSolver(elems, dofs, par);
 //                    break;
-//                    
-//                case "umfpack":
-//                    solver = new UmfpackExternSolver(elems, dofs, par);
-//                    break;
-//                
-//                case "MTJ":
-//                    //solver = new MTJsolver(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
-//                    break;
-//                    
-//                case "new":
-//                    solver = new NewLinSol(elems, dofs, par);
-//                    break;
-//                    
+
+                case "umfpack":
+                    solver = new UmfpackExternSolver(A, par);
+                    break;
+
 //                case "matlab":
 //                    solver = new Matlab(elems, dofs, par);
 //                    break;   
-//                    
-//                default:
-//                    solver = new Gmres(elems, dofs, 30, 5, par.iterativeSolverTol, par.nThreads);
-//                    break;
-//            }
-//        } catch (Exception e) {
-//            System.out.println("Solver not set!");
-//        }
+                    
+                default:
+                    throw new IOException("unknown solver " + par.linearSolver);
+            }
+        } catch (Exception e) {
+            System.out.println("Solver not set!");
+        }
 
         return solver;
     }
 
-    double scalarProduct(double[] a, double[] b) {
-        double s = 0;
-        for (int i = 0; i < a.length; i++) {
-            s = s + a[i] * b[i];
-        }
-        return s;
-    }
+    public boolean solve(double[] x) {
 
-    double[] copy(double[] a) {
-        double[] b = new double[a.length];
-        System.arraycopy(a, 0, b, 0, a.length);
-
-        return b;
+        A.updateData(); // update data in matrix A
+        A.updateB(b);   // update RHS
+        M.factor();     // update preconditioner M
+        
+        boolean flag = solver.solve(x, b);  // solve
+        return flag;
     }
 }

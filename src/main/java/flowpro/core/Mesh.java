@@ -1631,53 +1631,7 @@ public class Mesh implements Serializable {
                     ANeighs[k] = new Neighbour(TT[k], nBasis, 0, nEqs, !par.explicitTimeIntegration);
                 }
             }
-        }
-
-        public void computeJacobiPreconditioner() {
-            // vypocitava inverzi diagonaly, ktera se pouzije pro predpodminovac // smazat u noveho resice !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            PrecondJacobi = Mat.invert(ADiag);
-        }
-
-        public void residuumGmres(double[] x, double[] r, int par) {
-            int n = nEqs * nBasis;
-            double[] p = new double[n];
-            for (int i = 0; i < n; i++) {
-                if (par == 1) {
-                    p[i] = RHS_loc[i];
-                    for (int j = 0; j < n; j++) {
-                        p[i] = p[i] - ADiag[j][i] * x[gi_U[j]];
-                    }
-
-                    for (int k = 0; k < nFaces; k++) {
-                        if (TT[k] > -1) {
-                            for (int j = 0; j < nEqs * elems[TT[k]].nBasis; j++) {
-                                p[i] = p[i] - ANeighs[k].MR[j][i] * x[elems[TT[k]].gi_U[j]];
-                            }
-                        }
-                    }
-                } else {
-                    p[i] = 0;
-                    for (int j = 0; j < n; j++) {
-                        p[i] = p[i] + ADiag[j][i] * x[gi_U[j]];
-                    }
-
-                    for (int k = 0; k < nFaces; k++) {
-                        if (TT[k] > -1) {
-                            for (int j = 0; j < nEqs * elems[TT[k]].nBasis; j++) {
-                                p[i] = p[i] + ANeighs[k].MR[j][i] * x[elems[TT[k]].gi_U[j]];
-                            }
-                        }
-                    }
-                }
-            }
-            for (int i = 0; i < n; i++) {
-                int ig = gi_U[i];
-                r[ig] = 0;
-                for (int j = 0; j < n; j++) {
-                    r[ig] = r[ig] + PrecondJacobi[j][i] * p[j];
-                }
-            }
-        }
+        }    
 
         public double sqr() {
             double nrm = 0;
@@ -1685,32 +1639,6 @@ public class Mesh implements Serializable {
                 nrm = nrm + RHS_loc[i] * RHS_loc[i];
             }
             return nrm;
-        }
-
-        public double residuumJacobi(double[] x, double[] xn) {
-            double residuum = 0;
-            int n = nEqs * nBasis;
-            double[] p = new double[n];
-            for (int i = 0; i < n; i++) {
-                p[i] = RHS_loc[i];
-                for (int k = 0; k < nFaces; k++) {
-                    if (TT[k] > -1) {
-                        for (int j = 0; j < nEqs * elems[TT[k]].nBasis; j++) {
-                            p[i] = p[i] - ANeighs[k].MR[j][i] * x[elems[TT[k]].gi_U[j]];
-                        }
-                    }
-                }
-            }
-            for (int i = 0; i < n; i++) {
-                int ig = gi_U[i];
-                xn[ig] = 0;
-                for (int j = 0; j < n; j++) {
-                    xn[ig] += PrecondJacobi[j][i] * p[j];
-                }
-                residuum = residuum + (xn[ig] - x[ig]) * (xn[ig] - x[ig]);
-            }
-
-            return residuum;
         }
 
         /**

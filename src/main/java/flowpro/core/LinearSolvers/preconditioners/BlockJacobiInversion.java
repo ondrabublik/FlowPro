@@ -48,7 +48,7 @@ class BlockJacobiInversion extends Preconditioner {
         } catch (java.lang.InterruptedException e) {
             System.out.println(e);
         }
-        
+
     }
 
     class FactorThread extends Thread {
@@ -64,14 +64,16 @@ class BlockJacobiInversion extends Preconditioner {
         @Override
         public void run() {
             for (int i = nStart; i < elems.length; i = i + nThreads) {
-                diagonalInverse[i] = Mat.invert(elems[i].ADiag);
+                if (elems[i].insideComputeDomain) {
+                    diagonalInverse[i] = Mat.invert(elems[i].ADiag);
+                }
             }
         }
     }
-    
+
     @Override
     public void apply(double[] x, double[] b) {
-        
+
         // vlastni vypocet, parallelni beh
         ApplyThread[] parallel = new ApplyThread[nThreads];
         for (int v = 0; v < nThreads; v++) {
@@ -103,15 +105,16 @@ class BlockJacobiInversion extends Preconditioner {
         public void run() {
             for (int i = nStart; i < elems.length; i = i + nThreads) {
                 Element elem = elems[i];
-                int[] glob = elem.gi_U;
-                double[][] M = diagonalInverse[i];
-                for (int j = 0; j < glob.length; j++) {
-                    x[glob[j]] = 0;
-                    for (int k = 0; k < glob.length; k++) {
-                        x[glob[j]] += M[k][j] * b[glob[k]];
+                if (elem.insideComputeDomain) {
+                    int[] glob = elem.gi_U;
+                    double[][] M = diagonalInverse[i];
+                    for (int j = 0; j < glob.length; j++) {
+                        x[glob[j]] = 0;
+                        for (int k = 0; k < glob.length; k++) {
+                            x[glob[j]] += M[k][j] * b[glob[k]];
+                        }
                     }
                 }
-
             }
         }
     }

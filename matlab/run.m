@@ -7,7 +7,7 @@ if nargin == 0
     if isunix
         system('java -d64 -Xmx12g -jar FlowPro.jar local');
     else
-%         system('start java -d64 -Xmx8g -jar FlowPro.jar local');
+%         system('java -d64 -Xmx8g -Xss10m -jar FlowPro.jar local');
         system('start run.bat');
     end
     cd(path)
@@ -20,7 +20,7 @@ else
 %         metis(nDomains);
 %     catch
         disp('Metis does not work. Running simple script for domain division.');
-        simpleMetis(nDomains,'y');
+        simpleMetis(nDomains,'x');
 %     end
     
     path = pwd;

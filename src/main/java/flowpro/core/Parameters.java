@@ -188,7 +188,7 @@ public class Parameters implements Serializable {
             if (props.containsKey("preconditioner")) {
                 preconditioner = props.getString("preconditioner");
             } else {
-                preconditioner = "jacobi";
+                preconditioner = "blockjacobiinversion";
             }
             if (props.containsKey("iterativeSolverTol")) {
                 iterativeSolverTol = props.getDouble("iterativeSolverTol");
