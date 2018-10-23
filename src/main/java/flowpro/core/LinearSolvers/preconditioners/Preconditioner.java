@@ -15,7 +15,6 @@ import java.io.IOException;
  */
 abstract public class Preconditioner {
     
-    
     public static Preconditioner factory(Parameters par) throws IOException {
         Preconditioner M = null;
         try {

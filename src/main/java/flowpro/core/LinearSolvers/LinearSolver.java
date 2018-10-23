@@ -23,7 +23,7 @@ abstract public class LinearSolver {
 
         // build matrix structure
         A = new SparseMatrix(elems);
-
+        
         // define preconditiner
         M = Preconditioner.factory(par);
         M.setMatrix(A);

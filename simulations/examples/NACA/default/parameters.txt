@@ -66,6 +66,9 @@ penalty = 1
 dampTol = 5
 dampConst = 0
 
+linearSolver = gmres
+preconditioner = blockjacobiinversion
+
 % parallel mode
 overlap = 2  % must be specified only for parallel computations
 schwarzIters = 0

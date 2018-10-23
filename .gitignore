@@ -4,7 +4,6 @@ tasks
 matlab/pclist.txt
 matlab/flowProPath.txt
 network/*
-args.txt
 log.*
 testkeystor
 fetcherState.txt

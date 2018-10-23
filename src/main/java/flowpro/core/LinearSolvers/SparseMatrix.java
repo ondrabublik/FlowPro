@@ -64,7 +64,7 @@ public class SparseMatrix {
     }
 
     public void buildCRSformat() {
-        quicksort(Icoo, Jcoo, indexMap, 0, nnz);
+        quickSort(Icoo, Jcoo, indexMap, 0, nnz - 1);
         indexMap = invertMap(indexMap);
         Icrs = new int[nnz];
         Jcrs = new int[nnz];
@@ -75,7 +75,7 @@ public class SparseMatrix {
     }
 
     public void buildCCSformat() {
-        quicksort(Jcoo, Icoo, indexMap, 0, nnz);
+        quickSort(Jcoo, Icoo, indexMap, 0, nnz - 1);
         indexMap = invertMap(indexMap);
         Iccs = new int[nnz];
         Jccs = new int[nnz];
@@ -308,30 +308,75 @@ public class SparseMatrix {
     }
 
     public int[] compress(int[] I) {
+
         int[] Icomp = new int[dofs + 1];
         int s = 0;
         for (int i = 1; i < dofs; i++) {
             int sum = 0;
-            while (I[s] == i - 1) {
+            while (s < nnz && I[s] == i - 1) {
                 s++;
                 sum++;
+
             }
             Icomp[i] = Icomp[i - 1] + sum;
         }
         Icomp[dofs] = nnz;
         return Icomp;
+
     }
 
-//        int[] J = new int[dofs + 1];
-//        int s = 0;
-//        for (int i = 0; i < nnz; i++) {
-//            if (I[i] != s) {
-//                s++;
-//                J[s] = i;
-//            }
-//        }
-//        J[dofs] = nnz;
-//        return J;
+    private void quickSort(int[] array, int[] array2, int[] index, int lowerIndex, int higherIndex) {
+        int i = lowerIndex;
+        int j = higherIndex;
+        int pivotIndex = lowerIndex + (higherIndex - lowerIndex) / 2;
+        int pivot = array[pivotIndex];
+        int pivot2 = array2[pivotIndex];
+        while (i <= j) {
+            while (array[i] < pivot || (array[i] == pivot && array2[i] < pivot2)) {
+                i++;
+            }
+            while (array[j] > pivot || (array[j] == pivot && array2[j] > pivot2)) {
+                j--;
+            }
+            if (i <= j) {
+                swap(array, array2, index, i, j);
+                i++;
+                j--;
+            }
+        }
+        if (lowerIndex < j) {
+            quickSort(array, array2, index, lowerIndex, j);
+        }
+        if (i < higherIndex) {
+            quickSort(array, array2, index, i, higherIndex);
+        }
+    }
+
+    private void quickSort(int[] array, int[] array2, int lowerIndex, int higherIndex) {
+        int i = lowerIndex;
+        int j = higherIndex;
+        int pivot = array[lowerIndex + (higherIndex - lowerIndex) / 2];
+        while (i <= j) {
+            while (array[i] < pivot) {
+                i++;
+            }
+            while (array[j] > pivot) {
+                j--;
+            }
+            if (i <= j) {
+                swap(array, array2, i, j);
+                i++;
+                j--;
+            }
+        }
+        if (lowerIndex < j) {
+            quickSort(array, array2, lowerIndex, j);
+        }
+        if (i < higherIndex) {
+            quickSort(array, array2, i, higherIndex);
+        }
+    }
+
     public static void quicksort(int[] array, int[] array2, int[] index, int left, int right) {
         if (left < right) {
             int boundary = left;
@@ -389,7 +434,7 @@ public class SparseMatrix {
         for (int i = 0; i < nnz; i++) {
             index2[i] = i;
         }
-        quicksort(index, index2, 0, nnz);
+        quickSort(index, index2, 0, nnz - 1);
         return index2;
     }
 }
