@@ -1,12 +1,12 @@
 package flowpro.core;
 
+import fetcher.FetcherServer;
+import fetcher.ZipFile;
 import flowpro.api.Mat;
 import flowpro.core.parallel.*;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
 import flowpro.core.Mesh.Element;
-import fetcher.FetcherServer;
-import fetcher.ZipFile;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
@@ -447,7 +447,7 @@ public class Solver {
 
     public Solution masterSolve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
-        runFetcher(nDoms, par.fetcherPort, par.masterIP, par.masterPort);
+        runFetcher(nDoms, par.masterIP, par.masterPort);
         MPIMaster mpi = new MPIMaster(nDoms, par.masterIP, par.masterPort);
         StopWatch watch = new StopWatch();
         StopWatch transferWatch = new StopWatch();
@@ -881,8 +881,8 @@ public class Solver {
         }
     }
 
-    private void runFetcher(int nNodes, int fetcherPort, String masterIP, int masterPort) throws IOException {
-        FetcherServer fetcher = new FetcherServer(fetcherPort, 3000, "matlab/pclist.txt");
+    private void runFetcher(int nNodes, String masterIP, int masterPort) throws IOException {
+        FetcherServer fetcher = new FetcherServer();
         String args = "slave " + masterIP + " " + masterPort;
         ZipFile zip = new ZipFile("FlowPro.zip", "FlowPro.jar", args);
         fetcher.initFetcher(zip, nNodes);

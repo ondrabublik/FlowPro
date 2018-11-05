@@ -23,7 +23,7 @@ public class SparseMatrix {
         this.elems = elems;
         scanMatrixStructure();
     }
-
+    
     private void scanMatrixStructure() {
         dofs = computeDofs();
         nnz = computeNNZ();
@@ -261,8 +261,8 @@ public class SparseMatrix {
                 }
             }
         }
-    }
-
+    }   
+    
     public int[] getRowIndexesCRS() {
         return Icrs;
     }
@@ -308,7 +308,6 @@ public class SparseMatrix {
     }
 
     public int[] compress(int[] I) {
-
         int[] Icomp = new int[dofs + 1];
         int s = 0;
         for (int i = 1; i < dofs; i++) {
@@ -321,8 +320,8 @@ public class SparseMatrix {
             Icomp[i] = Icomp[i - 1] + sum;
         }
         Icomp[dofs] = nnz;
+        
         return Icomp;
-
     }
 
     private void quickSort(int[] array, int[] array2, int[] index, int lowerIndex, int higherIndex) {
