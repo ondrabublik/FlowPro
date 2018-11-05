@@ -1,8 +1,0 @@
-#Tue Oct 23 14:31:07 CEST 2018
-order=2
-transfer=125
-steps=100
-CFL=5.0
-CPU=121077
-t=0.5511337750991302
-residuum=1.2996725118913273
