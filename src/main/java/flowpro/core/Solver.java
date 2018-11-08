@@ -11,6 +11,13 @@ import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
 import flowpro.core.LinearSolvers.LinearSolver;
+import static flowpro.core.LinearSolvers.LinearSolver.A;
+import static flowpro.core.LinearSolvers.LinearSolver.M;
+import static flowpro.core.LinearSolvers.LinearSolver.b;
+//import flowpro.core.LinearSolvers.ParallelGmresMaster;
+//import flowpro.core.LinearSolvers.ParallelGmresSlave;
+import flowpro.core.LinearSolvers.SparseMatrix;
+import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
 import flowpro.core.meshDeformation.*;
 import flowpro.core.parallel.Domain.Subdomain;
 import litempi.*;
@@ -226,7 +233,8 @@ public class Solver {
         MPISlave mpi = mpiSlave;
         mesh = meshes[0];
         try {
-            LinearSolver linSolver = LinearSolver.factory(elems, par);
+            //LinearSolver linSolver = LinearSolver.factory(elems, par);
+//            ParallelGmresSlave linSolver = new ParallelGmresSlave(elems, par);
             JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double[] x = new double[dofs];
             double[] y = new double[dofs];
@@ -284,7 +292,7 @@ public class Solver {
                         outMsg = new MPIMessage(Tag.NEW_MESH_POSITION_UPDATED);
                         break;
 
-                    case Tag.ASSEMBLE_AND_SOLVE: // inicialization if equation Ax=b
+                    case Tag.ASSEMBLE: // inicialization if equation Ax=b
                         // dalo by se tomu vyhnout kdybysme ukladali souboru dt a dto
                         if (firstTimeStep) {  //  if dt has not yet been set
                             dt = (double) inMsg.getData();
@@ -298,17 +306,10 @@ public class Solver {
                         eqn.setState(mesh.t + dt, dt);
 
                         assembler.assemble(dt, dto);
-                        Arrays.fill(y, 0.0);
-                    // NO BREAK! continue to the following tag
+                    break;
 
-                    case Tag.SOLVE: // reseni rovnice Ax = b - Ay
-                        Arrays.fill(x, 0.0);
-                        boolean converges = linSolver.solve(x);
-                        Mat.plusEqual(y, x);
-                        updateRHS(x);  // b = b - Ax
-                        double schwarzResid = Mat.L1Norm(x) / x.length;
-
-                        outMsg = new MPIMessage(Tag.GMRES_RESULT, new GmresResult(converges, schwarzResid));
+                    case Tag.GMRES2SLAVE:
+//                        linSolver.doWork(inMsg);
                         break;
 
                     case Tag.UPDATE_NEWTON: // update newton
@@ -458,6 +459,8 @@ public class Solver {
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
 
+//        ParallelGmresMaster linSolver = new ParallelGmresMaster(par, mpi);
+        
         try {
             LOG.info("sending initial data");
             for (int d = 0; d < nDoms; ++d) {
@@ -530,48 +533,20 @@ public class Solver {
                         mpi.waitForAll(Tag.MESH_POSITION_UPDATED);
                     }
 
-                    mpi.sendAll(new MPIMessage(Tag.ASSEMBLE_AND_SOLVE, dt));
-                    convergesNewton = true;
-                    for (int d = 0; d < nDoms; ++d) {
-                        GmresResult results = (GmresResult) mpi.receive(d, Tag.GMRES_RESULT).getData();
-                        if (results.converges == false) {
-                            convergesNewton = false;
-                        }
-                    }
-
+                    mpi.sendAll(new MPIMessage(Tag.ASSEMBLE, dt));
+                    
+                    // solve
+//                    convergesNewton = linSolver.solve();
+                    
                     transferWatch.resume();
                     exchangeData(liteElems, mpi);
                     mpi.waitForAll(Tag.DATA_UPDATED);
                     transferWatch.suspend();
 
-                    if (convergesNewton) {
-                        double schwarzResid = Double.MAX_VALUE;
-                        for (int schwarzIter = 1; schwarzIter < par.schwarzIters
-                                && schwarzResid > par.schwarzTol; ++schwarzIter) {
+                    exchangeData(liteElems, mpi);
+                    mpi.waitForAll(Tag.DATA_UPDATED);
 
-                            mpi.sendAll(new MPIMessage(Tag.SOLVE, dt));
-                            schwarzResid = 0.0;
-                            convergesSchwarz = true;
-                            for (int d = 0; d < nDoms; ++d) {
-                                GmresResult results = (GmresResult) mpi.receive(d, Tag.GMRES_RESULT).getData();
-                                if (results.converges == false) {
-                                    convergesSchwarz = false;
-                                    break;
-                                }
-                                schwarzResid += results.schwarzResid;
-                            }
-                            schwarzResid /= nDoms;
-
-                            transferWatch.resume();
-                            exchangeData(liteElems, mpi);
-                            mpi.waitForAll(Tag.DATA_UPDATED);
-                            transferWatch.suspend();
-
-                            System.out.printf("     %d.   resid: %.2e\n", (schwarzIter + 1), schwarzResid);
-                        }
-                    }
-
-                    if (!convergesNewton || !convergesSchwarz) {
+                    if (!convergesNewton) {
                         mpi.sendAll(new MPIMessage(Tag.PREVIOUS_TIME_LEVEL));
                         state.cfl = cflObj.reduceCFL(state.cfl);
                         --state.steps;

@@ -112,7 +112,9 @@ public class Domain implements Serializable {
             // count number of boudary, load and save elements
             int nBoundaryElems = 0;
             int nLoadElems = 0;
+            int nLoad1Elems = 0;
             int nSaveElems = 0;
+            int nSave1Elems = 0;
             int nInterior = 0;
             for (int loc = 0; loc < nSub; loc++) {
                 int glob = mapL2G[loc];
@@ -121,6 +123,9 @@ public class Domain implements Serializable {
                 }
                 if (dAux[glob][j] > 1) {
                     nLoadElems++;
+                }
+                if (dAux[glob][j] == 2) {
+                    nLoad1Elems++;
                 }
                 if (dAux[glob][j] == 1) {
                     nInterior++;
@@ -131,17 +136,26 @@ public class Domain implements Serializable {
                             nSaveElems++;
                         }
                     }
+                    for (int p = 0; p < nDoms; p++) {
+                        if (dAux[glob][p] == 2) {
+                            nSave1Elems++;
+                        }
+                    }
                 }
             }
 
             int[] boundary = new int[nBoundaryElems];
             int[] load = new int[nLoadElems];
+            int[] load1 = new int[nLoad1Elems];
             int[] save = new int[nSaveElems];
+            int[] save1 = new int[nSave1Elems];
             int[] interior = new int[nInterior];
 
             int boundaryIdx = 0;
             int loadIdx = 0;
+            int load1Idx = 0;
             int saveIdx = 0;
+            int save1Idx = 0;
             int interiorIdx = 0;
             for (int loc = 0; loc < nSub; loc++) {
                 int glob = mapL2G[loc];
@@ -156,6 +170,11 @@ public class Domain implements Serializable {
                 if (dAux[glob][j] > 1) {
                     load[loadIdx] = glob;
                     loadIdx++;
+                }
+                
+                if (dAux[glob][j] == 2) {
+                    load1[load1Idx] = glob;
+                    load1Idx++;
                 }
 
                 if (dAux[glob][j] == 1) {
@@ -172,10 +191,17 @@ public class Domain implements Serializable {
                             break;
                         }
                     }
+                    for (int p = 0; p < nDoms; p++) {
+                        if (dAux[glob][p] == 2) {
+                            save1[save1Idx] = loc;
+                            save1Idx++;
+                            break;
+                        }
+                    }
                 }
             }
 
-            subdoms[j] = new Subdomain(nSub, mapL2G, mapG2L, subElemsOrder, subElemsType, subTP, subTT, subTEale, subTEshift, subfCurv, subInitW, boundary, load, save, interior);
+            subdoms[j] = new Subdomain(nSub, mapL2G, mapG2L, subElemsOrder, subElemsType, subTP, subTT, subTEale, subTEshift, subfCurv, subInitW, boundary, load, load1, save, save1, interior);
         }
     }
 
@@ -197,8 +223,8 @@ public class Domain implements Serializable {
         public final FaceCurvature[] fCurv;
         public final double[][] initW;
         public final int[] boundary;
-        public final int[] load;
-        public final int[] save;
+        public final int[] load, load1;
+        public final int[] save, save1;
         public final int[] interior;
         
         /**
@@ -216,7 +242,7 @@ public class Domain implements Serializable {
          * outer overlap)
          */
         private Subdomain(int nElems, int[] mapL2G, int[] mapG2L, int[] elemsOrder, int[] elemsType, int[][] TP, int[][] TT, int[][] TEale, int[][] TEshift, FaceCurvature[] fCurv, double[][] initW, int[] boundary,
-                int[] load, int[] save, int[] interior) {
+                int[] load, int[] load1, int[] save, int[] save1, int[] interior) {
             this.nElems = nElems;
             this.mapL2G = mapL2G;
             this.mapG2L = mapG2L;
@@ -230,7 +256,9 @@ public class Domain implements Serializable {
             this.initW = initW;
             this.boundary = boundary;
             this.load = load;
+            this.load1 = load1;
             this.save = save;
+            this.save1 = save1;
             this.interior = interior;
         }
     }

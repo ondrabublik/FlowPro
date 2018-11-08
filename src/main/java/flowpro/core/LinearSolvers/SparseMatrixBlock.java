@@ -11,8 +11,8 @@ package flowpro.core.LinearSolvers;
  */
 public class SparseMatrixBlock {
 
-    int[] Iblock;
-    int[] Jblock;
+    int[] Iblock, Imap;
+    int[] Jblock, Jmap;
     boolean[] Iin, Jin;
     int nIBlock;
     int nJBlock;
@@ -38,11 +38,15 @@ public class SparseMatrixBlock {
         int[] Jcoo = A.getColumnIndexesCOO();
         Iin = new boolean[dofs];
         Jin = new boolean[dofs];
+        Imap = new int[dofs];
+        Jmap = new int[dofs];
         for(int i = 0; i < nIBlock; i++){
             Iin[Iblock[i]] = true;
+            Imap[Iblock[i]] = i;
         }
         for(int i = 0; i < nJBlock; i++){
             Jin[Jblock[i]] = true;
+            Jmap[Jblock[i]] = i;
         }
         int s = 0;
         for (int i = 0; i < nnz; i++) { // get block nnz
@@ -56,8 +60,8 @@ public class SparseMatrixBlock {
         s = 0;
         for (int i = 0; i < nnz; i++) { // fill block indexes
             if(Iin[Icoo[i]] && Jin[Jcoo[i]]) {
-                IblockCoo[s] = Icoo[i];
-                JblockCoo[s] = Jcoo[i];
+                IblockCoo[s] = Imap[Icoo[i]];
+                JblockCoo[s] = Jmap[Jcoo[i]];
                 s++;
             }
         }

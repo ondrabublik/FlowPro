@@ -1,6 +1,6 @@
 function beam
 L = 0.5;
-n = 10;
+n = 40;
 h = L/(n-1);
 E = 0.1;
 Is = 1;

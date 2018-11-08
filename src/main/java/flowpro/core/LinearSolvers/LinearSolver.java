@@ -38,9 +38,9 @@ abstract public class LinearSolver {
                 case "gmres":
                     solver = new Gmres(A, M, 30, 5, par.iterativeSolverTol, par.nThreads);
                     break;
-//                case "jacobi":
-//                    solver = new Jacobi(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
-//                    break;
+                case "prostaiterace":
+                    solver = new ProstaIterace(A, M, 300, par.iterativeSolverTol, par.nThreads);
+                    break;
 //
 //                case "bicgstab":
 //                    solver = new BiCgStab(elems, dofs, 100, par.iterativeSolverTol, par.nThreads);

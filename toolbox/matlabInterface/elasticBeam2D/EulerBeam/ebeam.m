@@ -3,7 +3,7 @@ mu = 1;
 EI = 1;
 L = 0.5;
 
-n = 10;
+n = 20;
 u = zeros(n,2);
 uold = u;
 
@@ -25,8 +25,6 @@ end
 D2 = D*D;
 D2 = D2(I,I);
 A = [-1/mu*EI*D2, zeros(size(D2)); zeros(size(D2)), ones(size(D2))];
-spy(A)
-return
 
 figure
 tisk = plot(x,y+u(:,2));
