@@ -1,140 +1,124 @@
 package flowpro.core.LinearSolvers;
 
-import static flowpro.core.LinearSolvers.LinearSolver.A;
-import static flowpro.core.LinearSolvers.LinearSolver.M;
-import static flowpro.core.LinearSolvers.LinearSolver.b;
 import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
 import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
+import flowpro.core.parallel.LiteElement;
+import flowpro.core.parallel.Tag;
+import java.io.IOException;
 import litempi.MPIMessage;
 
 /**
  *
  * @author obublik
  */
-public class ParallelGmresSlave extends LinearSolver {
+public class ParallelGmresSlave {
 
-    int n, m, iterationLimit, nThreads;
-    double tol;
-    double[][] V, H;
-    double[] cs, sn, e1, w, r, aux;
+    Element[] elems;
+    SparseMatrix A;
+    SparseMatrixBlock Ablock;
+    Preconditioner M;
+    double[] b, x;
+
+    int dofs, nThreads;
+    double[] r, aux;
 
     //public ParallelGmresSlave(SparseMatrix A, Preconditioner M, int m, int iterationLimit, double tol, int nThreads) {
-    public ParallelGmresSlave(Element[] elems, Parameters par) {
+    public ParallelGmresSlave(Element[] elems, Parameters par, double[] x) throws IOException {
+
+        this.elems = elems;
+        this.x = x;
+
         // build matrix structure
         A = new SparseMatrix(elems);
-        A.buildCRSformat();
+        dofs = A.dofs;
+        b = new double[dofs];
+        A.updateB(b);
 
         // define preconditiner
-        M = Preconditioner.factory(par);
-        M.setMatrix(A);
+        //M = Preconditioner.factory(par);
+        //M.setMatrix(A);
 
-        // alocate RHS
-        b = new double[A.getDofs()];
-
-        n = A.getDofs();
-        m = 30;
-        iterationLimit = 10;
-        tol = par.iterativeSolverTol;
-        nThreads = par.nThreads;
-
-        // initialize workspace
-        V = new double[m + 1][n];
-        H = new double[m + 1][m];
-        cs = new double[m];
-        sn = new double[m];
-        e1 = new double[m + 1];
-        w = new double[n];
-        r = new double[n];
-        aux = new double[n];
-    }
-
-    public MPIMessage doWork(MPIMessage mpi) {
-        return null;
-    }
-
-    public boolean solve(double[] x, double[] b) {
-        boolean converged = false;
-        for(int i = 0; i < iterationLimit; i++){
-            A.SubstrMult(aux, b, x, nThreads);
-            M.apply(r, aux);
-            for(int j = 0; j < n; j++){
-                x[j] += r[j];
-            }
-            double error = norm(aux);
-            if(error < tol){
-                converged = true;
-                break;
+        // define domain block
+        int sIn = 0;
+        for (int i = 0; i < elems.length; i++) {
+            if (elems[i].insideMetisDomain) {
+                sIn += elems[i].nBasis * elems[i].getNEqs();
             }
         }
-        return converged;
-    }
-
-    void updateSolution(double[] y, double[] x, int i, int nThreads) {
-        // vlastni vypocet, parallelni beh
-        UpdateSolutionThread[] parallel = new UpdateSolutionThread[nThreads];
-        for (int v = 0; v < nThreads; v++) {
-            parallel[v] = new UpdateSolutionThread(v, nThreads, y, x, i);
-            parallel[v].start();
-        }
-        try {
-            for (int v = 0; v < nThreads; v++) {
-                parallel[v].join();
-            }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
-        }
-    }
-
-    class UpdateSolutionThread extends Thread {
-
-        int nStart, nThreads, i, n;
-        double[] y, x;
-
-        UpdateSolutionThread(int nStart, int nThreads, double[] y, double[] x, int i) {
-            this.nStart = nStart;
-            this.nThreads = nThreads;
-            this.y = y;
-            this.x = x;
-            this.i = i;
-            n = x.length;
-        }
-
-        @Override
-        public void run() {
-            // paralelni sestavovani a plneni matic
-            for (int j = nStart; j < n; j = j + nThreads) {
-                for (int k = 0; k <= i; k++) {
-                    x[j] = x[j] + V[k][j] * y[k];
+        int[] Iblock = new int[sIn];
+        int s = 0;
+        for (int i = 0; i < elems.length; i++) {
+            if (elems[i].insideMetisDomain) {
+                for (int j = 0; j < elems[i].nBasis * elems[i].getNEqs(); j++) {
+                    Iblock[s] = elems[i].gi_U[j];
+                    s++;
                 }
             }
         }
+        int[] Jblock = new int[dofs];
+        for (int i = 0; i < dofs; i++) {
+            Jblock[i] = i;
+        }
+
+        Ablock = new SparseMatrixBlock(Iblock, Jblock, A);
+
+        // alocate RHS
+        aux = new double[Ablock.getNRows()];
     }
 
-    double[] rotmat(double a, double b) {
-        // Compute the Givens rotation matrix parameters for a and b.
-        double c, s, temp;
-        if (b == 0) {
-            c = 1;
-            s = 0;
-        } else if (Math.abs(b) > Math.abs(a)) {
-            temp = a / b;
-            s = 1 / Math.sqrt(1 + temp * temp);
-            c = temp * s;
-        } else {
-            temp = b / a;
-            c = 1 / Math.sqrt(1 + temp * temp);
-            s = temp * c;
+    public MPIMessage doWork(MPIMessage msg) {
+        MPIMessage msgOut = null;
+        switch (msg.subTag) {
+            case 0:
+                //Ablock.SubstrMult(aux, b, x);
+                //M.apply(r, aux);
+                Ablock.SubstrMult(r, b, x);
+                msgOut = new MPIMessage(Tag.GMRES2MASTER);
+                break;
+            case 1:
+                for (int j = 0; j < n; j++) {
+                    x[j] += r[j];
+                }
+                msgOut = new MPIMessage(Tag.GMRES2MASTER);
+                break;
+            case 2:
+                double error = norm(aux);
+                msgOut = new MPIMessage(Tag.GMRES2MASTER, error);
+                break;
+            case 3:
+                int nSave = Ablock.nIBlock;
+                LiteElement[] dataSend = new LiteElement[nSave];
+                for (int i = 0; i < nSave; i++) {
+                    int j = Ablock.Iblock[i];
+                    int nBasis = elems[j].nBasis;
+                    int nEqs = elems[j].getNEqs();
+                    double[] yElem = new double[nEqs * nBasis];
+                    for (int m = 0; m < nEqs; m++) {
+                        for (int p = 0; p < nBasis; p++) {
+                            int ind = nBasis * m + p;
+                            yElem[ind] = x[elems[j].gi_U[ind]];
+                        }
+                    }
+                    dataSend[i] = new LiteElement(j, yElem);
+                }
+                msgOut = new MPIMessage(Tag.GMRES2MASTER, dataSend);
+                break;
+            case 4:
+                LiteElement[] dataReceive = (LiteElement[]) msg.getData();
+                for (LiteElement dataReceive1 : dataReceive) {
+                    int j = dataReceive1.index;
+                    for (int m = 0; m < nEqs; m++) {
+                        for (int p = 0; p < elems[j].nBasis; p++) {
+                            int ind = elems[j].nBasis * m + p;
+                            x[elems[j].gi_U[ind]] = dataReceive1.y[ind];
+                        }
+                    }
+                }
+                msgOut = new MPIMessage(Tag.GMRES2MASTER);
+                break;
         }
-        return new double[]{c, s};
-    }
-
-    double[] vectorScalarProduct(double[] a, double b) {
-        double[] c = new double[n];
-        for (int i = 0; i < a.length; i++) {
-            c[i] = a[i] * b;
-        }
-        return c;
+        return msgOut;
     }
 
     double norm(double[] a) {
@@ -145,38 +129,5 @@ public class ParallelGmresSlave extends LinearSolver {
         n = Math.sqrt(n);
 
         return n;
-    }
-
-    double scalarProduct(double[] a, double[] b) {
-        double s = 0;
-        for (int i = 0; i < a.length; i++) {
-            s = s + a[i] * b[i];
-        }
-        return s;
-    }
-
-    // Gaussian elimination with partial pivoting
-    double[] lsolve(double[][] A, double[] b, int N) {
-        // int N  = b.length;
-        for (int p = 0; p < N; p++) {
-            for (int i = p + 1; i < N; i++) {
-                double alpha = A[i][p] / A[p][p];
-                b[i] -= alpha * b[p];
-                for (int j = p; j < N; j++) {
-                    A[i][j] -= alpha * A[p][j];
-                }
-            }
-        }
-
-        // back substitution
-        double[] x = new double[N];
-        for (int i = N - 1; i >= 0; i--) {
-            double sum = 0.0;
-            for (int j = i + 1; j < N; j++) {
-                sum += A[i][j] * x[j];
-            }
-            x[i] = (b[i] - sum) / A[i][i];
-        }
-        return x;
     }
 }

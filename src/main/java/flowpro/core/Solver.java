@@ -11,13 +11,8 @@ import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
 import flowpro.core.LinearSolvers.LinearSolver;
-import static flowpro.core.LinearSolvers.LinearSolver.A;
-import static flowpro.core.LinearSolvers.LinearSolver.M;
-import static flowpro.core.LinearSolvers.LinearSolver.b;
-//import flowpro.core.LinearSolvers.ParallelGmresMaster;
-//import flowpro.core.LinearSolvers.ParallelGmresSlave;
-import flowpro.core.LinearSolvers.SparseMatrix;
-import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
+import flowpro.core.LinearSolvers.ParallelGmresMaster;
+import flowpro.core.LinearSolvers.ParallelGmresSlave;
 import flowpro.core.meshDeformation.*;
 import flowpro.core.parallel.Domain.Subdomain;
 import litempi.*;
@@ -234,10 +229,9 @@ public class Solver {
         mesh = meshes[0];
         try {
             //LinearSolver linSolver = LinearSolver.factory(elems, par);
-//            ParallelGmresSlave linSolver = new ParallelGmresSlave(elems, par);
-            JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double[] x = new double[dofs];
-            double[] y = new double[dofs];
+            ParallelGmresSlave linSolver = new ParallelGmresSlave(elems, par, x);
+            JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double dt = -1.0;
             double dto;
             boolean firstTimeStep = true;
@@ -306,14 +300,15 @@ public class Solver {
                         eqn.setState(mesh.t + dt, dt);
 
                         assembler.assemble(dt, dto);
-                    break;
+                        break;
 
                     case Tag.GMRES2SLAVE:
-//                        linSolver.doWork(inMsg);
+                        Arrays.fill(x, 0.0);
+                        outMsg = linSolver.doWork(inMsg);
                         break;
 
                     case Tag.UPDATE_NEWTON: // update newton
-                        updateW(y);
+                        updateW(x);
                         outMsg = new MPIMessage(Tag.NEWTON_UPDATED);
                         break;
 
@@ -334,7 +329,7 @@ public class Solver {
                             for (int m = 0; m < mesh.nEqs; m++) {
                                 for (int p = 0; p < elems[j].nBasis; p++) {
                                     int ind = elems[j].nBasis * m + p;
-                                    yElem[ind] = y[elems[j].gi_U[ind]];
+                                    yElem[ind] = x[elems[j].gi_U[ind]];
                                 }
                             }
                             dataSend[i] = new LiteElement(j, yElem);
@@ -349,7 +344,7 @@ public class Solver {
                             for (int m = 0; m < mesh.nEqs; m++) {
                                 for (int p = 0; p < elems[j].nBasis; p++) {
                                     int ind = elems[j].nBasis * m + p;
-                                    y[elems[j].gi_U[ind]] = dataReceive1.y[ind];
+                                    x[elems[j].gi_U[ind]] = dataReceive1.y[ind];
                                 }
                             }
                         }
@@ -459,8 +454,8 @@ public class Solver {
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
 
-//        ParallelGmresMaster linSolver = new ParallelGmresMaster(par, mpi);
-        
+        ParallelGmresMaster linSolver = new ParallelGmresMaster(par, mpi, domain);
+
         try {
             LOG.info("sending initial data");
             for (int d = 0; d < nDoms; ++d) {
@@ -534,10 +529,10 @@ public class Solver {
                     }
 
                     mpi.sendAll(new MPIMessage(Tag.ASSEMBLE, dt));
-                    
+
                     // solve
-//                    convergesNewton = linSolver.solve();
-                    
+                    convergesNewton = linSolver.solve();
+
                     transferWatch.resume();
                     exchangeData(liteElems, mpi);
                     mpi.waitForAll(Tag.DATA_UPDATED);

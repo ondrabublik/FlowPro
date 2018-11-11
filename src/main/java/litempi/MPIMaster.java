@@ -152,6 +152,14 @@ public class MPIMaster {
         }
         return array;
     }
+    
+    public double receiveAllDoubleSum(int tag) throws MPIException {
+        double sum = 0;
+        for (int i = 0; i < nSlaves; ++i) {
+            sum += (double) receive(i, tag).getData();
+        }
+        return sum;
+    }
 
     public void reset() throws MPIException {
         for (int i = 0; i < nSlaves; ++i) {
