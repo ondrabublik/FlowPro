@@ -53,7 +53,7 @@ public class SparseMatrixCRS {
             nBlockRow = 1;
             for (int k = 0; k < elem.TT.length; k++) {
                 if (elem.TT[k] > -1) {
-                    blocks[i][nBlockRow] = elem.ANeighs[k].MR;
+                    blocks[i][nBlockRow] = elem.ANeighs[k].A;
                     indexes[nBlockRow] = elems[elem.TT[k]].index;
                     nBlockRow++;
                 }

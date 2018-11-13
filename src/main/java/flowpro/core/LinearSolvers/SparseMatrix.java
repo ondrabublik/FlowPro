@@ -46,7 +46,7 @@ public class SparseMatrix {
                     }
                 }
                 for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TT[k] > -1) {
+                    if (elem.TT[k] > -1 && elems[elem.TT[k]].insideComputeDomain) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
                         int[] globe = elems[elem.TT[k]].gi_U;
                         for (int i = 0; i < n; i++) {
@@ -91,7 +91,7 @@ public class SparseMatrix {
                 int n = elem.getNEqs() * elem.nBasis;
                 s += n * n;
                 for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TT[k] > -1) {
+                    if (elem.TT[k] > -1  && elems[elem.TT[k]].insideComputeDomain) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
                         s += n * ne;
                     }
@@ -122,9 +122,9 @@ public class SparseMatrix {
                     }
                 }
                 for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TT[k] > -1) {
+                    if (elem.TT[k] > -1 && elems[elem.TT[k]].insideComputeDomain) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        double[][] An = elem.ANeighs[k].MR;
+                        double[][] An = elem.ANeighs[k].A;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 H[indexMap[s]] = An[j][i];

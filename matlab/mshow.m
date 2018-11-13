@@ -22,14 +22,6 @@ end
 
 par = loadParam(simulPath);
 
-if par.dimension ~= 2
-    error('mshow supports only 2D view');
-end
-elements = dlmread([meshPath, 'elements.txt'], ' ');
-elementType = load([meshPath, 'elementType.txt']);
-
-tri = convert2Triangular(elements, elementType);
-
 for k = 1 : nargin
     q = varargin{k};
 
@@ -49,6 +41,14 @@ for k = 1 : nargin
             showResiduum;
             continue
     end
+    
+    if par.dimension ~= 2
+        error('mshow supports only 2D view');
+    end
+    elements = dlmread([meshPath, 'elements.txt'], ' ');
+    elementType = load([meshPath, 'elementType.txt']);
+
+    tri = convert2Triangular(elements, elementType);
     
     plotMe(q)
 end
@@ -115,7 +115,7 @@ if nargin == 0
     neigh = dlmread([meshPath, 'neighbors.txt']);
     type = dlmread([meshPath, 'elementType.txt']);
 
-    fprintf('sit ma %d elementu\n', length(elems));
+    fprintf('Mesh has %d elements and %d vertices.\n', length(elems), length(xy));
 end
 
 x = xy(:,1);

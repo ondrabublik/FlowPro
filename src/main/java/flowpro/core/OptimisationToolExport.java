@@ -146,7 +146,7 @@ public class OptimisationToolExport {
                         Element elemR = elems[elems[k].TT[face]];
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < elemR.nBasis * mesh.nEqs; j++) {
-                                out.write(elems[k].gi_U[i] + " " + elemR.gi_U[j] + " " + elems[k].ANeighs[face].MR[j][i]);
+                                out.write(elems[k].gi_U[i] + " " + elemR.gi_U[j] + " " + elems[k].ANeighs[face].A[j][i]);
                                 out.newLine();
                             }
                         }

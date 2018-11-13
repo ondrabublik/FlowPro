@@ -323,6 +323,7 @@ public class Mesh implements Serializable {
 
         // mesh
         public final int index;
+        public int[] faceIndexReverse;
 
         public final int dim;
         public int nBasis; 	  // pocet bazovych funkci
@@ -485,7 +486,7 @@ public class Mesh implements Serializable {
             c_IP = 0;
             if (elemType.order > 1) {
                 double g_shock = shock_senzor(par.dampTol);
-                double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
+                //double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
                 double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
                 eps = lam * elemSize / elemType.order * g_shock;
 
@@ -507,7 +508,7 @@ public class Mesh implements Serializable {
                 case 2: // RK2
                     System.arraycopy(W, 0, WLTS, 0, nBasis * nEqs);
                     stepLTS = 0;
-                    residuum(V, ANeighs, Rw);
+                    residuum(V, Rw, null);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W1LTSo[j] = W1LTS[j];
@@ -517,7 +518,7 @@ public class Mesh implements Serializable {
 
                     stepLTS = 1;
                     Arrays.fill(Rw, 0);
-                    residuum(V, ANeighs, Rw);
+                    residuum(V, Rw, null);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W[j] = WLTS[j] + dtStep * Rw[j];
@@ -526,7 +527,7 @@ public class Mesh implements Serializable {
                 case 3: // RK3
                     System.arraycopy(W, 0, WLTS, 0, nBasis * nEqs);
                     stepLTS = 0;
-                    residuum(V, ANeighs, Rw);
+                    residuum(V, Rw, null);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W1LTSo[j] = W1LTS[j];
@@ -536,7 +537,7 @@ public class Mesh implements Serializable {
 
                     stepLTS = 1;
                     Arrays.fill(Rw, 0);
-                    residuum(V, ANeighs, Rw);
+                    residuum(V, Rw, null);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W2LTSo[j] = W2LTS[j];
@@ -546,7 +547,7 @@ public class Mesh implements Serializable {
 
                     stepLTS = 2;
                     Arrays.fill(Rw, 0);
-                    residuum(V, ANeighs, Rw);
+                    residuum(V, Rw, null);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W[j] = 1.0 / 3 * WLTS[j] + 2.0 / 3 * (W2LTS[j] + dtStep * Rw[j]);
@@ -568,54 +569,44 @@ public class Mesh implements Serializable {
 
         // Generovani radku globalni matice a vektoru prave strany
         public void assembleJacobiMatrix(double[] a1, double[] a2, double[] a3, double[] dual) {
-            nullJacobiMatrixBlocks();
 
             // vnitrni element - krivkovy i objemovy integral
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
-            residuum(V, ANeighs, Rw);
-
+            double[][] RwNeigh = new double[nFaces][];
+            double[][] RwNeighH = new double[nFaces][];
+            for (int k = 0; k < nFaces; k++) {
+                if (TT[k] > -1) {
+                    RwNeigh[k] = new double[elems[TT[k]].nBasis * nEqs];
+                    RwNeighH[k] = new double[elems[TT[k]].nBasis * nEqs];
+                }
+            }
+            // compute residuum
+            residuum(V, Rw, RwNeigh);
+            // assemble rhs
             assembleRHS(Rw, a1, a2, a3);
 
             if (par.useJacobiMatrix && eqn.isEquationsJacobian()) { // fast assemble when jacobian of equations is known
-
                 residuumWithJacobian(ADiag, ANeighs);
-
             } else { // slow assemble when jacobian of equations is unknown
                 double h = par.h;
                 for (int i = 0; i < nBasis * nEqs; i++) {
-                    V[i] = h;
-
                     for (int j = 0; j < Rw.length; j++) {
                         ADiag[i][j] = -Rw[j];
                     }
-
-                    residuum(V, ANeighs, ADiag[i]);
-
+                    V[i] = h;
+                    residuum(V, ADiag[i], RwNeighH);
                     V[i] = 0;
-                }
-                Mat.divide(ADiag, -h);
-
-                // sousedni elementy - pouze krivkovy integral pres k-tou stenu
-                for (int k = 0; k < nFaces; k++) {
-                    if (TT[k] > -1) {
-                        double[] RWall = new double[nBasis * nEqs];
-                        residuumWall(k, V, ANeighs, RWall);
-                        int nBasisR = ANeighs[k].neR;
-                        for (int i = 0; i < nBasisR * nEqs; i++) {
-                            ANeighs[k].V[i] = h;
-
-                            for (int j = 0; j < RWall.length; j++) {
-                                ANeighs[k].MR[i][j] = -RWall[j];
+                    for (int k = 0; k < nFaces; k++) {
+                        if (TT[k] > -1 && elems[TT[k]].insideComputeDomain) {
+                            double[][] Aaux = elems[TT[k]].ANeighs[faceIndexReverse[k]].A;
+                            for (int j = 0; j < RwNeighH[k].length; j++) {
+                                Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
                             }
-
-                            residuumWall(k, V, ANeighs, ANeighs[k].MR[i]);
-                            ANeighs[k].V[i] = 0;
                         }
-
-                        Mat.divide(ANeighs[k].MR, -h);
                     }
                 }
+                Mat.divide(ADiag, -h);
             }
 
             // pricteni matice hmotnosti
@@ -873,15 +864,15 @@ public class Mesh implements Serializable {
                             for (int i = 0; i < nRBasis; i++) {
                                 for (int j = 0; j < nBasis; j++) {
                                     if (eqn.isConvective()) {
-                                        Sous.MR[nRBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aR[nEqs * q + m] * baseRight[i] * baseLeft[j];
+                                        Sous.A[nRBasis * m + i][nBasis * q + j] += 0.5 * Jac * weight * aR[nEqs * q + m] * baseRight[i] * baseLeft[j];
                                         if (m == q) {
-                                            Sous.MR[nRBasis * m + i][nBasis * q + j] -= 0.5 * (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
+                                            Sous.A[nRBasis * m + i][nBasis * q + j] -= 0.5 * (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * Jac * weight * dBazeSumR[i] * baseLeft[j];
                                         }
                                     }
                                     if (eqn.isDiffusive()) {
-                                        Sous.MR[nRBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adR[nEqs * q + m] * baseRight[i] * baseLeft[j];
+                                        Sous.A[nRBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adR[nEqs * q + m] * baseRight[i] * baseLeft[j];
                                         for (int d = 0; d < dim; d++) {
-                                            Sous.MR[nRBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adR[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBaseRight[i][d] * baseLeft[j];
+                                            Sous.A[nRBasis * m + i][nBasis * q + j] -= 0.5 * Jac * weight * adR[nEqs * nEqs * (d + 1) + nEqs * q + m] * dBaseRight[i][d] * baseLeft[j];
                                         }
                                     }
                                 }
@@ -997,11 +988,11 @@ public class Mesh implements Serializable {
         }
 
         // tato funkce vypocitava reziduum__________________________________________
-        private void residuum(double[] V, Neighbour[] Sous, double[] K) {
+        private void residuum(double[] V, double[] K, double[][] KR) {
 
             // vypocet toku hranici
             for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
-                residuumWall(k, V, Sous, K);
+                residuumWall(k, V, K, KR[k]);
             }
 
             if (elemType.order > 1) { // volume integral only for DGFEM
@@ -1076,35 +1067,37 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
-            } else // production term for FVM
-            if (eqn.isSourcePresent()) {
-                double[] Jac = Int.JacobianVolume;
-                double[] weights = Int.weightsVolume;
+            } else// production term for FVM
+             if (eqn.isSourcePresent()) {
+                    double[] Jac = Int.JacobianVolume;
+                    double[] weights = Int.weightsVolume;
 
-                // interpolation of mesh velocity
-                double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[0]);
+                    // interpolation of mesh velocity
+                    double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[0]);
 
-                double[] WInt = new double[nEqs];
-                for (int j = 0; j < nEqs; j++) {
-                    WInt[j] = W[j] + V[j];
+                    double[] WInt = new double[nEqs];
+                    for (int j = 0; j < nEqs; j++) {
+                        WInt[j] = W[j] + V[j];
 
-                }
-                double[] dWInt = volumeDerivative(0, V, null, u, elemData);
+                    }
+                    double[] dWInt = volumeDerivative(V, u, elemData);
 
-                // production
-                double[] product = eqn.sourceTerm(WInt, dWInt, elemData);
+                    // production
+                    double[] product = eqn.sourceTerm(WInt, dWInt, elemData);
 
-                for (int m = 0; m < nEqs; m++) {
-                    if (eqn.isSourcePresent()) {
-                        K[m] += Jac[0] * weights[0] * product[m];
+                    for (int m = 0; m < nEqs; m++) {
+                        if (eqn.isSourcePresent()) {
+                            K[m] += Jac[0] * weights[0] * product[m];
+                        }
                     }
                 }
-            }
         }
 
         // tato funkce vypocitava reziduum__________________________________________
-        private void residuumWall(int k, double[] V, Neighbour[] Sous, double[] K) {
-
+        private void residuumWall(int k, double[] V, double[] K, double[] KR) {
+            if (KR != null) {
+                Arrays.fill(KR, 0.0);
+            }
             double[] fn = null;
             double[] fvn = null;
             int[] edgeIndex = Int.faces[k].faceIndexes;
@@ -1155,11 +1148,7 @@ public class Mesh implements Serializable {
                         }
                     }
                 } else { // Finite volume method
-                    if (TT[k] > -1) {
-                        dWL = volumeDerivative(k, V, Sous[k].V, u, elemData);
-                    } else {
-                        dWL = volumeDerivative(k, V, null, u, elemData);
-                    }
+                    dWL = volumeDerivative(V, u, elemData);
                     double sigmaL = FVMlimiter(dWL, par.FVMlimiter);
                     for (int m = 0; m < nEqs; m++) {
                         double dW = 0;
@@ -1174,39 +1163,30 @@ public class Mesh implements Serializable {
                 if (TT[k] > -1) {
                     if (elems[TT[k]].elemType.order > 1) { // Discontinuous Galerkin Method
                         double[] WRp = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
-                        double[] Vs = Sous[k].V;
                         for (int m = 0; m < nEqs; m++) {
                             int nRBasis = elems[TT[k]].nBasis;
                             for (int j = 0; j < nRBasis; j++) {
-                                WR[m] += (WRp[m * nRBasis + j] + Vs[m * nRBasis + j]) * baseRight[j];
+                                WR[m] += WRp[m * nRBasis + j] * baseRight[j];
                                 for (int d = 0; d < dim; d++) {
-                                    dWR[nEqs * d + m] += (WRp[m * nRBasis + j] + Vs[m * nRBasis + j]) * dBaseRight[j][d];
+                                    dWR[nEqs * d + m] += WRp[m * nRBasis + j] * dBaseRight[j][d];
                                 }
                             }
                         }
                     } else { // Finite Volume Method
                         if (elems[TT[k]].insideComputeDomain) {
-                            int kR = 0;
-                            for (int face = 1; face < elems[TT[k]].nFaces; face++) {
-                                if (elems[TT[k]].TT[face] == index) {
-                                    kR = face;
-                                    break;
-                                }
-                            }
-                            dWR = elems[TT[k]].volumeDerivative(kR, Sous[k].V, V, u, elemData);
+                            dWR = elems[TT[k]].volumeDerivative(null, u, elemData);
                         } else {
                             System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
                         }
                         if (elems[TT[k]].insideComputeDomain) {
                             double[] WRp = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
-                            double[] Vs = Sous[k].V;
                             double sigmaR = elems[TT[k]].FVMlimiter(dWR, par.FVMlimiter);
                             for (int j = 0; j < nEqs; j++) {
                                 double dW = 0;
                                 for (int d = 0; d < dim; d++) {
                                     dW = dW + (Int.faces[k].coordinatesFace[p][d] - elems[TT[k]].Xs[d]) * dWR[nEqs * d + j];
                                 }
-                                WR[j] = WRp[j] + Vs[j] + sigmaR * dW;
+                                WR[j] = WRp[j] + sigmaR * dW;
                             }
                         } else {
                             System.arraycopy(elems[TT[k]].W, 0, WR, 0, nEqs);
@@ -1245,7 +1225,7 @@ public class Mesh implements Serializable {
                     double[] Wc = new double[nEqs];
                     double[] dWc = new double[nEqs * dim];
                     for (int m = 0; m < nEqs; m++) {
-                        if (TT[k] > 0) {
+                        if (TT[k] > -1) {
                             Wc[m] = (WL[m] + WR[m]) / 2;
                         } else {
                             Wc[m] = WR[m];
@@ -1281,20 +1261,37 @@ public class Mesh implements Serializable {
                             }
                         }
                     }
+                    if (KR != null) {
+                        int nRBasis = elems[TT[k]].nBasis;
+                        for (int j = 0; j < nRBasis; j++) {
+                            double jwb = Jac * weight * baseRight[j];
+                            if (eqn.isConvective()) {
+                                KR[nRBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
+                                KR[nRBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * jwb * dWsum;
+                            }
+                            if (eqn.isDiffusive()) {
+                                KR[nRBasis * m + j] += jwb * fvn[m];
+                                KR[nRBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        double[] volumeDerivative(int kR, double[] V, double[] Vs, double[] u, ElementData elemData) {
+        double[] volumeDerivative(double[] V, double[] u, ElementData elemData) {
             double[] dW = new double[dim * nEqs];
             double[] WL = new double[nEqs];
             double[] WWall;
-            for (int j = 0; j < nEqs; j++) {
-                WL[j] = W[j] + V[j];
+            if (V != null) {
+                for (int j = 0; j < nEqs; j++) {
+                    WL[j] = W[j] + V[j];
+                }
+            } else {
+                System.arraycopy(W, 0, WL, 0, nEqs);
+
             }
             for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
-                double[] Jac = Int.faces[k].JacobianFace;
-                double[] weights = Int.faces[k].weightsFace;
                 double[] WR = new double[nEqs];
                 if (TT[k] > -1) {
                     if (elems[TT[k]].elemType.order > 1) { // DGFEM neigbhour
@@ -1304,14 +1301,7 @@ public class Mesh implements Serializable {
                             System.arraycopy(WL, 0, WR, 0, nEqs);
                         }
                     } else { // FVM neigbhour
-                        double[] WRp = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
-                        for (int j = 0; j < nEqs; j++) {
-                            if (k == kR && !(Vs == null)) {
-                                WR[j] = WRp[j] + Vs[j];
-                            } else {
-                                WR[j] = WRp[j];
-                            }
-                        }
+                        WR = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
                     }
                     WWall = Mat.times(Mat.plusVec(WR, WL), 0.5);
                 } else {
@@ -1320,7 +1310,7 @@ public class Mesh implements Serializable {
 
                 for (int j = 0; j < nEqs; j++) {
                     for (int d = 0; d < dim; d++) {
-                        dW[nEqs * d + j] += Jac[0] * weights[0] * WWall[j] * n[k][0][d] / area;
+                        dW[nEqs * d + j] += S[k] * WWall[j] * n[k][0][d] / area;
                     }
                 }
             }
@@ -1492,7 +1482,7 @@ public class Mesh implements Serializable {
             elemData.currentT = t;
             elemData.integralMonitor = integralMonitor;
             elemData.elemIndex = index;
-            
+
             return u;
         }
 
@@ -1506,7 +1496,7 @@ public class Mesh implements Serializable {
                 for (int k = 0; k < nFaces; k++) {
                     if (TT[k] > -1) {
                         for (int j = 0; j < nEqs * elems[TT[k]].nBasis; j++) {
-                            RHS_loc[i] = RHS_loc[i] - ANeighs[k].MR[j][i] * x[elems[TT[k]].gi_U[j]];
+                            RHS_loc[i] = RHS_loc[i] - ANeighs[k].A[j][i] * x[elems[TT[k]].gi_U[j]];
                         }
                     }
                 }
@@ -1602,17 +1592,6 @@ public class Mesh implements Serializable {
             }
         }
 
-        void nullJacobiMatrixBlocks() {
-            for (int i = 0; i < nBasis * nEqs; i++) {
-                for (int j = 0; j < nBasis * nEqs; j++) {
-                    ADiag[i][j] = 0;
-                }
-            }
-            for (int k = 0; k < nFaces; k++) {
-                ANeighs[k].vynuluj();
-            }
-        }
-
         int nastav_globalni_index_U(int s) {
             gi_U = new int[nEqs * nBasis];
             for (int i = 0; i < nBasis * nEqs; i++) {
@@ -1631,7 +1610,7 @@ public class Mesh implements Serializable {
                     ANeighs[k] = new Neighbour(TT[k], nBasis, 0, nEqs, !par.explicitTimeIntegration);
                 }
             }
-        }    
+        }
 
         public double sqr() {
             double nrm = 0;
@@ -1703,6 +1682,18 @@ public class Mesh implements Serializable {
                 elemSize = elemSize + S[k];
             }
             elemSize = nFaces * area / elemSize;
+
+            faceIndexReverse = new int[nFaces];
+            for (int k = 0; k < nFaces; k++) {
+                if (TT[k] > -1) {
+                    for (int s = 0; s < elems[TT[k]].nFaces; s++) {
+                        if (elems[TT[k]].TT[s] == index) {
+                            faceIndexReverse[k] = s;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         /**
@@ -1936,53 +1927,44 @@ public class Mesh implements Serializable {
         public void exportLocalR() {
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
-            residuum(V, ANeighs, Rw);
+            residuum(V, Rw, null);
             System.arraycopy(Rw, 0, RHS_loc, 0, Rw.length);
         }
 
         // for optimization toolbox, generate only residuum derivation (dR/dW)
         public void exportLocalJacobiMatrix() {
-            nullJacobiMatrixBlocks();
-
             // vnitrni element - krivkovy i objemovy integral
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
-            residuum(V, ANeighs, Rw);
+            double[][] RwNeigh = new double[nFaces][];
+            double[][] RwNeighH = new double[nFaces][];
+            for (int k = 0; k < nFaces; k++) {
+                if (TT[k] > -1) {
+                    RwNeigh[k] = new double[elems[TT[k]].nBasis * nEqs];
+                    RwNeighH[k] = new double[elems[TT[k]].nBasis * nEqs];
+                }
+            }
+            // compute residuum
+            residuum(V, Rw, RwNeigh);
 
             double h = par.h;
             for (int i = 0; i < nBasis * nEqs; i++) {
-                V[i] = h;
-
                 for (int j = 0; j < Rw.length; j++) {
                     ADiag[i][j] = -Rw[j];
                 }
-
-                residuum(V, ANeighs, ADiag[i]);
-
+                V[i] = h;
+                residuum(V, ADiag[i], RwNeighH);
                 V[i] = 0;
-            }
-            Mat.divide(ADiag, -h);
-
-            // sousedni elementy - pouze krivkovy integral pres k-tou stenu
-            for (int k = 0; k < nFaces; k++) {
-                if (TT[k] > -1) {
-                    double[] RWall = new double[nBasis * nEqs];
-                    residuumWall(k, V, ANeighs, RWall);
-                    int nBasisR = ANeighs[k].neR;
-                    for (int i = 0; i < nBasisR * nEqs; i++) {
-                        ANeighs[k].V[i] = h;
-
-                        for (int j = 0; j < RWall.length; j++) {
-                            ANeighs[k].MR[i][j] = -RWall[j];
+                for (int k = 0; k < nFaces; k++) {
+                    if (TT[k] > -1) {
+                        double[][] Aaux = elems[TT[k]].ANeighs[faceIndexReverse[k]].A;
+                        for (int j = 0; j < RwNeighH[k].length; j++) {
+                            Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
                         }
-
-                        residuumWall(k, V, ANeighs, ANeighs[k].MR[i]);
-                        ANeighs[k].V[i] = 0;
                     }
-
-                    Mat.divide(ANeighs[k].MR, -h);
                 }
             }
+            Mat.divide(ADiag, -h);
         }
 
         double[] computeFunctional(double[] V) {
