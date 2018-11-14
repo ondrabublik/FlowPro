@@ -9,6 +9,7 @@ testkeystor
 fetcherState.txt
 *.tmp
 *.jar
+FlowProManager.jar
 *.zip
 args.txt
 

@@ -6,7 +6,7 @@ args = '';
 for i = 1:nargin
     quantityName = varargin{i};
     
-    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum')
+    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum') || strcmp(lower(quantityName),'av')
         continue
     end
     
@@ -29,7 +29,7 @@ for k = 1 : nargin
         warning('cannot evaluate option ''%s'': switches are not allowed here', q)
         continue
     end
-    
+
     switch lower(q)
         case 'mesh'
             showMesh;
@@ -40,14 +40,16 @@ for k = 1 : nargin
         case 'residuum'
             showResiduum;
             continue
+        case 'av'
+            showArtificialViscosity;
+            continue
     end
-    
+
     if par.dimension ~= 2
         error('mshow supports only 2D view');
     end
     elements = dlmread([meshPath, 'elements.txt'], ' ');
     elementType = load([meshPath, 'elementType.txt']);
-
     tri = convert2Triangular(elements, elementType);
     
     plotMe(q)
@@ -194,6 +196,37 @@ box on
 ylabel('resid')
 xlabel('CPU [s]')
 
+end
+
+function showArtificialViscosity
+    [meshPath, simulPath, ~] = getPath;   
+    
+    av = load([simulPath,'artificialViscosity.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = dlmread([meshPath, 'elementType.txt']);
+    tri = convert2Triangular(elems, type);
+    
+    vav = zeros(size(xy,1),1);
+    pom = zeros(size(xy,1),1);
+    for i = 1:size(elems,1)
+        for j = 1:type(i)
+            vav(elems(i,j)) = vav(elems(i,j)) + av(i);
+            pom(elems(i,j)) = pom(elems(i,j)) + 1;
+        end
+    end
+    vav = vav./pom;
+    
+    figure('color', 'w');
+    [~, h2] = tricontf(xy(:,1),xy(:,2),tri,vav,30);
+    % tricontour(tri,PX,PY,Quantity,30)
+    set(h2, 'linestyle', 'none');
+    box on;
+    axis equal;
+    osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+    axis(osy);
+    colorbar;
+    colormap jet
 end
 
 function x = reorganise(x)
