@@ -11,6 +11,7 @@ package flowpro.core.LinearSolvers;
  */
 public class SparseMatrixBlock {
 
+    int nnz, dofs;
     int[] Iblock, Imap;
     int[] Jblock, Jmap;
     boolean[] Iin, Jin;
@@ -32,14 +33,14 @@ public class SparseMatrixBlock {
     }
 
     final void extractBlock() {
-        int dofs = A.getDofs();
-        int nnz = A.getNNZ();
+        int dofsA = A.getDofs();
+        int nnzA = A.getNNZ();
         int[] Icoo = A.getRowIndexesCOO();
         int[] Jcoo = A.getColumnIndexesCOO();
-        Iin = new boolean[dofs];
-        Jin = new boolean[dofs];
-        Imap = new int[dofs];
-        Jmap = new int[dofs];
+        Iin = new boolean[dofsA];
+        Jin = new boolean[dofsA];
+        Imap = new int[dofsA];
+        Jmap = new int[dofsA];
         for (int i = 0; i < nIBlock; i++) {
             Iin[Iblock[i]] = true;
             Imap[Iblock[i]] = i;
@@ -49,16 +50,19 @@ public class SparseMatrixBlock {
             Jmap[Jblock[i]] = i;
         }
         int s = 0;
-        for (int i = 0; i < nnz; i++) { // get block nnz
+        for (int i = 0; i < nnzA; i++) { // get block nnzA
             if (Iin[Icoo[i]] && Jin[Jcoo[i]]) {
                 s++;
             }
         }
-        IblockCoo = new int[s];
-        JblockCoo = new int[s];
-        Hblock = new double[s];
+        nnz = s;
+        IblockCoo = new int[nnz];
+        JblockCoo = new int[nnz];
+        Hblock = new double[nnz];
+        
+        double[] H = A.getData();
         s = 0;
-        for (int i = 0; i < nnz; i++) { // fill block indexes
+        for (int i = 0; i < nnzA; i++) { // fill block indexes
             if (Iin[Icoo[i]] && Jin[Jcoo[i]]) {
                 IblockCoo[s] = Imap[Icoo[i]];
                 JblockCoo[s] = Jmap[Jcoo[i]];
@@ -79,7 +83,7 @@ public class SparseMatrixBlock {
             }
         }
     }
-
+    
     int getNRows() {
         return nIBlock;
     }
@@ -87,11 +91,17 @@ public class SparseMatrixBlock {
     int getNColumn() {
         return nJBlock;
     }
+    
+    int getNNz() {
+        return nnz;
+    }
 
     public void SubstrMult(double[] y, double[] b, double[] x) {
-        System.arraycopy(b, 0, y, 0, nIBlock);
+        for(int i = 0; i < nIBlock; i++){
+            y[Iblock[i]] = b[Iblock[i]];
+        }
         for (int i = 0; i < IblockCoo.length; i++) {
-            y[i] -= Hblock[i] * x[JblockCoo[i]];
+            y[IblockCoo[i]] -= Hblock[i] * x[JblockCoo[i]];
         }
     }
 }

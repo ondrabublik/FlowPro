@@ -34,9 +34,10 @@ public class ParallelGmresMaster {
 
     public boolean solve() throws MPIException {
         boolean converged = false;
+        updateMatrixes();
         for (int i = 0; i < iterationLimit; i++) {
             multiplyAndUpdate();
-            dataExchange();
+            //dataExchange();
             double error = norm();
             if (error < tol) {
                 converged = true;
@@ -46,6 +47,11 @@ public class ParallelGmresMaster {
         return converged;
     }
 
+    void updateMatrixes() throws MPIException {
+        mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, -1));
+        mpi.waitForAll(Tag.GMRES2MASTER);
+    }
+    
     void multiplyAndUpdate() throws MPIException {
         mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, 0));
         mpi.waitForAll(Tag.GMRES2MASTER);

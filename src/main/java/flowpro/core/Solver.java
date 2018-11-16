@@ -296,14 +296,15 @@ public class Solver {
                             dto = dt;
                             dt = (double) inMsg.getData();
                         }
+                        
                         // set equation object state
                         eqn.setState(mesh.t + dt, dt);
 
                         assembler.assemble(dt, dto);
+                        Arrays.fill(x, 0.0);
                         break;
 
                     case Tag.GMRES2SLAVE:
-                        Arrays.fill(x, 0.0);
                         outMsg = linSolver.doWork(inMsg);
                         break;
 

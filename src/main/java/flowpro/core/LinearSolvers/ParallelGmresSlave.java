@@ -1,5 +1,6 @@
 package flowpro.core.LinearSolvers;
 
+import flowpro.api.Mat;
 import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
 import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
@@ -23,6 +24,8 @@ public class ParallelGmresSlave {
     int dofs, nThreads;
     double[] r, aux;
 
+    int nLoad, nSave;
+
     //public ParallelGmresSlave(SparseMatrix A, Preconditioner M, int m, int iterationLimit, double tol, int nThreads) {
     public ParallelGmresSlave(Element[] elems, Parameters par, double[] x) throws IOException {
 
@@ -31,14 +34,13 @@ public class ParallelGmresSlave {
 
         // build matrix structure
         A = new SparseMatrix(elems);
-        dofs = A.dofs;
-        b = new double[dofs];
-        A.updateB(b);
-
+        //A.buildCRSformat();
+        b = new double[A.getDofs()];
+        dofs = A.getDofs();
+        
         // define preconditiner
         //M = Preconditioner.factory(par);
         //M.setMatrix(A);
-
         // define domain block
         int sIn = 0;
         for (int i = 0; i < elems.length; i++) {
@@ -64,43 +66,66 @@ public class ParallelGmresSlave {
         Ablock = new SparseMatrixBlock(Iblock, Jblock, A);
 
         // alocate RHS
-        aux = new double[Ablock.getNRows()];
+        aux = new double[dofs];
+        r = new double[dofs];
+
+        //
+        nLoad = 0;
+        nSave = 0;
+        for (Element elem : elems) {
+            if (elem.gmresLoad) {
+                nLoad++;
+            }
+            if (elem.gmresSave) {
+                nSave++;
+            }
+        }
     }
 
     public MPIMessage doWork(MPIMessage msg) {
         MPIMessage msgOut = null;
         switch (msg.subTag) {
-            case 0:
-                //Ablock.SubstrMult(aux, b, x);
-                //M.apply(r, aux);
-                Ablock.SubstrMult(r, b, x);
+            case -1:
+                A.updateData();
+                A.updateB(b);
+                Ablock.setH();
                 msgOut = new MPIMessage(Tag.GMRES2MASTER);
                 break;
-            case 1:
-                for (int j = 0; j < n; j++) {
-                    x[j] += r[j];
+            case 0:
+                Ablock.SubstrMult(r, b, x);
+                //M.apply(r, aux);
+                //A.SubstrMult(r, b, x);
+//                int[] I = Ablock.Iblock;
+//                for (int j = 0; j < I.length; j++) {
+//                    x[I[j]] += r[I[j]];
+//                }
+                for (int i = 0; i < x.length; i++) {
+                    x[i] += r[i];
                 }
+                
                 msgOut = new MPIMessage(Tag.GMRES2MASTER);
                 break;
             case 2:
-                double error = norm(aux);
+                double error = norm(r);
                 msgOut = new MPIMessage(Tag.GMRES2MASTER, error);
                 break;
             case 3:
-                int nSave = Ablock.nIBlock;
                 LiteElement[] dataSend = new LiteElement[nSave];
-                for (int i = 0; i < nSave; i++) {
-                    int j = Ablock.Iblock[i];
-                    int nBasis = elems[j].nBasis;
-                    int nEqs = elems[j].getNEqs();
-                    double[] yElem = new double[nEqs * nBasis];
-                    for (int m = 0; m < nEqs; m++) {
-                        for (int p = 0; p < nBasis; p++) {
-                            int ind = nBasis * m + p;
-                            yElem[ind] = x[elems[j].gi_U[ind]];
+                int s = 0;
+                for (Element elem : elems) {
+                    if (elem.gmresSave) {
+                        int nBasis = elem.nBasis;
+                        int nEqs = elem.getNEqs();
+                        double[] yElem = new double[nEqs * nBasis];
+                        for (int m = 0; m < nEqs; m++) {
+                            for (int p = 0; p < nBasis; p++) {
+                                int ind = nBasis * m + p;
+                                yElem[ind] = x[elem.gi_U[ind]];
+                            }
                         }
+                        dataSend[s] = new LiteElement(elem.index, yElem);
+                        s++;
                     }
-                    dataSend[i] = new LiteElement(j, yElem);
                 }
                 msgOut = new MPIMessage(Tag.GMRES2MASTER, dataSend);
                 break;
@@ -108,6 +133,7 @@ public class ParallelGmresSlave {
                 LiteElement[] dataReceive = (LiteElement[]) msg.getData();
                 for (LiteElement dataReceive1 : dataReceive) {
                     int j = dataReceive1.index;
+                    int nEqs = elems[j].getNEqs();
                     for (int m = 0; m < nEqs; m++) {
                         for (int p = 0; p < elems[j].nBasis; p++) {
                             int ind = elems[j].nBasis * m + p;
@@ -123,8 +149,9 @@ public class ParallelGmresSlave {
 
     double norm(double[] a) {
         double n = 0;
-        for (int i = 0; i < a.length; i++) {
-            n = n + a[i] * a[i];
+        int[] I = Ablock.Iblock;
+        for (int j = 0; j < I.length; j++) {
+            n += a[I[j]] * a[I[j]];
         }
         n = Math.sqrt(n);
 
