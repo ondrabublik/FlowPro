@@ -135,9 +135,6 @@ public class Mesh implements Serializable {
         for (int i : domain.interior) {
             elems[i].insideMetisDomain = true;
         }
-        for (int i : domain.load1) {
-            elems[i].gmresLoad = true;
-        }
         for (int i : domain.save1) {
             elems[i].gmresSave = true;
         }
@@ -349,6 +346,7 @@ public class Mesh implements Serializable {
         double[][] PrecondJacobi; // inverze ADiag
         public double[] RHS_loc;
         public Neighbour[] ANeighs; //matice sousedu
+        public double[][] Aux;
 
         // damping
         double[][] TrunOrd;
@@ -1527,8 +1525,7 @@ public class Mesh implements Serializable {
          * @param dt
          * @return L1norm(W - Wo)
          */
-        double calculateResiduumW(double dt
-        ) {
+        double calculateResiduumW(double dt) {
             double rez = 0;
             for (int m = 0; m < nEqs; m++) {
                 for (int j = 0; j < nBasis; j++) {

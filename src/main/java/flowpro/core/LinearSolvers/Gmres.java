@@ -48,7 +48,7 @@ public class Gmres extends LinearSolver{
             bnrm2 += b[i] * b[i];
         }
         bnrm2 = Math.sqrt(bnrm2);
-
+        
         if (bnrm2 == 0) {
             bnrm2 = 1;
         }

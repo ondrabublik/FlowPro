@@ -160,6 +160,22 @@ public class MPIMaster {
         }
         return sum;
     }
+    
+    public double[] receiveAllDoubleArraySum(int tag) throws MPIException {
+        double[] sum = null;
+        for (int i = 0; i < nSlaves; ++i) {
+            if(i == 0){
+                sum = (double[]) receive(i, tag).getData();
+            } else {
+                double[] array = (double[]) receive(i, tag).getData();
+                for(int j = 0; j < sum.length; j++){
+                    sum[j] += array[j];
+                }
+            }
+            
+        }
+        return sum;
+    }
 
     public void reset() throws MPIException {
         for (int i = 0; i < nSlaves; ++i) {

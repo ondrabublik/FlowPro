@@ -195,7 +195,9 @@ public class Solver {
 
     private void updateW(double x[]) {
         for (Element elem : elems) {
-            elem.updateW(x);
+            if (elem.insideComputeDomain) {
+                elem.updateW(x);
+            }
         }
     }
 
@@ -215,7 +217,7 @@ public class Solver {
     private double calculateResiduumW(double dt) {
         double resid = 0;
         for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
+            if (elem.insideMetisDomain) {
                 resid += elem.calculateResiduumW(dt);
             }
         }
@@ -230,7 +232,7 @@ public class Solver {
         try {
             //LinearSolver linSolver = LinearSolver.factory(elems, par);
             double[] x = new double[dofs];
-            ParallelGmresSlave linSolver = new ParallelGmresSlave(elems, par, x);
+            ParallelGmresSlave linSolver = new ParallelGmresSlave(elems, 30, par, x);
             JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double dt = -1.0;
             double dto;
@@ -302,6 +304,7 @@ public class Solver {
 
                         assembler.assemble(dt, dto);
                         Arrays.fill(x, 0.0);
+                        outMsg = new MPIMessage(Tag.ASSEMBELED);
                         break;
 
                     case Tag.GMRES2SLAVE:
@@ -454,8 +457,10 @@ public class Solver {
         tempWatch2.suspend();
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
+        long assembleTime = 0;
+        long solveTime = 0;
 
-        ParallelGmresMaster linSolver = new ParallelGmresMaster(par, mpi, domain);
+        ParallelGmresMaster linSolver = new ParallelGmresMaster(par, 30, mpi, domain);
 
         try {
             LOG.info("sending initial data");
@@ -469,7 +474,6 @@ public class Solver {
             // central structure
             LiteElement[] liteElems = new LiteElement[domain.nElems];
             boolean convergesNewton = true;
-            boolean convergesSchwarz = true;
             int totalSteps = state.steps + par.steps;
 
             LOG.info("computation has started...");
@@ -529,10 +533,16 @@ public class Solver {
                         mpi.waitForAll(Tag.MESH_POSITION_UPDATED);
                     }
 
+                    // assembling
+                    long startTime = System.currentTimeMillis();
                     mpi.sendAll(new MPIMessage(Tag.ASSEMBLE, dt));
+                    mpi.waitForAll(Tag.ASSEMBELED);
+                    assembleTime = System.currentTimeMillis() - startTime;
 
                     // solve
+                    startTime = System.currentTimeMillis();
                     convergesNewton = linSolver.solve();
+                    solveTime = System.currentTimeMillis() - startTime;
 
                     transferWatch.resume();
                     exchangeData(liteElems, mpi);
@@ -559,7 +569,7 @@ public class Solver {
                 for (int d = 0; d < nDoms; ++d) {
                     resid += (double) mpi.receive(d, Tag.RESIDUUM).getData();
                 }
-                state.residuum = resid / nDoms;
+                state.residuum = resid/nDoms;
                 if (state.residuum == 0) {
                     LOG.error(" computation error ");
                     break;
@@ -577,7 +587,7 @@ public class Solver {
                 state.executionTime = watch.getTime();
                 saveResiduum(state.residuum, state.t, state.executionTime);
                 state.transferTime = transferWatch.getTime();
-                String info = infoToString(totalSteps, dt);
+                String info = infoToString(totalSteps, dt, assembleTime, solveTime);
                 if ((state.steps % par.saveRate) == 0) {
                     Solution solution = collectSolution(mpi);
                     if (par.animation) {
