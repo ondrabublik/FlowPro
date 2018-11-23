@@ -418,9 +418,7 @@ public class Solver {
         mpi.sendAll(new MPIMessage(Tag.DATA_REQ));
         for (int d = 0; d < domain.nDoms; ++d) {
             int[] mapL2G = domain.getSubdomain(d).mapL2G;
-            tempWatch.resume();
             LiteElement[] dataRcv = (LiteElement[]) mpi.receive(d, Tag.DATA_SLAVE_TO_MASTER).getData();
-            tempWatch.suspend();
             for (LiteElement dataRcv1 : dataRcv) {
                 //liteElems[mapL2G[dataRcv1.index]] = dataRcv1;
                 liteElems[mapL2G[dataRcv1.index]] = new LiteElement(dataRcv1.index, dataRcv1.y);
@@ -438,9 +436,7 @@ public class Solver {
                 //dataSend[i] = liteElems[load[i]];
                 //dataSend[i].index = mapG2L[load[i]];
             }
-            tempWatch2.resume();
             mpi.send(new MPIMessage(Tag.DATA_MASTER_TO_SLAVE, dataSend), d);
-            tempWatch2.suspend();
         }
     }
 
@@ -449,11 +445,6 @@ public class Solver {
         runFetcher(nDoms, par.masterIP, par.masterPort);
         MPIMaster mpi = new MPIMaster(nDoms, par.masterIP, par.masterPort);
         StopWatch watch = new StopWatch();
-        StopWatch transferWatch = new StopWatch();
-        tempWatch.start();
-        tempWatch.suspend();
-        tempWatch2.start();
-        tempWatch2.suspend();
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
         long assembleTime = 0;
@@ -484,8 +475,6 @@ public class Solver {
             }
 
             watch.start();
-            transferWatch.start();
-            transferWatch.suspend();
             outerloop:
             for (++state.steps; state.steps <= totalSteps && state.residuum > par.residuum
                     && state.t < par.tEnd; ++state.steps) {
@@ -543,11 +532,7 @@ public class Solver {
                     convergesNewton = linSolver.solve();
                     solveTime = System.currentTimeMillis() - startTime;
 
-                    transferWatch.resume();
-                    exchangeData(liteElems, mpi);
-                    mpi.waitForAll(Tag.DATA_UPDATED);
-                    transferWatch.suspend();
-
+                    // data transfer
                     exchangeData(liteElems, mpi);
                     mpi.waitForAll(Tag.DATA_UPDATED);
 
@@ -585,7 +570,6 @@ public class Solver {
                 state.t += dt;
                 state.executionTime = watch.getTime();
                 saveResiduum(state.residuum, state.t, state.executionTime);
-                state.transferTime = transferWatch.getTime();
                 String info = infoToString(totalSteps, dt, assembleTime, solveTime);
                 if ((state.steps % par.saveRate) == 0) {
                     Solution solution = collectSolution(mpi);
@@ -604,12 +588,8 @@ public class Solver {
             }
             watch.stop();
             state.executionTime = watch.getTime();
-            state.transferTime = transferWatch.getTime();
             --state.steps;
             LOG.info("computation has finished in " + millisecsToTime(state.executionTime));
-            LOG.info("primani: {}", tempWatch.toString());
-            LOG.info("odesilani: {}", tempWatch2.toString());
-
             LOG.info("collecting data");
             Solution solution = collectSolution(mpi);
 

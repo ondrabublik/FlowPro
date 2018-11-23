@@ -20,7 +20,7 @@ else
 %         metis(nDomains);
 %     catch
         disp('Metis does not work. Running simple script for domain division.');
-        simpleMetis(nDomains,'x');
+        simpleMetis(nDomains,'y');
 %     end
     
     path = pwd;

@@ -101,7 +101,6 @@ public class MPIMaster {
 
     // vrati zpravu server
     public MPIMessage receive(int id, int tag) throws MPIException {
-
         try {
             MPIMessage msg = waitingMsgs[id].remove(tag);
 

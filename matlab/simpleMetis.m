@@ -79,7 +79,7 @@ function simpleMetis(nDoms,char)
     
     end
 
-%     plotMeshMetis(PXY(:,1), PXY(:,2), TP, typ, map)
+    %plotMeshMetis(PXY(:,1), PXY(:,2), TP, typ, map)
     fileID = fopen(filePath, 'w');
     for i = 1 : size(TP, 1)
         fprintf(fileID, '%d\n', map(i));
