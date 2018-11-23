@@ -221,8 +221,7 @@ public class Solver {
                 resid += elem.calculateResiduumW(dt);
             }
         }
-
-        return resid / elems.length;
+        return resid;
     }
 
     public void slaveSolve() throws IOException, MPIException {
@@ -569,7 +568,7 @@ public class Solver {
                 for (int d = 0; d < nDoms; ++d) {
                     resid += (double) mpi.receive(d, Tag.RESIDUUM).getData();
                 }
-                state.residuum = resid/nDoms;
+                state.residuum = resid/domain.nElems;
                 if (state.residuum == 0) {
                     LOG.error(" computation error ");
                     break;
@@ -732,7 +731,7 @@ public class Solver {
                 }
             }
 
-            state.residuum = calculateResiduumW(dt);
+            state.residuum = calculateResiduumW(dt)/elems.length;
             if (state.residuum == 0) {
                 LOG.error(" computation error ");
                 //break;
@@ -823,7 +822,7 @@ public class Solver {
             // computation
             ltsIter.iterate(state.t + dt);
 
-            state.residuum = calculateResiduumW(dt);
+            state.residuum = calculateResiduumW(dt)/elems.length;
             state.executionTime = watch.getTime();
             state.t += dt;
             saveResiduum(state.residuum, state.t, state.executionTime);

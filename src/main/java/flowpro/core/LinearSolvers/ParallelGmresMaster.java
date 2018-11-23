@@ -5,7 +5,6 @@
  */
 package flowpro.core.LinearSolvers;
 
-import flowpro.api.Mat;
 import flowpro.core.Parameters;
 import flowpro.core.parallel.Domain;
 import flowpro.core.parallel.LiteElement;
@@ -45,17 +44,18 @@ public class ParallelGmresMaster {
 
     public boolean solve() throws MPIException {
         double temp;
+        double norm_w = 0;
         double[] s, y;
+        double[] Hk = null;
+        int gsIter = 1;
 
         double norm_b = updatePreconditioner();   //----
-
         if (norm_b == 0) {
             norm_b = 1;
         }
 
         double norm_r = M_bmAx(); //----
         double error = norm_r / norm_b;
-
         if (error < tol) {
             return true;
         }
@@ -67,9 +67,10 @@ public class ParallelGmresMaster {
             fillV(0, norm_r); //----
             s = timesVectorByScalar(e1, norm_r);
             for (int i = 0; i < m; i++) {                        // construct orthonormal
-                double[] Hk = M_AV(i); //----
-                double norm_w = updateW(Hk); //----
-
+                for (int gs = 0; gs < gsIter; gs++) { // gram-schmidt ortogonalisation                 
+                    Hk = M_AV(i); //----
+                    norm_w = updateW(Hk); //----                 
+                }
                 for (int k = 0; k <= i; k++) {
                     H[k][i] = Hk[k];
                 }
@@ -120,7 +121,7 @@ public class ParallelGmresMaster {
 
     double[] M_AV(int i) throws MPIException {
         dataExchange(i);
-        mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.MULT, new int[]{i}));
+        mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.MULT, i));
         return mpi.receiveAllDoubleArraySum(Tag.GMRES2MASTER);
     }
 

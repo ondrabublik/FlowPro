@@ -79,7 +79,7 @@ function simpleMetis(nDoms,char)
     
     end
 
-    % plotMeshMetis(PXY(:,1), PXY(:,2), TP, typ, map)
+%     plotMeshMetis(PXY(:,1), PXY(:,2), TP, typ, map)
     fileID = fopen(filePath, 'w');
     for i = 1 : size(TP, 1)
         fprintf(fileID, '%d\n', map(i));
@@ -105,10 +105,11 @@ end
 
 
 function plotMeshMetis(PX, PY, TP, typ, part)
+    tri = convert2Triangular(TP, typ);
     figure;
     hold on;
     colors = 'rbgkmycrbgkmyc';
-    triplot(TP, PX, PY, 'color', [0.8,0.8,0.8]);
+    triplot(tri, PX, PY, 'color', [0.8,0.8,0.8]);
     nt = length(TP(:,1));
     PXs = zeros(nt,1);
     PYs = zeros(nt,1);
@@ -150,4 +151,21 @@ function TP = nactiMat(str)
         n = n + 1;
     end
     fclose(fid);   
+end
+
+function tri = convert2Triangular(elements, elementType)
+
+    nElems = size(elements, 1);
+    
+    if nargin > 1
+        squares = elements(elementType == 4, :);        
+    else
+        squares = elements(elements(:,4) ~= 0, :);
+    end
+    
+    tri = zeros(nElems + length(squares), 3);
+    tri(1:nElems, :) = elements(:,1:3);
+    for i = 1 : length(squares)
+        tri(nElems+i, :) = [squares(i,1) squares(i,3) squares(i,4)];
+    end    
 end

@@ -106,8 +106,7 @@ public class ParallelGmresSlave {
                 break;
 
             case ParallelTags.MULT: // multiply
-                int[] dat = (int[]) msg.getData();
-                index = (int) dat[0];
+                index = (int) msg.getData();
                 for (Element elem : metisElems) {
                     int e = elem.index;
                     double[][] A = elem.ADiag;
@@ -132,8 +131,9 @@ public class ParallelGmresSlave {
                     }
 
                 }
-                applyPreconditioner('w');
 
+                applyPreconditioner('w');
+                
                 double[] innerProd = scalarProducts(index + 1);
                 
                 msgOut = new MPIMessage(Tag.GMRES2MASTER, innerProd);
