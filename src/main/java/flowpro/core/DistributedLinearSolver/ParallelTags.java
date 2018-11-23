@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package flowpro.core.LinearSolvers;
+package flowpro.core.DistributedLinearSolver;
 
 /**
  *
@@ -11,7 +11,7 @@ package flowpro.core.LinearSolvers;
  */
 public class ParallelTags {
     // tags from master to slave
-    public static final int UPDATE_PRECONDITIONER = -1;
+    public static final int UPDATE_MATRIXES_AND_VECTORS = -1;
     public static final int NORM = 2;
     public static final int SMULT = 0;
     public static final int MULT = 1;

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package flowpro.core.LinearSolvers;
+package flowpro.core.DistributedLinearSolver;
 
 import flowpro.core.Parameters;
 import flowpro.core.parallel.Domain;
@@ -137,7 +137,7 @@ public class ParallelGmresMaster {
     }
 
     double updatePreconditioner() throws MPIException {
-        mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.UPDATE_PRECONDITIONER));
+        mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.UPDATE_MATRIXES_AND_VECTORS));
         double normB = mpi.receiveAllDoubleSum(Tag.GMRES2MASTER);
         return Math.sqrt(normB);
     }

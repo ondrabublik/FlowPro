@@ -346,7 +346,6 @@ public class Mesh implements Serializable {
         double[][] PrecondJacobi; // inverze ADiag
         public double[] RHS_loc;
         public Neighbour[] ANeighs; //matice sousedu
-        public double[][] Aux;
 
         // damping
         double[][] TrunOrd;
