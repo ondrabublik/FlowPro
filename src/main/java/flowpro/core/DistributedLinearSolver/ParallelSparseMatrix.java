@@ -107,7 +107,7 @@ public class ParallelSparseMatrix {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TT[k] > -1) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        double[][] An = elem.ANeighs[k].MR;
+                        double[][] An = elem.ANeighs[k].A;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 H[indexMap[s]] = An[j][i];

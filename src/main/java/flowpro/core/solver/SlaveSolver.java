@@ -5,7 +5,6 @@
  */
 package flowpro.core.solver;
 
-import flowpro.core.Parameters;
 import java.io.IOException;
 import litempi.MPIException;
 
@@ -21,8 +20,10 @@ abstract public class SlaveSolver {
 
         try {
             switch (solverType.toLowerCase()) {              
-                case "distimplicitschwartz":
+                case "distschwartz":
                     return new SchwartzImplicitSolverSlave(masterIP, masterPort);
+                case "distksp":
+                    return new KSPSolverSlave(masterIP, masterPort);
                 
             }
         } catch (Exception e) {

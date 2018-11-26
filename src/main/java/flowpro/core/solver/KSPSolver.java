@@ -26,8 +26,6 @@ import org.apache.commons.lang3.time.StopWatch;
 public class KSPSolver extends MasterSolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(MasterSolver.class);
-    private static final StopWatch tempWatch = new StopWatch();
-    private static final StopWatch tempWatch2 = new StopWatch();
 
 //    private final Object lock;
     // common parameters
@@ -99,9 +97,7 @@ public class KSPSolver extends MasterSolver {
         mpi.sendAll(new MPIMessage(Tag.DATA_REQ));
         for (int d = 0; d < domain.nDoms; ++d) {
             int[] mapL2G = domain.getSubdomain(d).mapL2G;
-            tempWatch.resume();
             LiteElement[] dataRcv = (LiteElement[]) mpi.receive(d, Tag.DATA_SLAVE_TO_MASTER).getData();
-            tempWatch.suspend();
             for (LiteElement dataRcv1 : dataRcv) {
                 //liteElems[mapL2G[dataRcv1.index]] = dataRcv1;
                 liteElems[mapL2G[dataRcv1.index]] = new LiteElement(dataRcv1.index, dataRcv1.y);
@@ -119,9 +115,7 @@ public class KSPSolver extends MasterSolver {
                 //dataSend[i] = liteElems[load[i]];
                 //dataSend[i].index = mapG2L[load[i]];
             }
-            tempWatch2.resume();
             mpi.send(new MPIMessage(Tag.DATA_MASTER_TO_SLAVE, dataSend), d);
-            tempWatch2.suspend();
         }
     }
 

@@ -38,10 +38,10 @@ abstract public class MasterSolver {
                     par.isExplicit = true;
                     return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 
-                case "distimplicitschwartz":
+                case "distschwartz":
                     return new SchwartzImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                     
-                case "distKSP":
+                case "distksp":
                     return new KSPSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 
             }

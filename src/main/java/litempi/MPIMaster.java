@@ -101,7 +101,6 @@ public class MPIMaster {
 
     // vrati zpravu server
     public MPIMessage receive(int id, int tag) throws MPIException {
-
         try {
             MPIMessage msg = waitingMsgs[id].remove(tag);
 
@@ -151,6 +150,30 @@ public class MPIMaster {
             array[i] = (double) receive(i, tag).getData();
         }
         return array;
+    }
+    
+    public double receiveAllDoubleSum(int tag) throws MPIException {
+        double sum = 0;
+        for (int i = 0; i < nSlaves; ++i) {
+            sum += (double) receive(i, tag).getData();
+        }
+        return sum;
+    }
+    
+    public double[] receiveAllDoubleArraySum(int tag) throws MPIException {
+        double[] sum = null;
+        for (int i = 0; i < nSlaves; ++i) {
+            if(i == 0){
+                sum = (double[]) receive(i, tag).getData();
+            } else {
+                double[] array = (double[]) receive(i, tag).getData();
+                for(int j = 0; j < sum.length; j++){
+                    sum[j] += array[j];
+                }
+            }
+            
+        }
+        return sum;
     }
 
     public void reset() throws MPIException {

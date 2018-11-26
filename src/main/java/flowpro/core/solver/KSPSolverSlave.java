@@ -167,7 +167,7 @@ public class KSPSolverSlave extends SlaveSolver{
             }
         }
 
-        return resid / elems.length;
+        return resid;
     }
 
     public void solve() throws IOException, MPIException {

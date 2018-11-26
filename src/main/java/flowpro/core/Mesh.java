@@ -135,6 +135,9 @@ public class Mesh implements Serializable {
         for (int i : domain.interior) {
             elems[i].insideMetisDomain = true;
         }
+        for (int i : domain.save1) {
+            elems[i].gmresSave = true;
+        }
     }
 
     public void init() throws IOException {
@@ -319,6 +322,7 @@ public class Mesh implements Serializable {
         public boolean insideComputeDomain; // true if element is insideComputeDomain subdomain, false on the boundary
         public boolean insideMetisDomain; // true insideComputeDomain computational subdomain (producet by metis)
         public boolean insideAssemblerDomain; // interior for Jacobi matrix assemble
+        public boolean gmresLoad, gmresSave;
         public double[][] blendFun; // blending function used for calculation of new mesh position
 
         // mesh
@@ -396,6 +400,8 @@ public class Mesh implements Serializable {
             this.elemType = elemType;
 
             insideComputeDomain = true;
+            gmresLoad = false;
+            gmresSave = false;
 
             verticesOld = new double[nVertices][dim];
             verticesOld2 = new double[nVertices][dim];
