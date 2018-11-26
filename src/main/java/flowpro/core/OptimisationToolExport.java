@@ -4,6 +4,7 @@ import flowpro.api.FlowProProperties;
 import flowpro.api.Mat;
 import flowpro.core.Mesh.Element;
 import flowpro.api.Functional;
+import flowpro.core.solver.MasterSolver;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,7 +26,7 @@ public class OptimisationToolExport {
     URL[] jarURLList;
     public static final String PARAMETER_FILE_NAME = "parameters.txt";
 
-    OptimisationToolExport(Solver solver, String simulationPath, String mode, URL[] jarURLList) throws IOException {
+    OptimisationToolExport(MasterSolver solver, String simulationPath, String mode, URL[] jarURLList) throws IOException {
         this.mesh = solver.getMesh();
         this.simulationPath = simulationPath;
         this.mode = mode;

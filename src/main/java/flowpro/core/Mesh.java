@@ -37,8 +37,8 @@ public class Mesh implements Serializable {
     public double t; // time
 
     // domain monitor
-    SolutionMonitor solMonitor;
-    double[] integralMonitor;
+    public SolutionMonitor solMonitor;
+    public double[] integralMonitor;
 
     /**
      * Creates an instance of class Element for each element in the mesh and
@@ -281,7 +281,7 @@ public class Mesh implements Serializable {
         return artVis;
     }
 
-    void updateTime(double dt) {
+    public void updateTime(double dt) {
         t = t + dt;
     }
 
@@ -348,8 +348,8 @@ public class Mesh implements Serializable {
         double[][] TrunOrd;
 
         // local time step
-        double tLTS;
-        double tLTSold;
+        public double tLTS;
+        public double tLTSold;
         public int stepLTS;
         public double[] WLTS, W1LTS, W1LTSo, W2LTS, W2LTSo;   // auxilary for local time stepping
 
@@ -420,7 +420,7 @@ public class Mesh implements Serializable {
         public void initIntegration() throws IOException {
             Int = new Integration(elemType, dim, basis, transform, TT, TEshift, shift, vertices, qRules, elemType.order);
 
-            if (!par.explicitTimeIntegration) {
+            if (!par.isExplicit) {
                 ADiag = new double[nEqs * nBasis][nEqs * nBasis];
                 RHS_loc = new double[nEqs * nBasis];
             }
@@ -481,7 +481,7 @@ public class Mesh implements Serializable {
         }
 
         // Aplikace limiteru
-        void limiter() {
+        public void limiter() {
             eps = 0;
             c_IP = 0;
             if (elemType.order > 1) {
@@ -496,19 +496,20 @@ public class Mesh implements Serializable {
             }
         }
 
-        void limitUnphysicalValues() { // limituje zaporne hodnoty
+        public void limitUnphysicalValues() { // limituje zaporne hodnoty
             eqn.limitUnphysicalValues(calculateAvgW(), W, nBasis);
         }
 
-        void computeExplicitStep(double dtStep) {
+        public void computeExplicitStep(double dtStep) {
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
+            double[][] RwN = new double[nFaces][];
             limiter();
             switch (par.orderInTime) {
                 case 2: // RK2
                     System.arraycopy(W, 0, WLTS, 0, nBasis * nEqs);
                     stepLTS = 0;
-                    residuum(V, Rw, null);
+                    residuum(V, Rw, RwN);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W1LTSo[j] = W1LTS[j];
@@ -518,7 +519,7 @@ public class Mesh implements Serializable {
 
                     stepLTS = 1;
                     Arrays.fill(Rw, 0);
-                    residuum(V, Rw, null);
+                    residuum(V, Rw, RwN);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W[j] = WLTS[j] + dtStep * Rw[j];
@@ -527,7 +528,7 @@ public class Mesh implements Serializable {
                 case 3: // RK3
                     System.arraycopy(W, 0, WLTS, 0, nBasis * nEqs);
                     stepLTS = 0;
-                    residuum(V, Rw, null);
+                    residuum(V, Rw, RwN);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W1LTSo[j] = W1LTS[j];
@@ -537,7 +538,7 @@ public class Mesh implements Serializable {
 
                     stepLTS = 1;
                     Arrays.fill(Rw, 0);
-                    residuum(V, Rw, null);
+                    residuum(V, Rw, RwN);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W2LTSo[j] = W2LTS[j];
@@ -547,7 +548,7 @@ public class Mesh implements Serializable {
 
                     stepLTS = 2;
                     Arrays.fill(Rw, 0);
-                    residuum(V, Rw, null);
+                    residuum(V, Rw, RwN);
                     Rw = Mat.times(iM, Rw);
                     for (int j = 0; j < W.length; j++) {
                         W[j] = 1.0 / 3 * WLTS[j] + 2.0 / 3 * (W2LTS[j] + dtStep * Rw[j]);
@@ -750,7 +751,7 @@ public class Mesh implements Serializable {
 
                 // values from boundary outlet (WR, dWR)
                 if (TT[k] > -1) {
-                    double[] WRp = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
+                    double[] WRp = elems[TT[k]].getW(par.isExplicit, tLTS);
                     for (int m = 0; m < nEqs; m++) {
                         int nRBasis = elems[TT[k]].nBasis;
                         for (int j = 0; j < nRBasis; j++) {
@@ -1162,7 +1163,7 @@ public class Mesh implements Serializable {
                 // values from boundary outlet (WR, dWR)
                 if (TT[k] > -1) {
                     if (elems[TT[k]].elemType.order > 1) { // Discontinuous Galerkin Method
-                        double[] WRp = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
+                        double[] WRp = elems[TT[k]].getW(par.isExplicit, tLTS);
                         for (int m = 0; m < nEqs; m++) {
                             int nRBasis = elems[TT[k]].nBasis;
                             for (int j = 0; j < nRBasis; j++) {
@@ -1179,7 +1180,7 @@ public class Mesh implements Serializable {
                             System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
                         }
                         if (elems[TT[k]].insideComputeDomain) {
-                            double[] WRp = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
+                            double[] WRp = elems[TT[k]].getW(par.isExplicit, tLTS);
                             double sigmaR = elems[TT[k]].FVMlimiter(dWR, par.FVMlimiter);
                             for (int j = 0; j < nEqs; j++) {
                                 double dW = 0;
@@ -1301,7 +1302,7 @@ public class Mesh implements Serializable {
                             System.arraycopy(WL, 0, WR, 0, nEqs);
                         }
                     } else { // FVM neigbhour
-                        WR = elems[TT[k]].getW(par.explicitTimeIntegration, tLTS);
+                        WR = elems[TT[k]].getW(par.isExplicit, tLTS);
                     }
                     WWall = Mat.times(Mat.plusVec(WR, WL), 0.5);
                 } else {
@@ -1486,7 +1487,7 @@ public class Mesh implements Serializable {
             return u;
         }
 
-        void updateRHS(double[] x
+        public void updateRHS(double[] x
         ) {
             int n = nEqs * nBasis;
             for (int i = 0; i < n; i++) {
@@ -1508,7 +1509,7 @@ public class Mesh implements Serializable {
          * @param dt
          * @return L1norm(W - Wo)
          */
-        double calculateResiduumW(double dt
+        public double calculateResiduumW(double dt
         ) {
             double rez = 0;
             for (int m = 0; m < nEqs; m++) {
@@ -1521,18 +1522,18 @@ public class Mesh implements Serializable {
         }
 
         // ulozeni W do Wo
-        void copyW2Wo() {
+        public void copyW2Wo() {
             System.arraycopy(Wo, 0, Wo2, 0, nBasis * nEqs);
             System.arraycopy(W, 0, Wo, 0, nBasis * nEqs);
         }
 
         // ulozeni Wo do W (pri potizich s resenim)
-        void copyWo2W() {
+        public void copyWo2W() {
             System.arraycopy(Wo, 0, W, 0, nBasis * nEqs);
         }
 
         //__________________________________________________________________________
-        double delta_t(double CFL) { //vypocet maximalniho casoveho kroku
+        public double delta_t(double CFL) { //vypocet maximalniho casoveho kroku
             double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
             double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
             double dt = CFL * elemSize / lam;
@@ -1541,7 +1542,7 @@ public class Mesh implements Serializable {
         }
 
         //__________________________________________________________________________
-        double shock_senzor(double kap) {
+        public double shock_senzor(double kap) {
             double Se = 0;
             double pod = 0;
 
@@ -1605,9 +1606,9 @@ public class Mesh implements Serializable {
             ANeighs = new Neighbour[nFaces];
             for (int k = 0; k < nFaces; k++) {
                 if (TT[k] > -1) {
-                    ANeighs[k] = new Neighbour(TT[k], nBasis, elems[TT[k]].nBasis, nEqs, !par.explicitTimeIntegration);
+                    ANeighs[k] = new Neighbour(TT[k], nBasis, elems[TT[k]].nBasis, nEqs, !par.isExplicit);
                 } else {
-                    ANeighs[k] = new Neighbour(TT[k], nBasis, 0, nEqs, !par.explicitTimeIntegration);
+                    ANeighs[k] = new Neighbour(TT[k], nBasis, 0, nEqs, !par.isExplicit);
                 }
             }
         }
@@ -1625,7 +1626,7 @@ public class Mesh implements Serializable {
          *
          * @param x
          */
-        void updateW(double[] x) {
+        public void updateW(double[] x) {
             for (int i = 0; i < nEqs * nBasis; i++) {
                 W[i] += x[gi_U[i]];
             }
@@ -1752,7 +1753,7 @@ public class Mesh implements Serializable {
             }
         }
 
-        void nextTimeLevelMassMatrixes() {
+        public void nextTimeLevelMassMatrixes() {
             for (int i = 0; i < nBasis; i++) {
                 for (int j = 0; j < nBasis; j++) {
                     Mo2[i][j] = Mo[i][j];

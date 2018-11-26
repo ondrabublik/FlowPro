@@ -9,7 +9,6 @@ import flowpro.core.quadrature.QuadratureCentral;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.parallel.Domain;
 import flowpro.core.elementType.ElementType;
-import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.meshDeformation.*;
 import litempi.MPIException;
 import java.io.BufferedReader;
@@ -25,6 +24,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import flowpro.core.solver.MasterSolver;
+import flowpro.core.solver.SlaveSolver;
 
 /**
  *
@@ -84,13 +86,14 @@ public class FlowProMain {
             }
 
             FlowProMain dgfem;
-            Solver solver;
+            MasterSolver solver;
+            SlaveSolver slave;
             Solution solution;
             switch (args[0].toLowerCase()) {
-                case "local":
+                case "master":
                     dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(false, false, 0);
-                    solution = solver.localSolve();
+                    solver = dgfem.solverFactory(false, Integer.valueOf(args[1]));
+                    solution = solver.solve();
                     solver.saveData(solution);
                     break;
 
@@ -100,8 +103,8 @@ public class FlowProMain {
                     Proxy proxy = new Proxy(args[1], 6666, args[2], dgfem.simulationPath, lock);
                     Thread proxyThread = new Thread(proxy);
                     proxyThread.start();
-                    solver = dgfem.solverFactory(false, false, 0);
-                    solution = solver.localSolve();
+                    solver = dgfem.solverFactory(false, 0);
+                    solution = solver.solve();
                     solver.saveData(solution);
                     synchronized (lock) {
                         proxy.stop();
@@ -109,23 +112,17 @@ public class FlowProMain {
                     }
                     break;
 
-                case "master":
-                    dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(true, false, Integer.valueOf(args[1]));
-                    solution = solver.masterSolve();
-                    solver.saveData(solution);
-                    break;
-
                 case "slave":
-                    if (args.length < 3) {
+                    if (args.length < 4) {
                         throw new IllegalArgumentException("missing arguments after slave");
                     }
                     String masterIP = args[1];
                     int masterPort = Integer.parseInt(args[2]);
+                    String solverType = args[3];
                     try {
-                        solver = new Solver(masterIP, masterPort);
+                        slave = SlaveSolver.factory(solverType, masterIP, masterPort);
                         LOG.info("mesh was received and initialised");
-                        solver.slaveSolve();
+                        slave.solve();
                     } catch (IOException | MPIException ex) {
                         LOG.error("", ex);
                     }
@@ -141,14 +138,14 @@ public class FlowProMain {
 
                 case "optimalisationexport":
                     dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(false, false, 0);
+                    solver = dgfem.solverFactory(true, 0);
                     new OptimisationToolExport(solver, dgfem.simulationPath, args[1].toLowerCase(), jarURLList).export();
                     LOG.info("Optimalisation arrays were exported..");
                     break;
 
                 case "testdynamicmodel":
                     dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(false, false, 0);
+                    solver = dgfem.solverFactory(false, 0);
                     solver.testDynamic(Double.valueOf(args[1]));
                     break;
 
@@ -178,7 +175,11 @@ public class FlowProMain {
         }
     }
 
-    private Solver solverFactory(boolean parallelMode, boolean optimalisation, int nDomains) throws IOException {
+    private MasterSolver solverFactory(boolean optimalisation, int nDomains) throws IOException {
+        boolean parallelMode = false;
+        if(nDomains > 0){
+            parallelMode = true;
+        }
         Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
         Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode); // read numerical parameters            
 
@@ -385,7 +386,7 @@ public class FlowProMain {
             }
         }
 
-        return new Solver(simulationPath, mesh, dyn, eqn, par, state, domain, lock);
+        return MasterSolver.factory(simulationPath, mesh, dyn, eqn, par, state, domain, lock);
     }
 
     public static String millisecsToTime(long nanoseconds) {

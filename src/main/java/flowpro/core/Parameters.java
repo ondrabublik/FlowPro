@@ -27,7 +27,7 @@ public class Parameters implements Serializable {
     public double cfl;        // max CFL cislo
     public double cflLTS;
     public boolean varyCFL;
-    final int order;         // rad metody v prostoru
+    public final int order;         // rad metody v prostoru
     public int orderInTime; // rad metody v case
     public final int nThreads;      // pocet vlaken
     public final int newtonIters;   // pocet vnitrnich iteraci    
@@ -43,7 +43,8 @@ public class Parameters implements Serializable {
     public double iterativeSolverTol;
 
     // single time / dual time
-    public boolean explicitTimeIntegration;
+    public String solverType;
+    public boolean isExplicit;
     public String timeMethod;
     public double[] coeffsPhys;
     public double[] coeffsDual;
@@ -73,8 +74,8 @@ public class Parameters implements Serializable {
     public final int fetcherPort;
 
     // solution monitor
-    String solutionMonitor;
-    boolean solutionMonitorOn;
+    public String solutionMonitor;
+    public boolean solutionMonitorOn;
     
     // external field
     public boolean externalField;
@@ -196,9 +197,10 @@ public class Parameters implements Serializable {
                 iterativeSolverTol = 1e-2;
             }
 
-            explicitTimeIntegration = false;
-            if (props.containsKey("explicitTimeIntegration")) {
-                explicitTimeIntegration = props.getBoolean("explicitTimeIntegration");
+            solverType = "localimplicit";
+            isExplicit = false;
+            if (props.containsKey("solverType")) {
+                solverType = props.getString("solverType");
             }
             
             if (props.containsKey("timeMethod")) {                
