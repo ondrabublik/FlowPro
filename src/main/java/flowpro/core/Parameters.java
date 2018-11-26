@@ -43,7 +43,8 @@ public class Parameters implements Serializable {
     public double iterativeSolverTol;
 
     // single time / dual time
-    public String solverType;
+    public String localSolverType;
+    public String parallelSolverType;
     public boolean isExplicit;
     public String timeMethod;
     public double[] coeffsPhys;
@@ -66,6 +67,7 @@ public class Parameters implements Serializable {
     public String meshDeformationType;
     
     /* parallel mode */
+    public final boolean parallelMode;
     public final int overlap;
     public final int schwarzIters;
     public final double schwarzTol;
@@ -82,6 +84,7 @@ public class Parameters implements Serializable {
     
     public Parameters(String parameterFilePath, boolean parallelMode) throws IOException {
         try {
+            this.parallelMode = parallelMode;
             FlowProProperties props = new FlowProProperties();
             props.load(new FileInputStream(parameterFilePath));
 
@@ -197,10 +200,15 @@ public class Parameters implements Serializable {
                 iterativeSolverTol = 1e-2;
             }
 
-            solverType = "localimplicit";
+            localSolverType = "localimplicit";
             isExplicit = false;
-            if (props.containsKey("solverType")) {
-                solverType = props.getString("solverType");
+            if (props.containsKey("localSolverType")) {
+                localSolverType = props.getString("localSolverType");
+            }
+            
+            parallelSolverType = "distKSP";
+            if (props.containsKey("parallelSolverType")) {
+                parallelSolverType = props.getString("parallelSolverType");
             }
             
             if (props.containsKey("timeMethod")) {                

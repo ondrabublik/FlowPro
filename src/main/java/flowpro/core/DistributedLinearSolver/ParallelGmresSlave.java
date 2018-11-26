@@ -1,6 +1,5 @@
 package flowpro.core.DistributedLinearSolver;
 
-import flowpro.api.Mat;
 import flowpro.core.DistributedLinearSolver.preconditioner.ParallelBlockJacobi;
 import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;

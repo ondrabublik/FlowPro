@@ -16,10 +16,10 @@ abstract public class SlaveSolver {
 
     abstract public void solve() throws MPIException, IOException;
     
-    public static SlaveSolver factory(String solverType, String masterIP, int masterPort) {
+    public static SlaveSolver factory(String parallelSolverType, String masterIP, int masterPort) {
 
         try {
-            switch (solverType.toLowerCase()) {              
+            switch (parallelSolverType.toLowerCase()) {              
                 case "distschwartz":
                     return new SchwartzImplicitSolverSlave(masterIP, masterPort);
                 case "distksp":
@@ -27,7 +27,7 @@ abstract public class SlaveSolver {
                 
             }
         } catch (Exception e) {
-            System.out.println("Unknown slave solver: " + solverType);
+            System.out.println("Unknown slave solver: " + parallelSolverType);
         }
         return null;
     }

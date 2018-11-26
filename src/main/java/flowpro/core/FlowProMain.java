@@ -24,9 +24,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.solver.MasterSolver;
 import flowpro.core.solver.SlaveSolver;
+import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *
@@ -118,9 +118,9 @@ public class FlowProMain {
                     }
                     String masterIP = args[1];
                     int masterPort = Integer.parseInt(args[2]);
-                    String solverType = args[3];
+                    String parallelSolverType = args[3];
                     try {
-                        slave = SlaveSolver.factory(solverType, masterIP, masterPort);
+                        slave = SlaveSolver.factory(parallelSolverType, masterIP, masterPort);
                         LOG.info("mesh was received and initialised");
                         slave.solve();
                     } catch (IOException | MPIException ex) {

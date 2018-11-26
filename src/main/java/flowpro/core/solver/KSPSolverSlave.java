@@ -84,7 +84,7 @@ public class KSPSolverSlave extends SlaveSolver{
     private double timeStep(double CFL) {
         double dt = Double.MAX_VALUE;
         for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
+            if (elem.insideMetisDomain) {
                 double loc_dt = elem.delta_t(CFL);
                 if (loc_dt < dt) {
                     dt = loc_dt;
@@ -127,19 +127,6 @@ public class KSPSolverSlave extends SlaveSolver{
         }
     }
 
-    /**
-     * b = b - Ax
-     *
-     * @param x
-     */
-    private void updateRHS(double x[]) {
-        for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
-                elem.updateRHS(x);
-            }
-        }
-    }
-
     private void updateW(double x[]) {
         for (Element elem : elems) {
             elem.updateW(x);
@@ -162,7 +149,7 @@ public class KSPSolverSlave extends SlaveSolver{
     private double calculateResiduumW(double dt) {
         double resid = 0;
         for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
+            if (elem.insideMetisDomain) {
                 resid += elem.calculateResiduumW(dt);
             }
         }

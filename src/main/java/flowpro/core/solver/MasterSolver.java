@@ -22,32 +22,39 @@ import litempi.MPIException;
 abstract public class MasterSolver {
 
     abstract public Solution solve() throws MPIException, IOException;
+
     abstract public void saveData(Solution sol) throws IOException;
+
     abstract public Mesh getMesh();
+
     abstract public void testDynamic(double dt) throws IOException;
-    
+
     public static MasterSolver factory(String simulationPath, Mesh[] meshes, Dynamics dyn,
             Equation eqn, Parameters par, State state, Domain domain, Object lock) {
 
         try {
-            switch (par.solverType.toLowerCase()) {
-                case "localimplicit":
-                    return new LocalImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+            if (par.parallelMode) {
+                switch (par.parallelSolverType.toLowerCase()) {
+                    case "distschwartz":
+                        return new SchwartzImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
 
-                case "localexplicit":
-                    par.isExplicit = true;
-                    return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
-                
-                case "distschwartz":
-                    return new SchwartzImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
-                    
-                case "distksp":
-                    return new KSPSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
-                
+                    case "distksp":
+                        return new KSPSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+                }
+            } else {
+                switch (par.localSolverType.toLowerCase()) {
+                    case "localimplicit":
+                        return new LocalImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+
+                    case "localexplicit":
+                        par.isExplicit = true;
+                        return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+                }
             }
         } catch (Exception e) {
-            System.out.println("Unknown solver: " + par.solverType);
+            System.out.println("Unknown solver: " + par.localSolverType);
         }
+
         return null;
     }
 }
