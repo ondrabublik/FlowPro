@@ -40,6 +40,9 @@ abstract public class MasterSolver {
                 
                 case "distimplicitschwartz":
                     return new SchwartzImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+                    
+                case "distKSP":
+                    return new KSPSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 
             }
         } catch (Exception e) {

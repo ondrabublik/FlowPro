@@ -122,7 +122,6 @@ public class LocalImplicitSolver extends MasterSolver{
                 state.steps, totalSteps, state.residuum, dt, state.t, state.cfl, timeStr, assembleTime, solveTime);
     }
 
-
     public Solution solve() throws IOException {
         int nElems = elems.length;
         LinearSolver linSolver = LinearSolver.factory(elems, par);
