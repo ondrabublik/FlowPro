@@ -14,7 +14,7 @@ import flowpro.core.Mesh.Element;
 public class ParallelSparseMatrix {
 
     int dofs, nnz;
-    public int[] Icoo, Jcoo, indexMap, Imetis;
+    public int[] Icoo, Jcoo, Icrs, Jcrs, indexMap, Imetis;
     public double[] H;
     Element[] elems;
 
@@ -24,6 +24,11 @@ public class ParallelSparseMatrix {
         Imetis = computeImetis();
         quickSort(Icoo, Jcoo, indexMap, 0, nnz - 1);
         indexMap = invertMap(indexMap);
+        Icrs = new int[nnz];
+        Jcrs = new int[nnz];
+        System.arraycopy(Icoo, 0, Icrs, 0, nnz);
+        System.arraycopy(Jcoo, 0, Jcrs, 0, nnz);
+        Icrs = compress(Icrs);
     }
 
     private void scanMatrixStructure() {
@@ -85,9 +90,7 @@ public class ParallelSparseMatrix {
     public int computeDofs() {
         int s = 0;
         for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
-                s += elem.getNEqs() * elem.nBasis;
-            }
+            s += elem.getNEqs() * elem.nBasis;
         }
         return s;
     }
@@ -136,22 +139,18 @@ public class ParallelSparseMatrix {
     }
 
     public void Mult(double[] y, double[] x) {
-        for (int i : Imetis) {
+        for (int i = 0; i < dofs; i++) {
             y[i] = 0;
-        }
-        for (int i = 0; i < Icoo.length; i++) {
-            y[Icoo[i]] += H[i] * x[Jcoo[i]];
+            for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
+                y[i] += H[j] * x[Jcrs[j]];
+            }
         }
     }
 
     public void Mult(double[] y, double[] x, int nThreads) {
-        int[] domDiv = parallelDomainDiv(nnz, nThreads);
-        for (int i : Imetis) {
-            y[i] = 0;
-        }
         MultThread[] parallel = new MultThread[nThreads];
         for (int v = 0; v < nThreads; v++) {
-            parallel[v] = new MultThread(domDiv[v], domDiv[v+1], y, x);
+            parallel[v] = new MultThread(v, nThreads, y, x);
             parallel[v].start();
         }
         try {
@@ -164,41 +163,42 @@ public class ParallelSparseMatrix {
     }
 
     class MultThread extends Thread {
-        int nStart, nEnd;
+
+        int n, nStart, nThreads;
         double[] x, y;
 
-        MultThread(int nStart, int nEnd, double[] y, double[] x) {
+        MultThread(int nStart, int nThreads, double[] y, double[] x) {
             this.nStart = nStart;
-            this.nEnd = nEnd;
+            this.nThreads = nThreads;
             this.y = y;
             this.x = x;
+            n = x.length;
         }
 
         @Override
         public void run() {
-            for (int i = nStart; i < nEnd; i++) {
-                y[Icoo[i]] += H[i] * x[Jcoo[i]];
+            for (int i = nStart; i < n; i = i + nThreads) {
+                y[i] = 0;
+                for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
+                    y[i] += H[j] * x[Jcrs[j]];
+                }
             }
         }
     }
 
     public void SubstrMult(double[] y, double[] b, double[] x) {
-        for (int i : Imetis) {
+        for (int i = 0; i < dofs; i++) {
             y[i] = b[i];
-        }
-        for (int i = 0; i < Icoo.length; i++) {
-            y[Icoo[i]] -= H[i] * x[Jcoo[i]];
+            for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
+                y[i] -= H[j] * x[Jcrs[j]];
+            }
         }
     }
 
     public void SubstrMult(double[] y, double[] b, double[] x, int nThreads) {
-        int[] domDiv = parallelDomainDiv(nnz, nThreads);
-        for (int i : Imetis) {
-            y[i] = b[i];
-        }
         SubstrMultThread[] parallel = new SubstrMultThread[nThreads];
         for (int v = 0; v < nThreads; v++) {
-            parallel[v] = new SubstrMultThread(domDiv[v], domDiv[v+1], y, b, x);
+            parallel[v] = new SubstrMultThread(v, nThreads, y, b, x);
             parallel[v].start();
         }
         try {
@@ -211,25 +211,125 @@ public class ParallelSparseMatrix {
     }
 
     class SubstrMultThread extends Thread {
-        int nStart, nEnd;
+
+        int n, nStart, nThreads;
         double[] x, b, y;
 
-        SubstrMultThread(int nStart, int nEnd, double[] y, double[] b, double[] x) {
+        SubstrMultThread(int nStart, int nThreads, double[] y, double[] b, double[] x) {
             this.nStart = nStart;
-            this.nEnd = nEnd;
+            this.nThreads = nThreads;
             this.y = y;
             this.b = b;
             this.x = x;
+            n = x.length;
         }
 
         @Override
         public void run() {
-            for (int i = nStart; i < nEnd; i++) {
-                y[Icoo[i]] -= H[i] * x[Jcoo[i]];
+            for (int i = nStart; i < n; i = i + nThreads) {
+                y[i] = b[i];
+                for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
+                    y[i] -= H[j] * x[Jcrs[j]];
+                }
             }
         }
-    }
-    
+    }   
+
+//    public void Mult(double[] y, double[] x) {
+//        for (int i : Imetis) {
+//            y[i] = 0;
+//        }
+//        for (int i = 0; i < Icoo.length; i++) {
+//            y[Icoo[i]] += H[i] * x[Jcoo[i]];
+//        }
+//    }
+//
+//    public void Mult(double[] y, double[] x, int nThreads) {
+//        int[] domDiv = parallelDomainDiv(nnz, nThreads);
+//        for (int i : Imetis) {
+//            y[i] = 0;
+//        }
+//        MultThread[] parallel = new MultThread[nThreads];
+//        for (int v = 0; v < nThreads; v++) {
+//            parallel[v] = new MultThread(domDiv[v], domDiv[v+1], y, x);
+//            parallel[v].start();
+//        }
+//        try {
+//            for (int v = 0; v < nThreads; v++) {
+//                parallel[v].join();
+//            }
+//        } catch (java.lang.InterruptedException e) {
+//            System.out.println(e);
+//        }
+//    }
+//
+//    class MultThread extends Thread {
+//        int nStart, nEnd;
+//        double[] x, y;
+//
+//        MultThread(int nStart, int nEnd, double[] y, double[] x) {
+//            this.nStart = nStart;
+//            this.nEnd = nEnd;
+//            this.y = y;
+//            this.x = x;
+//        }
+//
+//        @Override
+//        public void run() {
+//            for (int i = nStart; i < nEnd; i++) {
+//                y[Icoo[i]] += H[i] * x[Jcoo[i]];
+//            }
+//        }
+//    }
+//    public void SubstrMult(double[] y, double[] b, double[] x) {
+//        for (int i : Imetis) {
+//            y[i] = b[i];
+//        }
+//        for (int i = 0; i < Icoo.length; i++) {
+//            y[Icoo[i]] -= H[i] * x[Jcoo[i]];
+//        }
+//    }
+//
+//    public void SubstrMult(double[] y, double[] b, double[] x, int nThreads) {
+//        int[] domDiv = parallelDomainDiv(nnz, nThreads);
+//        for (int i : Imetis) {
+//            y[i] = b[i];
+//        }
+//        SubstrMultThread[] parallel = new SubstrMultThread[nThreads];
+//        for (int v = 0; v < nThreads; v++) {
+//            parallel[v] = new SubstrMultThread(domDiv[v], domDiv[v + 1], y, b, x);
+//            parallel[v].start();
+//        }
+//        try {
+//            for (int v = 0; v < nThreads; v++) {
+//                parallel[v].join();
+//            }
+//        } catch (java.lang.InterruptedException e) {
+//            System.out.println(e);
+//        }
+//    }
+//
+//    class SubstrMultThread extends Thread {
+//
+//        int nStart, nEnd;
+//        double[] x, b, y;
+//
+//        SubstrMultThread(int nStart, int nEnd, double[] y, double[] b, double[] x) {
+//            this.nStart = nStart;
+//            this.nEnd = nEnd;
+//            this.y = y;
+//            this.b = b;
+//            this.x = x;
+//        }
+//
+//        @Override
+//        public void run() {
+//            for (int i = nStart; i < nEnd; i++) {
+//                y[Icoo[i]] -= H[i] * x[Jcoo[i]];
+//            }
+//        }
+//    }
+
     public int[] getRowIndexesCOO() {
         return Icoo;
     }
@@ -258,7 +358,7 @@ public class ParallelSparseMatrix {
         return Imetis;
     }
 
-    public int[] compress(int[] I) {
+    final public int[] compress(int[] I) {
         int[] Icomp = new int[dofs + 1];
         int s = 0;
         for (int i = 1; i < dofs; i++) {
@@ -266,7 +366,6 @@ public class ParallelSparseMatrix {
             while (s < nnz && I[s] == i - 1) {
                 s++;
                 sum++;
-
             }
             Icomp[i] = Icomp[i - 1] + sum;
         }
@@ -412,12 +511,12 @@ public class ParallelSparseMatrix {
         }
         return Imet;
     }
-    
-    int[] parallelDomainDiv(int n, int nThreads){
-        int[] div = new int[nThreads+1];
-        int m = n/nThreads;
-        for(int i = 1; i < nThreads; i++){
-            div[i] = div[i-1] + m;
+
+    int[] parallelDomainDiv(int n, int nThreads) {
+        int[] div = new int[nThreads + 1];
+        int m = n / nThreads;
+        for (int i = 1; i < nThreads; i++) {
+            div[i] = div[i - 1] + m;
         }
         div[nThreads] = n;
         return div;
