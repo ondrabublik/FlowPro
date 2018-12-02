@@ -21,7 +21,7 @@ import org.apache.commons.lang3.time.StopWatch;
  * tento program resi Navierovy-Stokesovy rovnice na nestrukturovane siti pomoci
  * nespojite Galerkinovy metody
  */
-public class LocalImplicitSolver extends MasterSolver{
+public class LocalImplicitSolver extends MasterSolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(MasterSolver.class);
 
@@ -468,9 +468,7 @@ public class LocalImplicitSolver extends MasterSolver{
             @Override
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
-                    if (elems[i].insideComputeDomain) {
-                        elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
-                    }
+                    elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
                 }
             }
         }
