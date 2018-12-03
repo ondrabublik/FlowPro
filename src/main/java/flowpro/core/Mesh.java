@@ -1578,8 +1578,8 @@ public class Mesh implements Serializable {
                     rhoInt += W[m] * base[p][m];
                     rhoTrun += rhoTrunCoef[m] * base[p][m];
                 }
-                Se = Se + Jac[p] * weights[p] * (rhoInt - rhoTrun) * (rhoInt - rhoTrun);
-                pod = pod + Jac[p] * weights[p] * rhoInt * rhoInt;
+                Se += Jac[p] * weights[p] * (rhoInt - rhoTrun) * (rhoInt - rhoTrun);
+                pod += Jac[p] * weights[p] * rhoInt * rhoInt;
             }
             Se = Math.log10(Math.abs(Se / pod));
             double S0 = Math.log10(1. / Math.pow(elemType.order - 1, 4.0));
@@ -1686,7 +1686,7 @@ public class Mesh implements Serializable {
 
             elemSize = 0;
             for (int k = 0; k < nFaces; k++) {
-                elemSize = elemSize + S[k];
+                elemSize += S[k];
             }
             elemSize = nFaces * area / elemSize;
 

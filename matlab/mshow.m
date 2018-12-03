@@ -96,7 +96,7 @@ function tri = convert2Triangular(elements, elementType)
     nElems = size(elements, 1);
     
     if nargin > 1
-        squares = elements(elementType == 4, :);        
+        squares = elements(firstDigit(elementType) == 4, :);        
     else
         squares = elements(elements(:,4) ~= 0, :);
     end
@@ -277,4 +277,12 @@ fclose(fid);
 par = cell2struct(vals, keys, 2);
 end
 
-
+function t = firstDigit(typ)
+    t = typ;
+    for i = 1:length(typ)
+        while(typ(i) > 0)
+            t(i) = typ(i);
+            typ(i) = fix(typ(i)/10);
+        end
+    end
+end

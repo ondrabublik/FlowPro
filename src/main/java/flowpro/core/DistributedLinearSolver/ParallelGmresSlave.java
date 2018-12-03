@@ -1,6 +1,6 @@
 package flowpro.core.DistributedLinearSolver;
 
-import flowpro.core.DistributedLinearSolver.preconditioner.ParallelBlockJacobi;
+import flowpro.core.DistributedLinearSolver.preconditioner.*;
 import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
 import flowpro.core.parallel.LiteElement;
@@ -26,7 +26,7 @@ public class ParallelGmresSlave {
     int index;
 
     ParallelSparseMatrix A;
-    ParallelBlockJacobi M;
+    ParallelPreconditioner M;
 
     //public ParallelGmresSlave(SparseMatrix A, Preconditioner M, int m, int iterationLimit, double tol, int nThreads) {
     public ParallelGmresSlave(Element[] elems, int m, Parameters par, double[] x) throws IOException {
@@ -72,7 +72,7 @@ public class ParallelGmresSlave {
         // define sparse matrix
         A = new ParallelSparseMatrix(elems);
         Imetis = A.getImetis();
-        M = new ParallelBlockJacobi(par);
+        M = ParallelPreconditioner.factory(par);
         M.set(elems);
     }
 

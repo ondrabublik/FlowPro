@@ -7,16 +7,16 @@ import java.io.IOException;
  *
  * @author ales
  */
-public class basis2Dsquare extends Basis {
+public class basis2DsquareTaylor extends Basis {
 
     public double[][] coeffs;    // koeficieny bazovych polynomu
     private final int[] xExp;   //  exponent of variable xi of the k-th basis function
     private final int[] yExp;  // exponent of variable eta of the k-th basis function   
     private final int order;
 
-    public basis2Dsquare(int order) throws IOException {
+    public basis2DsquareTaylor(int order) throws IOException {
         this.order = order;
-        nBasis = order * order;
+        nBasis = order * (1 + order) / 2;
 
         xExp = new int[order * order];
         yExp = new int[order * order];
@@ -37,39 +37,17 @@ public class basis2Dsquare extends Basis {
         }
     }
 
-//    public void calculateCoefficients() {
-//        basisType = "taylor";
-//        if (order == 1) {
-//            double[][] coefficients = new double[1][1];
-//            coefficients[0][0] = 1;
-//            coeffs = coefficients;
-//        } else {
-//            coeffs = new double[nBasis][nBasis];
-//            for(int i = 0; i < nBasis; i++){
-//                coeffs[i][i] = 1;
-//            }
-//        }
-//    }
-
-    public void calculateCoefficients() {
+     public void calculateCoefficients() {
+        basisType = "taylor";
         if (order == 1) {
             double[][] coefficients = new double[1][1];
             coefficients[0][0] = 1;
             coeffs = coefficients;
         } else {
-            double[] b = Mat.linspace(0, 1, order);
-            double[][] V = new double[nBasis][nBasis];
-            int s = 0;
-            for (int i = 0; i < order; i++) {
-                for (int j = 0; j < order; j++) {
-                    double[] X = new double[]{b[i], b[j]};
-                    for (int k = 0; k < nBasis; k++) {
-                        V[s][k] = Math.pow(X[0], xExp[k]) * Math.pow(X[1], yExp[k]);
-                    }
-                    ++s;
-                }
+            coeffs = new double[nBasis][nBasis];
+            for(int i = 0; i < nBasis; i++){
+                coeffs[i][i] = 1;
             }
-            coeffs = Mat.invert(V);
         }
     }
     
@@ -103,3 +81,4 @@ public class basis2Dsquare extends Basis {
         return der;
     }
 }
+

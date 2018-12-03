@@ -80,6 +80,9 @@ public abstract class ElementType implements Serializable {
             case 4:
                 elemType = new squareElement(order);
                 break;
+            case 42:
+                elemType = new squareElementTaylor(order);
+                break;    
             case 5:
                 elemType = new tetrahedralElement(order);
                 break;

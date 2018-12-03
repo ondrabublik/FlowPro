@@ -14,14 +14,14 @@ import flowpro.core.Parameters;
  *
  * @author obublik
  */
-public class ParallelBlockJacobi{
+public class ParallelBlockJacobiInversion extends ParallelPreconditioner{
 
     SparseMatrix A;
     int n, nThreads;
     double[][][] diagonalInverse;
     Element[] elems;
 
-    public ParallelBlockJacobi(Parameters par) {
+    public ParallelBlockJacobiInversion(Parameters par) {
         nThreads = par.nThreads;
     }
 
