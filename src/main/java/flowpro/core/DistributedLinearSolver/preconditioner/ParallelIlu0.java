@@ -22,16 +22,14 @@ public class ParallelIlu0 extends ParallelPreconditioner {
     double[] ilu;
 
     ParallelIlu0(Parameters par) {
+        System.out.println("Preconditioner: ilu0");
     }
 
     public void set(Element[] elems) {
         this.elems = elems;
         boolean[] inside = new boolean[elems.length];
         for (int i = 0; i < elems.length; i++) {
-            inside[i] = false;
-            if (elems[i].insideComputeDomain) {
-                inside[i] = true;
-            }
+            inside[i] = elems[i].insideComputeDomain;
         }
         A = new SparseSubmatrix(elems, inside);
         A.buildCRSformat();
@@ -41,6 +39,9 @@ public class ParallelIlu0 extends ParallelPreconditioner {
 
     @Override
     public void factor() {
+        // update data
+        A.updateData();
+        
         // Internal CRS matrix storage 
         int[] IA = A.getRowIndexesCRS();
         int[] JA = A.getColumnIndexesCRS();
@@ -84,24 +85,26 @@ public class ParallelIlu0 extends ParallelPreconditioner {
         int[] IA = A.getRowIndexesCRS();
         int[] JA = A.getColumnIndexesCRS();
         int[] diagind = A.getDiagonalIndexes();
+        int[] globMapInv = A.globMapInv;
         double[] y = new double[x.length];
         Arrays.fill(x, 0);
 
         for (int i = 0; i < n; i++) {
+            int gii = globMapInv[i];
             double sum = 0;
             for (int j = IA[i]; j < diagind[i]; j++) {
-                sum = sum + ilu[j] * y[JA[j]];
+                sum = sum + ilu[j] * y[globMapInv[JA[j]]];
             }
-            y[i] = b[i] - sum;
+            y[gii] = b[gii] - sum;
         }
 
         for (int i = n - 1; i >= 0; i--) {
+            int gii = globMapInv[i];
             double sum = 0;
             for (int j = diagind[i] + 1; j < IA[i + 1]; j++) {
-                sum = sum + ilu[j] * x[JA[j]];
+                sum = sum + ilu[j] * x[globMapInv[JA[j]]];
             }
-            x[i] = (y[i] - sum) / ilu[diagind[i]];
+            x[gii] = (y[gii] - sum) / ilu[diagind[i]];
         }
     }
-
 }

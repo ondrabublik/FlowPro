@@ -15,7 +15,7 @@ import java.util.Arrays;
 public class SparseSubmatrix {
 
     int dofs, nnz;
-    public int[] Icoo, Icrs, Iccs, Jcoo, Jcrs, Jccs, diagind, indexMap;
+    public int[] Icoo, Icrs, Iccs, Jcoo, Jcrs, Jccs, diagind, indexMap, globMap, globMapInv;
     public double[] H;
     Element[] elems;
     boolean[] inside;
@@ -23,9 +23,40 @@ public class SparseSubmatrix {
     public SparseSubmatrix(Element[] elems, boolean[] inside) {
         this.elems = elems;
         this.inside = inside;
+        defineGlobalIndexMap();
         scanMatrixStructure();
     }
-    
+
+    private void defineGlobalIndexMap() {
+        int s = 0;
+        int si = 0;
+        for (int i = 0; i < elems.length; i++) {
+            int n = elems[i].getNEqs() * elems[i].nBasis;
+            s += n;
+            if (inside[i]){
+                si += n;
+            }
+        }
+        globMap = new int[s];
+        globMapInv = new int[si];
+        
+        s = 0;
+        si = 0;
+        for (int i = 0; i < elems.length; i++) {
+            if (inside[i]){
+                int[] gi = elems[i].gi_U;
+                for(int j = 0; j < gi.length; j++){
+                    globMap[s] = si;
+                    globMapInv[si] = gi[j];
+                    s++;
+                    si++;
+                }
+            } else {
+                s += elems[i].getNEqs() * elems[i].nBasis;
+            }
+        }
+    }
+
     private void scanMatrixStructure() {
         dofs = computeDofs();
         nnz = computeNNZ();
@@ -42,8 +73,8 @@ public class SparseSubmatrix {
                 int[] glob = elem.gi_U;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
-                        Icoo[s] = glob[i];
-                        Jcoo[s] = glob[j];
+                        Icoo[s] = globMap[glob[i]];
+                        Jcoo[s] = globMap[glob[j]];
                         indexMap[s] = s;
                         s++;
                     }
@@ -54,8 +85,8 @@ public class SparseSubmatrix {
                         int[] globe = elems[elem.TT[k]].gi_U;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
-                                Icoo[s] = glob[i];
-                                Jcoo[s] = globe[j];
+                                Icoo[s] = globMap[glob[i]];
+                                Jcoo[s] = globMap[globe[j]];
                                 indexMap[s] = s;
                                 s++;
                             }
@@ -85,7 +116,7 @@ public class SparseSubmatrix {
                 int n = elem.getNEqs() * elem.nBasis;
                 s += n * n;
                 for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TT[k] > -1  && inside[elems[elem.TT[k]].index]) {
+                    if (elem.TT[k] > -1 && inside[elems[elem.TT[k]].index]) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
                         s += n * ne;
                     }
@@ -97,13 +128,15 @@ public class SparseSubmatrix {
 
     public int computeDofs() {
         int s = 0;
-        for (Element elem : elems) {
-            s += elem.getNEqs() * elem.nBasis;
+        for (int i = 0; i < elems.length; i++) {
+            if (inside[i]) {
+                s += elems[i].getNEqs() * elems[i].nBasis;
+            }
         }
         return s;
     }
 
-    void updateData() {
+    public void updateData() {
         int s = 0;
         for (int r = 0; r < elems.length; r++) {
             if (inside[r]) {
@@ -147,9 +180,10 @@ public class SparseSubmatrix {
 
     public void Mult(double[] y, double[] x) {
         for (int i = 0; i < dofs; i++) {
-            y[i] = 0;
+            int ig = globMapInv[i];
+            y[ig] = 0;
             for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
-                y[i] += H[j] * x[Jcrs[j]];
+                y[ig] += H[j] * x[Jcrs[j]];
             }
         }
     }
@@ -185,9 +219,10 @@ public class SparseSubmatrix {
         @Override
         public void run() {
             for (int i = nStart; i < n; i = i + nThreads) {
-                y[i] = 0;
+                int ig = globMapInv[i];
+                y[ig] = 0;
                 for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
-                    y[i] += H[j] * x[Jcrs[j]];
+                    y[ig] += H[j] * x[Jcrs[j]];
                 }
             }
         }
@@ -195,9 +230,10 @@ public class SparseSubmatrix {
 
     public void SubstrMult(double[] y, double[] b, double[] x) {
         for (int i = 0; i < dofs; i++) {
-            y[i] = b[i];
+            int ig = globMapInv[i];
+            y[ig] = b[ig];
             for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
-                y[i] -= H[j] * x[Jcrs[j]];
+                y[ig] -= H[j] * x[Jcrs[j]];
             }
         }
     }
@@ -234,14 +270,15 @@ public class SparseSubmatrix {
         @Override
         public void run() {
             for (int i = nStart; i < n; i = i + nThreads) {
-                y[i] = b[i];
+                int ig = globMapInv[i];
+                y[ig] = b[ig];
                 for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
-                    y[i] -= H[j] * x[Jcrs[j]];
+                    y[ig] -= H[j] * x[Jcrs[j]];
                 }
             }
         }
-    }   
-    
+    }
+
     public int[] getRowIndexesCRS() {
         return Icrs;
     }
@@ -299,7 +336,7 @@ public class SparseSubmatrix {
             Icomp[i] = Icomp[i - 1] + sum;
         }
         Icomp[dofs] = nnz;
-        
+
         return Icomp;
     }
 

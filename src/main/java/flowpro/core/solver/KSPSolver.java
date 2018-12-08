@@ -260,7 +260,7 @@ public class KSPSolver extends MasterSolver {
                 }
                 System.out.printf(info);
                 System.out.println();
-                if ((state.steps % 50) == 0) {
+                if ((state.steps % 5) == 0) {
                     mpi.sendAll(new MPIMessage(Tag.RESET_OUTPUT_WRITER));
                     mpi.reset();
                 }

@@ -1599,6 +1599,44 @@ public class Mesh implements Serializable {
             }
         }
 
+        public double shock_senzor2() {
+            double shock = 0;
+            double sumS = 0;
+            double rhoLmax = 0;
+            for (int k = 0; k < nFaces; k++) {
+                for (int p = 0; p < Int.faces[k].nIntEdge; p++) { // edge integral
+                    double[] baseLeft = Int.faces[k].basisFaceLeft[p];
+                    double Jac = Int.faces[k].JacobianFace[p];
+                    double weight = Int.faces[k].weightsFace[p];
+                    double[] baseRight = null;
+                    if (TT[k] > -1) {
+                        baseRight = Int.faces[k].basisFaceRight[p];
+                    }
+
+                    double rhoL = 0;
+                    for (int j = 0; j < nBasis; j++) {
+                        rhoL += W[j] * baseLeft[j];
+                    }
+                    double rhoR = rhoL;
+                    if (TT[k] > -1) {
+                        double[] WRp = elems[TT[k]].getW(par.isExplicit, tLTS);
+                        rhoR = 0;
+                        for (int j = 0; j < elems[TT[k]].nBasis; j++) {
+                            rhoL += WRp[j] * baseRight[j];
+                        }
+                    }
+
+                    shock += Jac * weight * (rhoL - rhoR);
+
+                    if (rhoL > rhoLmax) {
+                        rhoLmax = rhoL;
+                    }
+                }
+                sumS += S[k];
+            }
+            return shock / rhoLmax / sumS / Math.pow(elemSize, par.order / 2.0);
+        }
+
         int nastav_globalni_index_U(int s) {
             gi_U = new int[nEqs * nBasis];
             for (int i = 0; i < nBasis * nEqs; i++) {

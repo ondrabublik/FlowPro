@@ -204,7 +204,7 @@ function showArtificialViscosity
     av = load([simulPath,'artificialViscosity.txt']);
     xy = dlmread([meshPath, 'vertices.txt']);    
     elems = dlmread([meshPath, 'elements.txt'])+1;
-    type = dlmread([meshPath, 'elementType.txt']);
+    type = firstDigit(dlmread([meshPath, 'elementType.txt']));
     tri = convert2Triangular(elems, type);
     
     vav = zeros(size(xy,1),1);

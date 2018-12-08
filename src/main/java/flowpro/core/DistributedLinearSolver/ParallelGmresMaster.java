@@ -174,6 +174,7 @@ public class ParallelGmresMaster {
                     int[] mapL2G = domain.getSubdomain(d).mapL2G;
                     LiteElement[] dataRcv = (LiteElement[]) mpi.receive(d, Tag.GMRES2MASTER).getData();
                     for (LiteElement dataRcv1 : dataRcv) {
+                        //liteElems[mapL2G[dataRcv1.index]] = dataRcv1;
                         liteElems[mapL2G[dataRcv1.index]] = new LiteElement(dataRcv1.index, dataRcv1.y);
                     }
                 } catch (MPIException ex) {

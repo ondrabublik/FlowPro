@@ -37,6 +37,9 @@ abstract public class Preconditioner {
                 case "ilu0":
                     M = new ILU0(par);
                     break;
+                case "blockilu0":
+                    M = new BlockILU0(par);
+                    break;
 
                 default:
                     throw new IOException("unknown preconditioner " + par.preconditioner);
