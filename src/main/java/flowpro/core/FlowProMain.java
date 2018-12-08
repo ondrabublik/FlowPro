@@ -49,6 +49,15 @@ public class FlowProMain {
     public FlowProMain() throws IOException {
         lock = new Object();
 
+        File f = new File(ARG_FILE_NAME);
+        if (!f.exists()) {
+            LOG.warn("File args.txt not exists. Default args.txt file was create.");
+            f.createNewFile();
+            PrintWriter writer = new PrintWriter(ARG_FILE_NAME, "UTF-8");
+            writer.print("examples/GAMM default");
+            writer.close();
+        }
+
         BufferedReader reader;
         reader = new BufferedReader(new FileReader(ARG_FILE_NAME));
 
@@ -177,7 +186,7 @@ public class FlowProMain {
 
     private MasterSolver solverFactory(boolean optimalisation, int nDomains) throws IOException {
         boolean parallelMode = false;
-        if(nDomains > 0){
+        if (nDomains > 0) {
             parallelMode = true;
         }
         Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
@@ -562,21 +571,21 @@ public class FlowProMain {
             TEale[i] = new int[TT[i].length];
             for (int k = 0; k < TT[i].length; k++) {
                 //if (TT[i][k] < 0) {
-                    int[] faceIndexes = elemType[i].getFaceIndexes(k);
-                    for (int j = 0; j < faceIndexes.length; j++) {
-                        faceIndexes[j] = TP[i][faceIndexes[j]];
-                    }
-                    Arrays.sort(faceIndexes);
-                    String key = "";
-                    for (int j = 0; j < faceIndexes.length; j++) {
-                        key = key + Integer.toString(faceIndexes[j]) + "$";
-                    }
-                    Integer index = boundMap.get(key);
-                    if (index != null) {
-                        TEale[i][k] = index;
-                    } else {
-                        TEale[i][k] = 0;
-                    }
+                int[] faceIndexes = elemType[i].getFaceIndexes(k);
+                for (int j = 0; j < faceIndexes.length; j++) {
+                    faceIndexes[j] = TP[i][faceIndexes[j]];
+                }
+                Arrays.sort(faceIndexes);
+                String key = "";
+                for (int j = 0; j < faceIndexes.length; j++) {
+                    key = key + Integer.toString(faceIndexes[j]) + "$";
+                }
+                Integer index = boundMap.get(key);
+                if (index != null) {
+                    TEale[i][k] = index;
+                } else {
+                    TEale[i][k] = 0;
+                }
                 //}
             }
         }
@@ -707,18 +716,18 @@ public class FlowProMain {
         }
         return part;
     }
-    
-    public static URL[] getJarURLList(String s) throws IOException{
+
+    public static URL[] getJarURLList(String s) throws IOException {
         URL[] u = null;
-        try{
-        File currentDir = new File(s); // current directory
-        ArrayList<URL> URLs = new ArrayList();
-        System.out.print("Found libraries: ");
-        addDirectoryContents(currentDir, URLs);
-        System.out.println();
-        u = new URL[URLs.size()];
-        URLs.toArray(u);
-        } catch (Exception e){
+        try {
+            File currentDir = new File(s); // current directory
+            ArrayList<URL> URLs = new ArrayList();
+            System.out.print("Found libraries: ");
+            addDirectoryContents(currentDir, URLs);
+            System.out.println();
+            u = new URL[URLs.size()];
+            URLs.toArray(u);
+        } catch (Exception e) {
             System.out.println(e);
         }
         return u;
