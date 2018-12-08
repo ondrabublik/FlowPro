@@ -15,4 +15,4 @@ args.txt
 
 # all simulations except for some chosen examles
 simulations/*
-#!simulations/examples/
+!simulations/examples/

@@ -1,0 +1,8 @@
+#Sat Dec 08 16:11:54 CET 2018
+order=2
+transfer=0
+steps=20
+CFL=5.0
+CPU=1410
+t=0.8796319197771354
+residuum=0.3021989211585392
