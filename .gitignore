@@ -11,7 +11,7 @@ fetcherState.txt
 *.jar
 FlowProManager.jar
 *.zip
-args.txt
+*.txt
 
 # all simulations except for some chosen examles
 simulations/*
