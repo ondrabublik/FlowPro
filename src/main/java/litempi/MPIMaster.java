@@ -25,7 +25,7 @@ public class MPIMaster {
     private final Map<Integer, MPIMessage>[] waitingMsgs;
 
     // navazani spojeni s pocitaci
-    public MPIMaster(int nSlaves, String masterIP, int masterPort) throws MPIException {
+    public MPIMaster(int nSlaves, int masterPort) throws MPIException {
         this.nSlaves = nSlaves;
         sockets = new Socket[nSlaves];
         outStreams = new ObjectOutputStream[nSlaves];

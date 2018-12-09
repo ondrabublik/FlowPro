@@ -127,7 +127,7 @@ public class SchwartzImplicitSolver extends MasterSolver {
     public Solution solve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
         runFetcher(nDoms, par.masterIP, par.masterPort, par.parallelSolverType);
-        MPIMaster mpi = new MPIMaster(nDoms, par.masterIP, par.masterPort);
+        MPIMaster mpi = new MPIMaster(nDoms, par.masterPort);
         StopWatch watch = new StopWatch();
         StopWatch transferWatch = new StopWatch();
         tempWatch.start();

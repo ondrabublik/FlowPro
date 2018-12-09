@@ -122,7 +122,7 @@ public class KSPSolver extends MasterSolver {
     public Solution solve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
         runFetcher(nDoms, par.masterIP, par.masterPort, par.parallelSolverType);
-        MPIMaster mpi = new MPIMaster(nDoms, par.masterIP, par.masterPort);
+        MPIMaster mpi = new MPIMaster(nDoms, par.masterPort);
         StopWatch watch = new StopWatch();
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
@@ -260,7 +260,7 @@ public class KSPSolver extends MasterSolver {
                 }
                 System.out.printf(info);
                 System.out.println();
-                if ((state.steps % 5) == 0) {
+                if ((state.steps % 50) == 0) {
                     mpi.sendAll(new MPIMessage(Tag.RESET_OUTPUT_WRITER));
                     mpi.reset();
                 }
