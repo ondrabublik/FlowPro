@@ -20,7 +20,7 @@ public class MPIMaster {
     private Socket[] sockets;
     private ObjectOutputStream[] outStreams;
     private ObjectInputStream[] inStreams;
-    
+
     // waiting messages from each slaves
     private final Map<Integer, MPIMessage>[] waitingMsgs;
 
@@ -75,6 +75,43 @@ public class MPIMaster {
         }
     }
 
+    class ThreadSend extends Thread {
+
+        int i;
+        MPIMessage msg;
+
+        ThreadSend(int i, MPIMessage msg) {
+            this.i = i;
+            this.msg = msg;
+        }
+
+        public void run() {
+            try {
+                outStreams[i].writeUnshared(msg);
+                outStreams[i].flush();
+
+            } catch (IOException ex) {
+                System.out.println("error while sending message to "
+                        + sockets[i].getInetAddress().getHostAddress() + ex);
+            }
+        }
+    }
+
+    public void parallelSendAll(MPIMessage msg) throws MPIException {
+        ThreadSend[] ts = new ThreadSend[nSlaves];
+        for (int i = 0; i < nSlaves; ++i) {
+            ts[i] = new ThreadSend(i, msg);
+            ts[i].start();
+        }
+        try {
+            for (int i = 0; i < nSlaves; ++i) {
+                ts[i].join();
+            }
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e);
+        }
+    }
+
     public void sendAll(MPIMessage msg) throws MPIException {
         for (int i = 0; i < nSlaves; ++i) {
             try {
@@ -106,13 +143,10 @@ public class MPIMaster {
 
             if (msg == null) {
                 msg = (MPIMessage) inStreams[id].readUnshared();
-//                LOG.debug("received {}", msg.tag);
 
                 while (msg.tag != tag) {
                     waitingMsgs[id].put(msg.tag, msg);
-//                    LOG.debug("added " + msg.tag);
                     msg = (MPIMessage) inStreams[id].readUnshared();
-//                    LOG.debug("received {}", msg.tag);
                 }
             }
 
@@ -121,7 +155,7 @@ public class MPIMaster {
                 throw new MPIException("exception thrown by "
                         + sockets[id].getInetAddress().getHostAddress(), exMsg.getException());
             }
-            
+
             return msg;
         } catch (IOException | ClassNotFoundException ex) {
             throw new MPIException("error while receiveing message form "
@@ -151,7 +185,7 @@ public class MPIMaster {
         }
         return array;
     }
-    
+
     public double receiveAllDoubleSum(int tag) throws MPIException {
         double sum = 0;
         for (int i = 0; i < nSlaves; ++i) {
@@ -159,19 +193,19 @@ public class MPIMaster {
         }
         return sum;
     }
-    
+
     public double[] receiveAllDoubleArraySum(int tag) throws MPIException {
         double[] sum = null;
         for (int i = 0; i < nSlaves; ++i) {
-            if(i == 0){
+            if (i == 0) {
                 sum = (double[]) receive(i, tag).getData();
             } else {
                 double[] array = (double[]) receive(i, tag).getData();
-                for(int j = 0; j < sum.length; j++){
+                for (int j = 0; j < sum.length; j++) {
                     sum[j] += array[j];
                 }
             }
-            
+
         }
         return sum;
     }

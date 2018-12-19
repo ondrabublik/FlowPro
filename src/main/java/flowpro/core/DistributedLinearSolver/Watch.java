@@ -21,6 +21,6 @@ public class Watch {
     }
     
     void stop(){
-        System.out.println("Time: " + (System.nanoTime() - startTime)/1000);
+        System.out.println("Time: " + (System.nanoTime() - startTime)/1000 + "us");
     }
 }

@@ -177,7 +177,8 @@ public class ParallelSparseMatrix {
 
         @Override
         public void run() {
-            for (int i = nStart; i < n; i = i + nThreads) {
+            for (int im = nStart; im < Imetis.length; im = im + nThreads) {
+                int i = Imetis[im];
                 y[i] = 0;
                 for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
                     y[i] += H[j] * x[Jcrs[j]];
@@ -225,110 +226,16 @@ public class ParallelSparseMatrix {
         }
 
         @Override
-        public void run() {
-            for (int i = nStart; i < n; i = i + nThreads) {
+        public void run() {          
+            for (int im = nStart; im < Imetis.length; im = im + nThreads) {
+                int i = Imetis[im];
                 y[i] = b[i];
                 for (int j = Icrs[i]; j < Icrs[i + 1]; j++) {
                     y[i] -= H[j] * x[Jcrs[j]];
                 }
             }
         }
-    }   
-
-//    public void Mult(double[] y, double[] x) {
-//        for (int i : Imetis) {
-//            y[i] = 0;
-//        }
-//        for (int i = 0; i < Icoo.length; i++) {
-//            y[Icoo[i]] += H[i] * x[Jcoo[i]];
-//        }
-//    }
-//
-//    public void Mult(double[] y, double[] x, int nThreads) {
-//        int[] domDiv = parallelDomainDiv(nnz, nThreads);
-//        for (int i : Imetis) {
-//            y[i] = 0;
-//        }
-//        MultThread[] parallel = new MultThread[nThreads];
-//        for (int v = 0; v < nThreads; v++) {
-//            parallel[v] = new MultThread(domDiv[v], domDiv[v+1], y, x);
-//            parallel[v].start();
-//        }
-//        try {
-//            for (int v = 0; v < nThreads; v++) {
-//                parallel[v].join();
-//            }
-//        } catch (java.lang.InterruptedException e) {
-//            System.out.println(e);
-//        }
-//    }
-//
-//    class MultThread extends Thread {
-//        int nStart, nEnd;
-//        double[] x, y;
-//
-//        MultThread(int nStart, int nEnd, double[] y, double[] x) {
-//            this.nStart = nStart;
-//            this.nEnd = nEnd;
-//            this.y = y;
-//            this.x = x;
-//        }
-//
-//        @Override
-//        public void run() {
-//            for (int i = nStart; i < nEnd; i++) {
-//                y[Icoo[i]] += H[i] * x[Jcoo[i]];
-//            }
-//        }
-//    }
-//    public void SubstrMult(double[] y, double[] b, double[] x) {
-//        for (int i : Imetis) {
-//            y[i] = b[i];
-//        }
-//        for (int i = 0; i < Icoo.length; i++) {
-//            y[Icoo[i]] -= H[i] * x[Jcoo[i]];
-//        }
-//    }
-//
-//    public void SubstrMult(double[] y, double[] b, double[] x, int nThreads) {
-//        int[] domDiv = parallelDomainDiv(nnz, nThreads);
-//        for (int i : Imetis) {
-//            y[i] = b[i];
-//        }
-//        SubstrMultThread[] parallel = new SubstrMultThread[nThreads];
-//        for (int v = 0; v < nThreads; v++) {
-//            parallel[v] = new SubstrMultThread(domDiv[v], domDiv[v + 1], y, b, x);
-//            parallel[v].start();
-//        }
-//        try {
-//            for (int v = 0; v < nThreads; v++) {
-//                parallel[v].join();
-//            }
-//        } catch (java.lang.InterruptedException e) {
-//            System.out.println(e);
-//        }
-//    }
-//
-//    class SubstrMultThread extends Thread {
-//
-//        int nStart, nEnd;
-//        double[] x, b, y;
-//
-//        SubstrMultThread(int nStart, int nEnd, double[] y, double[] b, double[] x) {
-//            this.nStart = nStart;
-//            this.nEnd = nEnd;
-//            this.y = y;
-//            this.b = b;
-//            this.x = x;
-//        }
-//
-//        @Override
-//        public void run() {
-//            for (int i = nStart; i < nEnd; i++) {
-//                y[Icoo[i]] -= H[i] * x[Jcoo[i]];
-//            }
-//        }
-//    }
+    }
 
     public int[] getRowIndexesCOO() {
         return Icoo;

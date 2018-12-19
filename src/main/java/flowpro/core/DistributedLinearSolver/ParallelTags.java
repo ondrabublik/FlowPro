@@ -21,6 +21,7 @@ public class ParallelTags {
     public static final int SAVE_DATA = 3;
     public static final int LOAD_X = 4;
     public static final int LOAD_W = 41;
+    public static final int PING = 55;
     
     // tags from slave to master
 }

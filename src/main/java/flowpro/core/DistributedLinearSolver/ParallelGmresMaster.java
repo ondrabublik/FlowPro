@@ -55,7 +55,7 @@ public class ParallelGmresMaster {
         if (norm_b == 0) {
             norm_b = 1;
         }
-
+        
         double norm_r = M_bmAx(); //----
         double error = norm_r / norm_b;
         if (error < tol) {
@@ -93,12 +93,12 @@ public class ParallelGmresMaster {
                 H[i + 1][i] = 0;
                 error = Math.abs(s[i + 1]) / norm_b;
                 if (error <= tol) {                        // Update approximation
-                    y = lsolve(H, s, i + 1);                 // and exit
+                    y = lsolve(H, s, i + 1);                 // and exit 
                     updateSolution(y, i); //----
                     break;
                 }
             }
-
+            
             if (error <= tol) {
                 break;
             }
@@ -151,104 +151,65 @@ public class ParallelGmresMaster {
     }
 
     void dataExchange(int index) throws MPIException {
+        boolean parallel = true;
+
         // downloading data from the slave nodes into the central structure
         mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.SAVE_DATA, index));
-//        for (int d = 0; d < domain.nDoms; ++d) {
-//            int[] mapL2G = domain.getSubdomain(d).mapL2G;
-//            LiteElement[] dataRcv = (LiteElement[]) mpi.receive(d, Tag.GMRES2MASTER).getData();
-//            for (LiteElement dataRcv1 : dataRcv) {
-//                liteElems[mapL2G[dataRcv1.index]] = new LiteElement(dataRcv1.index, dataRcv1.y);
-//                //liteElems[mapL2G[dataRcv1.index]] = dataRcv1;
-//            }
-//        }
-
-        class ParallelSaving extends Thread {
-            int d;
-
-            ParallelSaving(int d) {
-                this.d = d;
-            }
-
-            public void run() {
-                try {
-                    int[] mapL2G = domain.getSubdomain(d).mapL2G;
-                    LiteElement[] dataRcv = (LiteElement[]) mpi.receive(d, Tag.GMRES2MASTER).getData();
-                    for (LiteElement dataRcv1 : dataRcv) {
-                        //liteElems[mapL2G[dataRcv1.index]] = dataRcv1;
-                        liteElems[mapL2G[dataRcv1.index]] = new LiteElement(dataRcv1.index, dataRcv1.y);
-                    }
-                } catch (MPIException ex) {
-                    Logger.getLogger(ParallelGmresMaster.class.getName()).log(Level.SEVERE, null, ex);
+        if (!parallel) {// sequential
+            for (int d = 0; d < domain.nDoms; ++d) {
+                int[] mapL2G = domain.getSubdomain(d).mapL2G;
+                LiteElement[] dataRcv = (LiteElement[]) mpi.receive(d, Tag.GMRES2MASTER).getData();
+                for (LiteElement dataRcv1 : dataRcv) {
+                    //liteElems[mapL2G[dataRcv1.index]] = new LiteElement(dataRcv1.index, dataRcv1.y);
+                    liteElems[mapL2G[dataRcv1.index]] = dataRcv1;
                 }
             }
-        }
-
-        ParallelSaving[] ps = new ParallelSaving[domain.nDoms];
-        for (int d = 0; d < domain.nDoms; d++) {
-            ps[d] = new ParallelSaving(d);
-            ps[d].start();
-        }
-        try {
+        } else {  // parallel
+            ParallelSaving[] ps = new ParallelSaving[domain.nDoms];
             for (int d = 0; d < domain.nDoms; d++) {
-                ps[d].join();
+                ps[d] = new ParallelSaving(d);
+                ps[d].start();
             }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
+            try {
+                for (int d = 0; d < domain.nDoms; d++) {
+                    ps[d].join();
+                }
+            } catch (java.lang.InterruptedException e) {
+                System.out.println(e);
+            }
         }
 
         // uploading data from the central structure onto the slave nodes
-//        for (int d = 0; d < domain.nDoms; ++d) {
-//            Domain.Subdomain subdom = domain.getSubdomain(d);
-//            int[] mapG2L = subdom.mapG2L;
-//            int[] load = subdom.load1;
-//            LiteElement[] dataSend = new LiteElement[load.length];
-//            for (int i = 0; i < load.length; i++) {
-//                dataSend[i] = new LiteElement(mapG2L[load[i]], liteElems[load[i]].y);
-//            }
-//            if (index == -1) {
-//                mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_X, dataSend), d);
-//            } else {
-//                mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_W, dataSend), d);
-//            }
-//        }
-
-        class ParallelLoading extends Thread {
-            int d;
-            
-            ParallelLoading(int d) {
-                this.d = d;
-            }
-            public void run() {
-                try {
-                    Domain.Subdomain subdom = domain.getSubdomain(d);
-                    int[] mapG2L = subdom.mapG2L;
-                    int[] load = subdom.load1;
-                    LiteElement[] dataSend = new LiteElement[load.length];
-                    for (int i = 0; i < load.length; i++) {
-                        dataSend[i] = new LiteElement(mapG2L[load[i]], liteElems[load[i]].y);
-                    }
-                    if (index == -1) {
-                        mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_X, dataSend), d);
-                    } else {
-                        mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_W, dataSend), d);
-                    }
-                } catch (MPIException ex) {
-                    Logger.getLogger(ParallelGmresMaster.class.getName()).log(Level.SEVERE, null, ex);
+        if (!parallel) {// sequential
+            for (int d = 0; d < domain.nDoms; ++d) {
+                Domain.Subdomain subdom = domain.getSubdomain(d);
+                int[] mapG2L = subdom.mapG2L;
+                int[] load = subdom.load1;
+                LiteElement[] dataSend = new LiteElement[load.length];
+                for (int i = 0; i < load.length; i++) {
+                    //dataSend[i] = new LiteElement(mapG2L[load[i]], liteElems[load[i]].y);
+                    dataSend[i] = liteElems[load[i]];
+                    dataSend[i].index = mapG2L[load[i]];
+                }
+                if (index == -1) {
+                    mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_X, dataSend), d);
+                } else {
+                    mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_W, dataSend), d);
                 }
             }
-        }
-
-        ParallelLoading[] pl = new ParallelLoading[domain.nDoms];
-        for (int d = 0; d < domain.nDoms; d++) {
-            pl[d] = new ParallelLoading(d);
-            pl[d].start();
-        }
-        try {
+        } else { // parallel
+            ParallelLoading[] pl = new ParallelLoading[domain.nDoms];
             for (int d = 0; d < domain.nDoms; d++) {
-                pl[d].join();
+                pl[d] = new ParallelLoading(d, index);
+                pl[d].start();
             }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
+            try {
+                for (int d = 0; d < domain.nDoms; d++) {
+                    pl[d].join();
+                }
+            } catch (java.lang.InterruptedException e) {
+                System.out.println(e);
+            }
         }
 
         mpi.waitForAll(Tag.GMRES2MASTER);
@@ -309,5 +270,67 @@ public class ParallelGmresMaster {
             x[i] = (b[i] - sum) / A[i][i];
         }
         return x;
+    }
+
+    class ParallelSaving extends Thread {
+
+        int d;
+
+        ParallelSaving(int d) {
+            this.d = d;
+        }
+
+        public void run() {
+            try {
+                int[] mapL2G = domain.getSubdomain(d).mapL2G;
+                LiteElement[] dataRcv = (LiteElement[]) mpi.receive(d, Tag.GMRES2MASTER).getData();
+                for (LiteElement dataRcv1 : dataRcv) {
+                    //liteElems[mapL2G[dataRcv1.index]] = new LiteElement(dataRcv1.index, dataRcv1.y);
+                    liteElems[mapL2G[dataRcv1.index]] = dataRcv1;
+                }
+            } catch (MPIException ex) {
+                Logger.getLogger(ParallelGmresMaster.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    class ParallelLoading extends Thread {
+
+        int d;
+        int index;
+
+        ParallelLoading(int d, int index) {
+            this.d = d;
+            this.index = index;
+        }
+
+        public void run() {
+            try {
+                Domain.Subdomain subdom = domain.getSubdomain(d);
+                int[] mapG2L = subdom.mapG2L;
+                int[] load = subdom.load1;
+                LiteElement[] dataSend = new LiteElement[load.length];
+                for (int i = 0; i < load.length; i++) {
+                    //dataSend[i] = new LiteElement(mapG2L[load[i]], liteElems[load[i]].y);
+                    dataSend[i] = liteElems[load[i]];
+                    dataSend[i].index = mapG2L[load[i]];
+                }
+                if (index == -1) {
+                    mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_X, dataSend), d);
+                } else {
+                    mpi.send(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.LOAD_W, dataSend), d);
+                }
+            } catch (MPIException ex) {
+                Logger.getLogger(ParallelGmresMaster.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    void ping() throws MPIException {
+        Watch w = new Watch();
+        w.start();
+        mpi.sendAll(new MPIMessage(Tag.GMRES2SLAVE, ParallelTags.PING));
+        mpi.waitForAll(Tag.GMRES2MASTER);
+        w.stop();
     }
 }

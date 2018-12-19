@@ -16,6 +16,7 @@ public class ParallelGmresSlave {
 
     Element[] elems;
     Element[] metisElems;
+    Element[] saveElems;
     double[] x;
     double[][] V;
     double[] w, r, aux, b;
@@ -69,6 +70,16 @@ public class ParallelGmresSlave {
             }
         }
 
+        // define elements for data exchange
+        s = 0;
+        saveElems = new Element[nSave];
+        for (Element elem : elems) {
+            if (elem.gmresSave) {
+                saveElems[s] = elem;
+                s++;
+            }
+        }
+
         // define sparse matrix
         A = new ParallelSparseMatrix(elems);
         Imetis = A.getImetis();
@@ -97,7 +108,7 @@ public class ParallelGmresSlave {
 
             case ParallelTags.SMULT: // substract multiply
                 A.SubstrMult(aux, b, x, nThreads);
-                M.apply(r,aux);
+                M.apply(r, aux);
 
                 msgOut = new MPIMessage(Tag.GMRES2MASTER, norm('r'));
                 break;
@@ -105,7 +116,7 @@ public class ParallelGmresSlave {
             case ParallelTags.MULT: // multiply
                 index = (int) msg.getData();
                 A.Mult(aux, V[index], nThreads);
-                M.apply(w,aux);
+                M.apply(w, aux);
 
                 double[] innerProd = scalarProducts(index + 1);
 
@@ -150,29 +161,24 @@ public class ParallelGmresSlave {
                 LiteElement[] dataSend = new LiteElement[nSave];
                 int s = 0;
                 if (index == -1) {
-                    for (Element elem : elems) {
-                        if (elem.gmresSave) {
-                            int[] gind = elem.gi_U;
-                            double[] yElem = new double[gind.length];
-                            for (int i = 0; i < gind.length; i++) {
-                                yElem[i] = x[gind[i]];
-                            }
-                            dataSend[s] = new LiteElement(elem.index, yElem);
-                            s++;
+                    for (Element elem : saveElems) {
+                        int[] gind = elem.gi_U;
+                        double[] yElem = new double[gind.length];
+                        for (int i = 0; i < gind.length; i++) {
+                            yElem[i] = x[gind[i]];
                         }
+                        dataSend[s] = new LiteElement(elem.index, yElem);
+                        s++;
                     }
                 } else {
-                    for (int e = 0; e < elems.length; e++) {
-                        Element elem = elems[e];
-                        if (elem.gmresSave) {
-                            int[] ind = elem.gi_U;
-                            double[] yElem = new double[ind.length];
-                            for (int i = 0; i < ind.length; i++) {
-                                yElem[i] = V[index][ind[i]];
-                            }
-                            dataSend[s] = new LiteElement(elem.index, yElem);
-                            s++;
+                    for (Element elem : saveElems) {
+                        int[] ind = elem.gi_U;
+                        double[] yElem = new double[ind.length];
+                        for (int i = 0; i < ind.length; i++) {
+                            yElem[i] = V[index][ind[i]];
                         }
+                        dataSend[s] = new LiteElement(elem.index, yElem);
+                        s++;
                     }
                 }
                 msgOut = new MPIMessage(Tag.GMRES2MASTER, dataSend);
@@ -181,8 +187,7 @@ public class ParallelGmresSlave {
             case ParallelTags.LOAD_X:
                 LiteElement[] dataReceive = (LiteElement[]) msg.getData();
                 for (LiteElement dataRec : dataReceive) {
-                    int j = dataRec.index;
-                    int[] gind = elems[j].gi_U;
+                    int[] gind = elems[dataRec.index].gi_U;
                     for (int i = 0; i < gind.length; i++) {
                         x[gind[i]] = dataRec.y[i];
                     }
@@ -193,8 +198,7 @@ public class ParallelGmresSlave {
             case ParallelTags.LOAD_W:
                 dataReceive = (LiteElement[]) msg.getData();
                 for (LiteElement dataRec : dataReceive) {
-                    int j = dataRec.index;
-                    int[] ind = elems[j].gi_U;
+                    int[] ind = elems[dataRec.index].gi_U;
                     for (int i = 0; i < ind.length; i++) {
                         V[index][ind[i]] = dataRec.y[i];
                     }
@@ -212,6 +216,10 @@ public class ParallelGmresSlave {
                         x[i] += Vaux[i] * y[k];
                     }
                 }
+                msgOut = new MPIMessage(Tag.GMRES2MASTER);
+                break;
+
+            case ParallelTags.PING:
                 msgOut = new MPIMessage(Tag.GMRES2MASTER);
                 break;
         }
