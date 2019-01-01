@@ -19,6 +19,8 @@ public abstract class Transformation implements Serializable {
 
     abstract public double[][] getInterpolant(Quadrature quad);
     
+    abstract public double[] getXs();
+    
     public double[] getXi(double[] X) {
         int dim = X.length;
         double[] Xi = new double[dim];

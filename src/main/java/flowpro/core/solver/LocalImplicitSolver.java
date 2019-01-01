@@ -178,6 +178,8 @@ public class LocalImplicitSolver extends MasterSolver {
                 elems[i].limiter();
             }
 
+            assembleTime = 0;
+            solveTime = 0;
             for (int s = 0; s < par.newtonIters; s++) {  // vnitrni iterace (Newton)
                 // mesh deformation
                 if (par.movingMesh) {
@@ -192,13 +194,13 @@ public class LocalImplicitSolver extends MasterSolver {
 
                 long startTime = System.currentTimeMillis();
                 assembler.assemble(dt, dto);
-                assembleTime = System.currentTimeMillis() - startTime;
+                assembleTime += System.currentTimeMillis() - startTime;
 
                 // reseni soustavy rovnic
                 Arrays.fill(x, 0.0);
                 startTime = System.currentTimeMillis();
                 converges = linSolver.solve(x);
-                solveTime = System.currentTimeMillis() - startTime;
+                solveTime = +System.currentTimeMillis() - startTime;
 
                 if (!converges) {
                     copyWo2W();

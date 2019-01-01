@@ -137,4 +137,9 @@ public class transformation2DTriangleCurved extends Transformation {
         n = Mat.times(n, 1/Mat.L2Norm(n));
         return Mat.plusVec(xs, Mat.times(n,-h));
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{1.0/3,1.0/3});
+    }
 }

@@ -89,6 +89,9 @@ public abstract class ElementType implements Serializable {
             case 6:
                 elemType = new hexahedralElement(order);
                 break;
+            case 63:
+                elemType = new hexahedralElementCylinderCoords(order);
+                break; 
             case 7:
                 elemType = new prismElement(order);
                 break;

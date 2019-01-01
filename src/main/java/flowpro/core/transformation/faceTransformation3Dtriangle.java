@@ -90,5 +90,10 @@ public class faceTransformation3Dtriangle extends FaceTransformation{
         double[] Js2 = transform.jacobianMatrixDirection(getXiRef(Xi), s2);
         return Mat.normVector(Mat.cross(Js2,Js1));
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{1.0/3, 1.0/3});
+    }
 }
 

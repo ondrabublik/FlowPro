@@ -64,5 +64,10 @@ public class transformation1Dline extends Transformation {
         }
         return interpolant;
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{0});
+    }
 }
 

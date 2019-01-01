@@ -146,7 +146,7 @@ public class ResultsPlot {
             System.out.println("MeshScale found: " + meshScale + " ");
         } catch (Exception e) {
             System.out.println("MeshScale not defined!");
-        };
+        }
 
         // loading result
         double[][] W = null;
@@ -206,11 +206,14 @@ public class ResultsPlot {
         }
 
         if (precision < 2) {
+            if (precision == 0) { // only copy center value
+                System.out.println("Warning: derivatives dW/dxi are supported only with -p option and for order higher then 1!");
+            }
             // result generated and mesh interpolation
             int listSize = names.size();
             for (int s = 0; s < listSize; s++) {
                 String variableName = names.pop();
-                double[] value = eqn.getResults(W[0], new double[eqn.nEqs()*dim], new double[dim], variableName);
+                double[] value = eqn.getResults(W[0], new double[eqn.nEqs() * dim], new double[dim], variableName);
                 double[][] result;
                 if (value.length == 1) {
                     result = new double[PXY.length][1]; // scalar
@@ -227,7 +230,7 @@ public class ResultsPlot {
                             }
                             XCenter[d] /= TP[i].length;
                         }
-                        value = eqn.getResults(W[i], new double[eqn.nEqs()*dim], XCenter, variableName);
+                        value = eqn.getResults(W[i], new double[eqn.nEqs() * dim], XCenter, variableName);
                         for (int j = 0; j < TP[i].length; j++) {
                             for (int k = 0; k < value.length; k++) {
                                 result[TP[i][j]][k] += value[k];
@@ -315,7 +318,7 @@ public class ResultsPlot {
                 System.out.println();
                 System.out.println(variableName);
                 System.out.println("|        |");
-                double[] value = eqn.getResults(W[0], new double[eqn.nEqs()*dim], new double[dim], variableName);
+                double[] value = eqn.getResults(W[0], new double[eqn.nEqs() * dim], new double[dim], variableName);
                 for (int i = 0; i < TP.length; i++) {
                     double[][] vertices = new double[TP[i].length][dim];
                     for (int j = 0; j < TP[i].length; j++) {
@@ -473,6 +476,7 @@ public class ResultsPlot {
             case 5:
                 return 10;
             case 6:
+            case 63:
                 return 12;
             case 7:
                 return 13;

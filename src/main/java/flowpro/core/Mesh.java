@@ -1678,14 +1678,15 @@ public class Mesh implements Serializable {
 
         // vypocet geometrie _______________________________________________________
         public void computeGeometry() {
-            Xes = new double[nFaces][dim];
+            Xes = new double[nFaces][];
             for (int k = 0; k < nFaces; k++) {
-                int[] edgeIndex = Int.faces[k].faceIndexes;
-                for (int j = 0; j < edgeIndex.length; j++) {
-                    for (int d = 0; d < dim; d++) {
-                        Xes[k][d] = Xes[k][d] + vertices[edgeIndex[j]][d] / edgeIndex.length;
-                    }
-                }
+                Xes[k] = Int.faces[k].faceTransform.getXs();
+//                int[] edgeIndex = Int.faces[k].faceIndexes;
+//                for (int j = 0; j < edgeIndex.length; j++) {
+//                    for (int d = 0; d < dim; d++) {
+//                        Xes[k][d] = Xes[k][d] + vertices[edgeIndex[j]][d] / edgeIndex.length;
+//                    }
+//                }
                 //Mat.print(Xes[k]);
             }
             S = new double[nFaces];
@@ -1709,12 +1710,13 @@ public class Mesh implements Serializable {
                 n[0][0][0] = -1;
             }
 
-            Xs = new double[dim];
-            for (int j = 0; j < nVertices; j++) {
-                for (int d = 0; d < dim; d++) {
-                    Xs[d] = Xs[d] + vertices[j][d] / nVertices;
-                }
-            }
+//            Xs = new double[dim];
+//            for (int j = 0; j < nVertices; j++) {
+//                for (int d = 0; d < dim; d++) {
+//                    Xs[d] = Xs[d] + vertices[j][d] / nVertices;
+//                }
+//            }
+            Xs = transform.getXs();
 
             area = 0;
             for (int i = 0; i < Int.nIntVolume; i++) {

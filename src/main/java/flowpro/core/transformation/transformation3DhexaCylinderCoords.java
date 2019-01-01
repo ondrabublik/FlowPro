@@ -3,12 +3,12 @@ package flowpro.core.transformation;
 import flowpro.api.Mat;
 import flowpro.core.quadrature.Quadrature;
 
-public class transformation3Dhexa extends Transformation {
+public class transformation3DhexaCylinderCoords extends Transformation {
 
     private double[][] A;
     private final double[][] invV;
 
-    public transformation3Dhexa() {
+    public transformation3DhexaCylinderCoords() {
         coordsXi = new double[][]{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}};
 
         double[][] V = new double[8][8]; // Vandermondova matice
@@ -49,58 +49,39 @@ public class transformation3Dhexa extends Transformation {
     // transform
     @Override
     public double[] getX(double[] Xi) {
-        return new double[]{A[0][0] * Xi[0] * Xi[1] * Xi[2] + A[0][1] * Xi[0] * Xi[1] + A[0][2] * Xi[0] * Xi[2] + A[0][3] * Xi[1] * Xi[2] + A[0][4] * Xi[0] + A[0][5] * Xi[1] + A[0][6] * Xi[2] + A[0][7],
+        double[] Xr = new double[]{A[0][0] * Xi[0] * Xi[1] * Xi[2] + A[0][1] * Xi[0] * Xi[1] + A[0][2] * Xi[0] * Xi[2] + A[0][3] * Xi[1] * Xi[2] + A[0][4] * Xi[0] + A[0][5] * Xi[1] + A[0][6] * Xi[2] + A[0][7],
             A[1][0] * Xi[0] * Xi[1] * Xi[2] + A[1][1] * Xi[0] * Xi[1] + A[1][2] * Xi[0] * Xi[2] + A[1][3] * Xi[1] * Xi[2] + A[1][4] * Xi[0] + A[1][5] * Xi[1] + A[1][6] * Xi[2] + A[1][7],
             A[2][0] * Xi[0] * Xi[1] * Xi[2] + A[2][1] * Xi[0] * Xi[1] + A[2][2] * Xi[0] * Xi[2] + A[2][3] * Xi[1] * Xi[2] + A[2][4] * Xi[0] + A[2][5] * Xi[1] + A[2][6] * Xi[2] + A[2][7]};
-    }
 
-    /*
-    public double[] getXi(double[] X) {
-        double[] Xi = new double[]{0.5, 0.5, 0.5};
-        double[] Xin = new double[]{0.5, 0.5, 0.5};
-        double[] V = new double[]{0, 0, 0};
-        double[][] J = new double[3][3];
-        double h = 1e-10;
-        for (int i = 0; i <= 500; i++) {
-            for (int j = 0; j < 3; j++) {
-                V[j] = h;
-                J[j] = Mat.times(Mat.minusVec(getX(Mat.plusVec(Xi, V)), getX(Xi)), 1 / h);
-                V[j] = 0;
-            }
-            Mat.transposeInPlace(J);
-            Xin = Mat.minusVec(Xi, Mat.times(Mat.invert(J), Mat.minusVec(getX(Xi),X)));
-            
-            
-            if (Mat.L2Norm(Mat.minusVec(Xin, Xi)) < 1e-11) {
-                break;
-            }
-            if (i == 500 || Double.isNaN(Xin[0]) || Double.isNaN(Xin[1]) || Double.isNaN(Xin[2])) {
-                System.out.println("Inverse mapping error!" + Mat.L2Norm(Mat.minusVec(Xin, Xi)));
-                Xin = new double[]{0.5, 0.5, 0.5};
-                break;
-            }
-
-            System.arraycopy(Xin, 0, Xi, 0, 3);
-        }
-        return Xin;
+        return cylinderTransform(Xr);
     }
-    */
 
     @Override
     public double getDX(double[] Xi, int dimTop, int dimBottom) {
+        double[] Y = getX(Xi);
+        double r = Y[2];
+        double fi = Y[1];
+        double dx = A[dimTop][0] * Xi[1] * Xi[2] + A[dimTop][1] * Xi[1] + A[dimTop][2] * Xi[2] + A[dimTop][4];
+        double dr = A[dimTop][0] * Xi[0] * Xi[2] + A[dimTop][1] * Xi[0] + A[dimTop][3] * Xi[2] + A[dimTop][5];
+        double dfi = A[dimTop][0] * Xi[0] * Xi[1] + A[dimTop][2] * Xi[0] + A[dimTop][3] * Xi[1] + A[dimTop][6];
+
         double D = 0;
         switch (dimBottom) {
             case 0:
-                D = A[dimTop][0] * Xi[1] * Xi[2] + A[dimTop][1] * Xi[1] + A[dimTop][2] * Xi[2] + A[dimTop][4];
+                D = dx;
                 break;
             case 1:
-                D = A[dimTop][0] * Xi[0] * Xi[2] + A[dimTop][1] * Xi[0] + A[dimTop][3] * Xi[2] + A[dimTop][5];
+                D = dr * Math.cos(fi) - r * Math.sin(fi) * dfi;
                 break;
             case 2:
-                D = A[dimTop][0] * Xi[0] * Xi[1] + A[dimTop][2] * Xi[0] + A[dimTop][3] * Xi[1] + A[dimTop][6];
+                D = -dr * Math.sin(fi) - r * Math.cos(fi) * dfi;
                 break;
         }
         return D;
+    }
+
+    public double[] cylinderTransform(double[] X) {
+        return new double[]{X[0], X[2] * Math.cos(X[1]), -X[2] * Math.sin(X[1])};
     }
 
     @Override
