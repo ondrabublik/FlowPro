@@ -1974,7 +1974,8 @@ public class Mesh implements Serializable {
         public void exportLocalR() {
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
-            residuum(V, Rw, null);
+            double[][] RwN = new double[nFaces][];
+            residuum(V, Rw, RwN);
             System.arraycopy(Rw, 0, RHS_loc, 0, Rw.length);
         }
 
