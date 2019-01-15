@@ -131,10 +131,12 @@ public class OptimisationToolExport {
 
     public void exportJacobiTranspose() throws IOException {
         Element[] elems = mesh.getElems();
+        for (int k = 0; k < mesh.nElems; k++) {
+            elems[k].exportLocalJacobiMatrix();
+        }
         FileWriter fw = new FileWriter(optimisationPath + "J.txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
             for (int k = 0; k < mesh.nElems; k++) {
-                elems[k].exportLocalJacobiMatrix();
                 int n = elems[k].nBasis * mesh.nEqs;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {

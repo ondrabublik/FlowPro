@@ -13,14 +13,21 @@ public abstract class Transformation implements Serializable {
 
     abstract public double[] getX(double[] Xi);
 
-    abstract public double getDX(double[] Xi, int dimTop, int dimBottom);
-
     abstract public double jacobian(double[] Xi);
 
     abstract public double[][] getInterpolant(Quadrature quad);
-    
+
     abstract public double[] getXs();
-    
+
+    public double getDX(double[] Xi, int dimTop, int dimBottom) {
+        double h = 1e-6;
+        Xi[dimBottom] += h;
+        double[] Yph = getX(Xi);
+        Xi[dimBottom] -= 2 * h;
+        double[] Ymh = getX(Xi);
+        return (Yph[dimTop] - Ymh[dimTop]) / (2 * h);
+    }
+
     public double[] getXi(double[] X) {
         int dim = X.length;
         double[] Xi = new double[dim];

@@ -1,4 +1,4 @@
-function cylinderTransformGeometry
+function cylinderTransformGeometry2
 
 n1 = 10; % pocet bodu site profilu
 n2 = 15;
@@ -14,7 +14,7 @@ Y = zeros(n1,n2,n3);
 Z = zeros(n1,n2,n3);
 
 x = linspace(0,L,n1);
-y = linspace(0,2*pi,n2);
+y = linspace(0,pi/2,n2);
 z = linspace(r1,r2,n3);
 for i = 1:n1
     for j = 1:n2
@@ -27,18 +27,17 @@ for i = 1:n1
 end
 
 ind = zeros(n1,n2,n3);
-P = zeros(n1*(n2-1)*n3,3);
+P = zeros(n1*n2*n3,3);
 s = 1;
-for j = 1:n2-1
+for j = 1:n2
     for i = 1:n1    
         for k = 1:n3
-            ind(i,j,k) = s-1;
+            ind(i,j,k) = s;
             P(s,:) = [X(i,j,k),Y(i,j,k),Z(i,j,k)];
             s = s + 1;
         end
     end
 end
-ind(:,n2,:) = ind(:,1,:);
 
 nq = (n1-1)*(n2-1)*(n3-1);
 QP = zeros(nq,8);
@@ -59,21 +58,22 @@ bound = [];
 for i = 1:length(QP(:,1))
     for k = 1:6
         index = face(k);
-        xs = sum(P(QP(i,index)+1,1))/4;
+        xs = sum(P(QP(i,index),1))/4;
         if(abs(xs) < eps)
-            bound = [bound; [-2, QP(i,index)]];
+            bound = [bound; [-2, QP(i,index)-1]];
         end
         if(abs(xs-L) < eps)
-            bound = [bound; [-3, QP(i,index)]];
+            bound = [bound; [-3, QP(i,index)-1]];
         end 
     end
 end
 
 mkdir('mesh')
 dlmwrite('mesh/vertices.txt', P, 'delimiter', ' ', 'precision', 16);
-dlmwrite('mesh/elements.txt', QP, 'delimiter', ' ');
+dlmwrite('mesh/elements.txt', QP-1, 'delimiter', ' ');
 dlmwrite('mesh/boundaryType.txt', bound, 'delimiter', ' ');
 dlmwrite('mesh/elementType.txt', 63*ones(size(QP,1),1), 'delimiter', ' ');
+dlmwrite('mesh/elementType6.txt', 6*ones(size(QP,1),1), 'delimiter', ' ');
 
 if(1 == 1)
     figure;
@@ -86,9 +86,6 @@ if(1 == 1)
             plot3(X(:,j,k),Y(:,j,k),Z(:,j,k),'k');
         end
     end
-    y = P(:,3).*cos(P(:,2));
-    z = P(:,3).*sin(P(:,2));
-    plot3(P(:,1),P(:,2),P(:,3),'.r')
     axis equal;
 end
 
@@ -108,6 +105,7 @@ function ind = face(k)
         case(6)
             ind = [3, 7, 4, 0]+1;
     end
+
 
 
 

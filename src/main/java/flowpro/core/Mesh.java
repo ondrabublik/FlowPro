@@ -148,13 +148,14 @@ public class Mesh implements Serializable {
         System.out.print("integration ");
         for (int i = 0; i < nElems; i++) {
             elems[i].initIntegration();
-            if (i % (nElems / 10) == 0) {
+            if (nElems > 10 && i % (nElems / 10) == 0) {
                 System.out.print("*");
             }
         }
         System.out.println();
         System.out.print("geometry    ");
         int dofs0 = 0;
+        int nBrokenElements = 0;
         for (int i = 0; i < nElems; i++) {
             dofs0 = elems[i].nastav_globalni_index_U(dofs0);
             if (elems[i].insideComputeDomain) {
@@ -163,8 +164,12 @@ public class Mesh implements Serializable {
                 elems[i].computeGeometry();
                 elems[i].constructMassMatrix();
                 elems[i].computeOrderTruncationMatrix();
+
                 // checking geometry
-                elems[i].geometryCheck();
+                boolean isOK = elems[i].geometryCheck(false);
+                if (!isOK) {
+                    nBrokenElements++;
+                }
             }
             elems[i].insideAssemblerDomain = elems[i].insideMetisDomain;
             for (int j = 0; j < elems[i].nFaces; j++) {
@@ -172,7 +177,7 @@ public class Mesh implements Serializable {
                     elems[i].insideAssemblerDomain = false;
                 }
             }
-            if (i % (nElems / 10) == 0) {
+            if (nElems > 10 && i % (nElems / 10) == 0) {
                 System.out.print("*");
             }
         }
@@ -180,6 +185,13 @@ public class Mesh implements Serializable {
 
         for (Element elem : elems) {
             elem.initCondition();
+        }
+
+        System.out.println();
+        if (nBrokenElements > 0) {
+            System.out.println("Broken elements = " + nBrokenElements);
+        } else {
+            System.out.println("Broken elements = 0 ");
         }
         System.out.println();
     }
@@ -424,7 +436,7 @@ public class Mesh implements Serializable {
         }
 
         public void initIntegration() throws IOException {
-            Int = new Integration(elemType, dim, basis, transform, TT, TEshift, shift, vertices, qRules, elemType.order);
+            Int = new Integration(elemType, dim, basis, transform, TT, TEshift, shift, qRules, elemType.order);
 
             if (!par.isExplicit) {
                 ADiag = new double[nEqs * nBasis][nEqs * nBasis];
@@ -1075,7 +1087,8 @@ public class Mesh implements Serializable {
                     }
                 }
             } else// production term for FVM
-             if (eqn.isSourcePresent()) {
+            {
+                if (eqn.isSourcePresent()) {
                     double[] Jac = Int.JacobianVolume;
                     double[] weights = Int.weightsVolume;
 
@@ -1098,6 +1111,7 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
+            }
         }
 
         // tato funkce vypocitava reziduum__________________________________________
@@ -1681,13 +1695,6 @@ public class Mesh implements Serializable {
             Xes = new double[nFaces][];
             for (int k = 0; k < nFaces; k++) {
                 Xes[k] = Int.faces[k].faceTransform.getXs();
-//                int[] edgeIndex = Int.faces[k].faceIndexes;
-//                for (int j = 0; j < edgeIndex.length; j++) {
-//                    for (int d = 0; d < dim; d++) {
-//                        Xes[k][d] = Xes[k][d] + vertices[edgeIndex[j]][d] / edgeIndex.length;
-//                    }
-//                }
-                //Mat.print(Xes[k]);
             }
             S = new double[nFaces];
             for (int k = 0; k < nFaces; k++) {
@@ -1710,12 +1717,6 @@ public class Mesh implements Serializable {
                 n[0][0][0] = -1;
             }
 
-//            Xs = new double[dim];
-//            for (int j = 0; j < nVertices; j++) {
-//                for (int d = 0; d < dim; d++) {
-//                    Xs[d] = Xs[d] + vertices[j][d] / nVertices;
-//                }
-//            }
             Xs = transform.getXs();
 
             area = 0;
@@ -1901,7 +1902,8 @@ public class Mesh implements Serializable {
             }
         }
 
-        void geometryCheck() {
+        boolean geometryCheck(boolean writeOut) {
+            boolean isOK = true;
             double[] test1 = new double[dim];
             double[] test2 = new double[dim];
             double sumTest1 = 0;
@@ -1921,7 +1923,10 @@ public class Mesh implements Serializable {
                 sumTest1 += test1[d];
                 sumTest2 += test2[d] / dim;
                 if (test2[d] < 0) {
-                    System.out.println("Mesh element error, bad points order in file elements.txt!");
+                    if (writeOut) {
+                        System.out.println("Mesh element error, bad points order in file elements.txt!");
+                    }
+                    isOK = false;
                 }
             }
             double testTol2 = 1e-11;
@@ -1929,28 +1934,29 @@ public class Mesh implements Serializable {
                 testTol2 = 1e-4;
             }
             if (Math.abs(sumTest1) > 1e-11 || Math.abs(sumTest2 - area) > testTol2 || sumTest2 < 0) {
-                System.out.println("Mesh element error! Control sum 1:" + Math.abs(sumTest1) + ", control sum 2:" + Math.abs(sumTest2 - area));
-                //throw new RuntimeException("geometry check failed");
+                if (writeOut) {
+                    System.out.println("Mesh element error! Control sum 1: " + Math.abs(sumTest1) + ", control sum 2: " + Math.abs(sumTest2 - area));
+                }
+                isOK = false;
             }
 
-            // check normals
-            /*
-             boolean err = false;
-             for (int k = 0; k < nFaces; k++) {
-             Face face = Int.faces[k];
-             for (int p = 0; p < face.nIntEdge; p++) { // edge integral
-             double[] X = face.faceTransform.getX(face.quadFace.coords[p]);
-             double norOrient = Mat.scalar(n[k][p], Mat.minusVec(X, Xs));
-             if (norOrient < 0) {
-             err = true;
-
-             }
-             }
-             if (err) {
-             System.out.println("Mesh orientation error!");
-             }
-             }
-             */
+//            // check normals
+//            boolean err = false;
+//            for (int k = 0; k < nFaces; k++) {
+//                Face face = Int.faces[k];
+//                for (int p = 0; p < face.nIntEdge; p++) { // edge integral
+//                    double[] X = face.faceTransform.getX(face.quadFace.coords[p]);
+//                    double norOrient = Mat.scalar(n[k][p], Mat.minusVec(X, Xs));
+//                    if (norOrient < 0) {
+//                        err = true;
+//
+//                    }
+//                }
+//                if (err) {
+//                    System.out.println("Mesh orientation error!");
+//                }
+//            }
+            return isOK;
         }
 
         // optimalisation

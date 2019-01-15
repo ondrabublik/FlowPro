@@ -241,7 +241,7 @@ public class FlowProMain {
             CurvedBoundary.saveMesh(meshPath, elemsType, TP, TT);
         } else {
             fCurv = new FaceCurvature[nElems];
-            elemsType = firstDigit(elemsType);
+            //elemsType = firstDigit(elemsType);
         }
 
         // domain partition for parallel computing

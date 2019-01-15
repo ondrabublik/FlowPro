@@ -18,7 +18,6 @@ public class Integration {
     int[] TP;
     int[] TEshift;
     double[][] shift;
-    double[][] vertices;
     QuadratureCentral qRules;
     Quadrature quadVolume;
     Transformation transform;
@@ -38,13 +37,12 @@ public class Integration {
     int nEdges;
     public Face[] faces;
 
-    Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, double[][] vertices, QuadratureCentral qRules, int order) {
+    Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, QuadratureCentral qRules, int order) {
         this.transform = transform;
         this.dimension = dimension;
         this.TT = TT;
         this.TEshift = TEshift;
         this.shift = shift;
-        this.vertices = vertices;
         this.quadVolume = elemType.getQVolumeRule(qRules);
         this.qRules = qRules;
         this.order = order;

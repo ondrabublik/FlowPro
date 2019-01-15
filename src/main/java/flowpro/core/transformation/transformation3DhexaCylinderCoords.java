@@ -56,32 +56,9 @@ public class transformation3DhexaCylinderCoords extends Transformation {
         return cylinderTransform(Xr);
     }
 
-    @Override
-    public double getDX(double[] Xi, int dimTop, int dimBottom) {
-        double[] Y = getX(Xi);
-        double r = Y[2];
-        double fi = Y[1];
-        double dx = A[dimTop][0] * Xi[1] * Xi[2] + A[dimTop][1] * Xi[1] + A[dimTop][2] * Xi[2] + A[dimTop][4];
-        double dr = A[dimTop][0] * Xi[0] * Xi[2] + A[dimTop][1] * Xi[0] + A[dimTop][3] * Xi[2] + A[dimTop][5];
-        double dfi = A[dimTop][0] * Xi[0] * Xi[1] + A[dimTop][2] * Xi[0] + A[dimTop][3] * Xi[1] + A[dimTop][6];
-
-        double D = 0;
-        switch (dimBottom) {
-            case 0:
-                D = dx;
-                break;
-            case 1:
-                D = dr * Math.cos(fi) - r * Math.sin(fi) * dfi;
-                break;
-            case 2:
-                D = -dr * Math.sin(fi) - r * Math.cos(fi) * dfi;
-                break;
-        }
-        return D;
-    }
-
     public double[] cylinderTransform(double[] X) {
         return new double[]{X[0], X[2] * Math.cos(X[1]), -X[2] * Math.sin(X[1])};
+        //return new double[]{X[0], X[1], X[2]};
     }
 
     @Override
