@@ -29,7 +29,7 @@ dampConst = 0
 
 % solvers setup
 %localSolverType =       % localImplicit, localExplicit
-%distributedSolverType = % distSchwartz, distKSP
+%parallelSolverType = % distSchwartz, distKSP
 %linearSolver = 
 %preconditioner = 
 

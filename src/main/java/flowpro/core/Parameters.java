@@ -78,6 +78,7 @@ public class Parameters implements Serializable {
     // solution monitor
     public String solutionMonitor;
     public boolean solutionMonitorOn;
+    public boolean solutionAverage; // solution average in elementData
     
     // external field
     public boolean externalField;
@@ -266,6 +267,11 @@ public class Parameters implements Serializable {
                 solutionMonitorOn = true;
             } else {
                 solutionMonitor = null;
+            }
+            
+            solutionAverage = false;
+            if (props.containsKey("solutionAverage")) {
+                solutionAverage = props.getBoolean("solutionAverage");
             }
 
         } catch (IOException ex) {

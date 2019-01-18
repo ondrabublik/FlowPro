@@ -1,13 +1,10 @@
-function dI = getFunctionalGradient(nAlpha,h)
+function dI = getFunctionalGradient2(nAlpha,h)
 global optimisationPath
 
 % jacobian matrix
 inp = load([optimisationPath,'J.txt']);
-max()
 Jac = sparse(inp(:,2)+1,inp(:,1)+1,inp(:,3));
-figure
-spy(Jac)
-return
+
 % RHS
 dIdw = load([optimisationPath,'dIdw.txt']);
 
@@ -24,7 +21,7 @@ for i = 1:nAlpha
     dRda = (Rh-R)/h;
     Ih = load([optimisationPath,'I',num2str(i),'.txt']);
     dIda = (Ih-I)/h;
-    dI(i) = lambda'*dRda + dIda;
+    dI(i) = dIdw'*(Jac\dRda) + dIda;
 end
 
 printLambda(lambda);

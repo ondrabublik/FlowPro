@@ -1474,6 +1474,9 @@ public class Mesh implements Serializable {
             elemData.currentT = t;
             elemData.integralMonitor = integralMonitor;
             elemData.elemIndex = index;
+            if(par.solutionAverage){
+                elemData.Wavg = calculateAvgW();
+            }
 
             return u;
         }
@@ -1503,6 +1506,9 @@ public class Mesh implements Serializable {
             elemData.currentT = t;
             elemData.integralMonitor = integralMonitor;
             elemData.elemIndex = index;
+            if(par.solutionAverage){
+                elemData.Wavg = calculateAvgW();
+            }
 
             return u;
         }
