@@ -375,7 +375,7 @@ public class Mesh implements Serializable {
 
         // optimalisation
         public Functional optimalisationFunctional; // functional for optimalisation
-        double[][] optimFunDer;
+        double[] optimFunDer;
 
         // matice globalnich indexu a globalni matice s pravou stranou
         public int[] gi_U;
@@ -1968,16 +1968,13 @@ public class Mesh implements Serializable {
         // optimalisation
         // for optimization toolbox, generate residuum(W)
         public void exportLocalFunctionalDerivative() {
-            int nFunctional = optimalisationFunctional.getN();
-            optimFunDer = new double[nBasis * nEqs][nFunctional];
+            optimFunDer = new double[nBasis * nEqs];
             double[] V = new double[nBasis * nEqs];
-            double[] Iw = computeFunctional(W);
+            double Iw = optimalisationFunctional.combineFunctionals(computeFunctional(W));
             for (int i = 0; i < nBasis * nEqs; i++) {
                 V[i] = par.h;
-                double[] Iwh = computeFunctional(Mat.plusVec(W, V));
-                for (int j = 0; j < nFunctional; j++) {
-                    optimFunDer[i][j] = (Iwh[j] - Iw[j]) / par.h;
-                }
+                double Iwh = optimalisationFunctional.combineFunctionals(computeFunctional(Mat.plusVec(W, V)));
+                optimFunDer[i] = (Iwh - Iw) / par.h;
                 V[i] = 0;
             }
         }

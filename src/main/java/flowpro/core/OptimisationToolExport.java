@@ -176,38 +176,14 @@ public class OptimisationToolExport {
     }
 
     public void exportFunctionalDerivative() throws IOException {
-        Element[] elems = mesh.getElems();
-        // compute functional I0
-        int nFunctional = elems[0].optimalisationFunctional.getN();
-        double[] f = new double[nFunctional];
-        for (Element elem : elems) {
-            double[] aux = elem.computeFunctional(null);
-            for (int j = 0; j < nFunctional; j++) {
-                f[j] += aux[j];
-            }
-        }
-        double combinedFunctional0 = elems[0].optimalisationFunctional.combineFunctionals(f);
-
-        // compute combined function derivatives
-        double[] derivativeCombinedFunctional = new double[nFunctional];
-        double h = 1e-6;
-        for (int j = 0; j < nFunctional; j++) {
-            f[j] += h;
-            derivativeCombinedFunctional[j] = (elems[0].optimalisationFunctional.combineFunctionals(f) - combinedFunctional0) / h;
-            f[j] -= h;
-        }
-
+        Element[] elems = mesh.getElems();     
         // compute functional derivative
         FileWriter fw = new FileWriter(optimisationPath + "dIdw.txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
             for (int k = 0; k < mesh.nElems; k++) {
                 elems[k].exportLocalFunctionalDerivative();
                 for (int i = 0; i < elems[k].optimFunDer.length; i++) {
-                    double dfdwi = 0;
-                    for (int j = 0; j < nFunctional; j++) {
-                        dfdwi += derivativeCombinedFunctional[j] * elems[k].optimFunDer[i][j];
-                    }
-                    out.write(dfdwi + " ");
+                    out.write(elems[k].optimFunDer[i] + " ");
                     out.newLine();
                 }
             }
