@@ -176,14 +176,37 @@ public class OptimisationToolExport {
     }
 
     public void exportFunctionalDerivative() throws IOException {
-        Element[] elems = mesh.getElems();     
+        Parameters par = mesh.getPar();
+        Element[] elems = mesh.getElems();
+        int nFunctional = elems[0].optimalisationFunctional.getN();
+        double[] f = new double[nFunctional];
+        for (Element elem : elems) {
+            double[] aux = elem.computeFunctional(null);
+            for (int j = 0; j < nFunctional; j++) {
+                f[j] += aux[j];
+            }
+        }
+        double combF = elems[0].optimalisationFunctional.combineFunctionals(f);
+             
         // compute functional derivative
         FileWriter fw = new FileWriter(optimisationPath + "dIdw.txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
-            for (int k = 0; k < mesh.nElems; k++) {
-                elems[k].exportLocalFunctionalDerivative();
-                for (int i = 0; i < elems[k].optimFunDer.length; i++) {
-                    out.write(elems[k].optimFunDer[i] + " ");
+            for (Element elem : elems) {
+                int n = elem.nBasis * mesh.nEqs;
+                double[] V = new double[n];
+                double[] f0loc = elem.computeFunctional(null);
+                for (int i = 0; i < n; i++) {
+                    V[i] = par.h;
+                    double[] fhloc = elem.computeFunctional(V);
+                    for (int j = 0; j < nFunctional; j++) {
+                        f[j] += fhloc[j] - f0loc[j];
+                    }
+                    double combFh = elems[0].optimalisationFunctional.combineFunctionals(f);
+                    V[i] = 0;
+                    for (int j = 0; j < nFunctional; j++) {
+                        f[j] -= fhloc[j] - f0loc[j];
+                    }
+                    out.write((combFh-combF)/par.h + " ");
                     out.newLine();
                 }
             }
