@@ -41,7 +41,7 @@ public class ResultsPlot {
     int[][] TP;
     int[][] TT;
     int dim;
-    int order;
+    int[] order;
     boolean curvedBoundary;
     FlowProProperties props;
 
@@ -122,6 +122,17 @@ public class ResultsPlot {
         props = new FlowProProperties();
         props.load(new FileInputStream(simulationPath + PARAMETER_FILE_NAME));
 
+        order = null;
+        try {
+            order = Mat.loadIntArray(simulationPath + "order.txt");
+        } catch (FileNotFoundException ex) {
+            int orderGlob = props.getInt("order");
+            order = new int[TP.length];
+            for (int i = 0; i < TP.length; i++) {
+                order[i] = orderGlob;
+            }
+        }
+        
         boolean movingMesh = false;
         if (props.containsKey("movingMesh")) {
             movingMesh = props.getBoolean("movingMesh");
@@ -167,7 +178,6 @@ public class ResultsPlot {
                     }
                     elemsType = Mat.loadIntArray(meshPath + "elementType.txt");
 
-                    order = props.getInt("order");
                     break;
                 default:
                     if (iter != -1) {
@@ -180,12 +190,6 @@ public class ResultsPlot {
                     TP = Mat.loadIntMatrix(meshPath + "elements.txt");
                     TT = Mat.loadIntMatrix(meshPath + "neighbors.txt");
                     Wcoef = Mat.loadDoubleMatrix(simulationPath + "We.txt");
-
-//                    if (dim != 2) {
-//                        System.out.println("-p property is valid only for 2D elements!");
-//                        System.exit(0);
-//                    }
-                    order = props.getInt("order");
 
                     if (props.containsKey("curvedBoundary")) {
                         curvedBoundary = props.getBoolean("curvedBoundary");
@@ -244,7 +248,7 @@ public class ResultsPlot {
                         for (int j = 0; j < TP[i].length; j++) {
                             System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                         }
-                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order);
+                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
                         Transformation transform = elemType.getVolumeTransformation(vertices, null);
                         Basis basis = elemType.getBasis(transform);
                         int nBasis = basis.nBasis;
@@ -324,7 +328,7 @@ public class ResultsPlot {
                     for (int j = 0; j < TP[i].length; j++) {
                         System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                     }
-                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order);
+                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
                     Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i]);
                     Basis basis = elemType.getBasis(transform);
                     int nBasis = basis.nBasis;
@@ -464,19 +468,18 @@ public class ResultsPlot {
     }
 
     int VTKType(int elementType) {
-        switch (elementType) {
+        switch (firstDigit(elementType)) {
             case 1:
                 return 1;
             case 2:
                 return 3;
-            case 3:
+            case 3:   
                 return 5;
             case 4:
                 return 9;
             case 5:
                 return 10;
             case 6:
-            case 63:
                 return 12;
             case 7:
                 return 13;
@@ -732,7 +735,7 @@ public class ResultsPlot {
                 }
             }
 
-            int[] localElementType = new int[nCoord];
+            int[] localElementType = new int[nTriLoc];
             p = 0;
             for (int i = 0; i < n; i++) {
                 int[] localType = localTypeMap.get(i);

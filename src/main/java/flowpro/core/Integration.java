@@ -81,6 +81,7 @@ public class Integration {
             if (TT[k] > -1) {
                 elemRight = elems[TT[k]];
             }
+            // tady by mel vstupovat vetsi z radu sousednich elementu !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             faces[k] = new Face(elem.elemType, k, elem.basis, TT[k], TEshift[k], shift, elemRight);
         }
     }
@@ -113,10 +114,14 @@ public class Integration {
             this.shift = shift;
             this.faceIndexes = elemType.getFaceIndexes(k);
             this.elemRight = elemRight;
+            int faceOrder = elemType.order;
+            if (elemRight != null) {
+                faceOrder = Math.max(elemType.order, elemRight.elemType.order);
+            }
 
             nVerticesEdge = faceIndexes.length;
             faceType = elemType.getFaceType(k);
-            quadFace = elemType.getQFaceRule(faceType,qRules);
+            quadFace = elemType.getQFaceRule(faceType, qRules, faceOrder);
             faceTransform = elemType.getFaceTransformation(faceType, transform, elemType.getFaceIndexes(k));
             coordinatesFace = faceTransform.getX(quadFace.getCoords());
 

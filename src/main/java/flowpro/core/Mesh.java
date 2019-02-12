@@ -141,11 +141,14 @@ public class Mesh implements Serializable {
     }
 
     public void init() throws IOException {
+        // Firstly, init basis function at each of elements
         for (Element elem : elems) {
             elem.initBasis();
         }
         System.out.println("basis       **********");
         System.out.print("integration ");
+        
+        // Secondly init volume integration rules on each of elements
         for (int i = 0; i < nElems; i++) {
             elems[i].initIntegration();
             if (nElems > 10 && i % (nElems / 10) == 0) {
@@ -153,17 +156,18 @@ public class Mesh implements Serializable {
             }
         }
         System.out.println();
+        
         System.out.print("geometry    ");
         int dofs0 = 0;
         int nBrokenElements = 0;
         for (int i = 0; i < nElems; i++) {
             dofs0 = elems[i].nastav_globalni_index_U(dofs0);
             if (elems[i].insideComputeDomain) {
-                elems[i].Int.initNeighbours(elems, elems[i]);   // dopocet vztahu ktere nebylo mozne delat v konstruktoru
-                elems[i].alocateNeigbourhsLinearSolver();
-                elems[i].computeGeometry();
-                elems[i].constructMassMatrix();
-                elems[i].computeOrderTruncationMatrix();
+                elems[i].Int.initNeighbours(elems, elems[i]);   // init face integration rules
+                elems[i].alocateNeigbourhsLinearSolver();       // alocation matrixes of neigbours for linear solver
+                elems[i].computeGeometry();                     // compute geometrical relations
+                elems[i].constructMassMatrix();                 // compute mass matrix
+                elems[i].computeOrderTruncationMatrix();        // for damping
 
                 // checking geometry
                 boolean isOK = elems[i].geometryCheck(false);
@@ -183,6 +187,7 @@ public class Mesh implements Serializable {
         }
         dofs = dofs0;
 
+        // initial condition on each of elements
         for (Element elem : elems) {
             elem.initCondition();
         }
@@ -1453,15 +1458,18 @@ public class Mesh implements Serializable {
         double[] interpolateVelocityAndFillElementDataObjectOnVolume(double[] innerInterpolant) {
             // interpolation of mesh velocity, and other data
             double[] u = new double[dim];
-            Arrays.fill(elemData.currentX, .0);
+            double[] currentXi = new double[dim];
             elemData.currentWallDistance = 0;
             for (int j = 0; j < nVertices; j++) {
                 for (int d = 0; d < dim; d++) {
                     u[d] += innerInterpolant[j] * U[j][d];
-                    elemData.currentX[d] += innerInterpolant[j] * vertices[j][d];
+                    //elemData.currentX[d] += innerInterpolant[j] * vertices[j][d];
+                    currentXi[d] += innerInterpolant[j] * transform.coordsXi[j][d];
                 }
                 elemData.currentWallDistance += innerInterpolant[j] * wallDistance[j];
             }
+            elemData.currentX = transform.getX(currentXi);
+            
             if (par.externalField) {
                 int nExternalField = externalField[0].length;
                 elemData.externalField = new double[nExternalField];
@@ -1484,16 +1492,19 @@ public class Mesh implements Serializable {
         double[] interpolateVelocityAndFillElementDataObjectOnFace(int k, double[] innerInterpolant, int[] edgeIndex) {
             // interpolation of mesh velocity
             double[] u = new double[dim];
-            elemData.currentX = new double[dim];
+            double[] currentXi = new double[dim];
             elemData.currentWallDistance = 0;
             for (int j = 0; j < Int.faces[k].nVerticesEdge; j++) {
                 for (int d = 0; d < dim; d++) {
                     u[d] += innerInterpolant[j] * U[edgeIndex[j]][d];
                     elemData.meshVelocity[d] = u[d];
-                    elemData.currentX[d] += innerInterpolant[j] * vertices[edgeIndex[j]][d];
+                    //elemData.currentX[d] += innerInterpolant[j] * vertices[edgeIndex[j]][d];
+                    currentXi[d] += innerInterpolant[j] * transform.coordsXi[edgeIndex[j]][d];
                 }
                 elemData.currentWallDistance += innerInterpolant[j] * wallDistance[edgeIndex[j]];
             }
+            elemData.currentX = transform.getX(currentXi);
+            
             if (par.externalField) {
                 int nExternalField = externalField[0].length;
                 elemData.externalField = new double[nExternalField];

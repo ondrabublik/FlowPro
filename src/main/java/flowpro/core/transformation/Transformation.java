@@ -20,7 +20,7 @@ public abstract class Transformation implements Serializable {
     abstract public double[] getXs();
 
     public double getDX(double[] Xi, int dimTop, int dimBottom) {
-        double h = 1e-6;
+        double h = 1e-8;
         Xi[dimBottom] += h;
         double[] Yph = getX(Xi);
         Xi[dimBottom] -= 2 * h;
@@ -38,7 +38,7 @@ public abstract class Transformation implements Serializable {
         }
         double[] V = new double[dim];
         double[][] J = new double[dim][dim];
-        double h = 1e-10;
+        double h = 1e-8;
         for (int i = 0; i <= 500; i++) {
             for (int j = 0; j < dim; j++) {
                 V[j] = h;

@@ -6,7 +6,7 @@ args = '';
 for i = 1:nargin
     quantityName = varargin{i};
     
-    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum') || strcmp(lower(quantityName),'av')
+    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'order') || strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum') || strcmp(lower(quantityName),'av')
         continue
     end
     
@@ -33,7 +33,11 @@ for k = 1 : nargin
     switch lower(q)
         case 'mesh'
             showMesh;
-            continue        
+            continue  
+        case 'order'
+            showMesh;
+            showOrder;
+            continue
         case 'bodies'
             showBodies;
             continue        
@@ -42,6 +46,9 @@ for k = 1 : nargin
             continue
         case 'av'
             showArtificialViscosity;
+            continue
+        case 'y'
+            showWallDistance;
             continue
     end
 
@@ -70,7 +77,7 @@ function plotMe(quantityName)
     elseif m > 2
         figure('name', quantityName, 'color', 'w');
         quiver(vertices(:,1), vertices(:,2), quantity(:,1), quantity(:,2));
-        axis equal
+%         axis equal
     end
 end
 
@@ -82,7 +89,7 @@ function myContour(tri, vertices, Quantity, name)
     % tricontour(tri,PX,PY,Quantity,30)
     set(h2, 'linestyle', 'none');
     box on;
-    axis equal;
+%     axis equal;
     osy = [min(vertices(:,1)) max(vertices(:,1)) min(vertices(:,2)) max(vertices(:,2))];
     axis(osy);
     colorbar;
@@ -145,6 +152,31 @@ end
 axis equal
 box on
 
+end
+
+function showOrder
+    [meshPath, simulPath, ~] = getPath;
+    
+    order = dlmread([simulPath, 'order.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = dlmread([meshPath, 'elementType.txt']);
+    nElem = length(elems(:,1));
+    xys = zeros(nElem,2);
+    for i = 1:nElem
+        for j = 1:type(i)
+            xys(i,:) = xys(i,:) + xy(elems(i,j),:);
+        end
+        xys(i,:) = xys(i,:)/type(i);
+    end
+    
+    col = 'brgmckybrgmcky';
+    hold on
+    for i = 1:10
+        x = xys(order == i,1);
+        y = xys(order == i,2);
+        plot(x,y,'marker','.','color',col(i),'linestyle','none');
+    end
 end
 
 function showBodies
@@ -219,6 +251,27 @@ function showArtificialViscosity
     
     figure('color', 'w');
     [~, h2] = tricontf(xy(:,1),xy(:,2),tri,vav,30);
+    % tricontour(tri,PX,PY,Quantity,30)
+    set(h2, 'linestyle', 'none');
+    box on;
+    axis equal;
+    osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+    axis(osy);
+    colorbar;
+    colormap jet
+end
+
+function showWallDistance
+    [meshPath, simulPath, ~] = getPath;   
+    
+    dist = load([meshPath,'wallDistance.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = firstDigit(dlmread([meshPath, 'elementType.txt']));
+    tri = convert2Triangular(elems, type);
+    
+    figure('color', 'w');
+    [~, h2] = tricontf(xy(:,1),xy(:,2),tri,dist,30);
     % tricontour(tri,PX,PY,Quantity,30)
     set(h2, 'linestyle', 'none');
     box on;
