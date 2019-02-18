@@ -42,7 +42,6 @@ public class ResultsPlot {
     int[][] TT;
     int dim;
     int[] order;
-    boolean curvedBoundary;
     FlowProProperties props;
 
     double lRef;
@@ -57,6 +56,8 @@ public class ResultsPlot {
     }
 
     void generateResults() throws IOException {
+
+        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, false, jarURLList); // read numerical parameters    
 
         // equations model
         Equation eqn = null;
@@ -132,11 +133,8 @@ public class ResultsPlot {
                 order[i] = orderGlob;
             }
         }
-        
-        boolean movingMesh = false;
-        if (props.containsKey("movingMesh")) {
-            movingMesh = props.getBoolean("movingMesh");
-        }
+
+        boolean movingMesh = par.movingMesh;
 
         // mesh points
         double[][] PXY = null;
@@ -191,17 +189,11 @@ public class ResultsPlot {
                     TT = Mat.loadIntMatrix(meshPath + "neighbors.txt");
                     Wcoef = Mat.loadDoubleMatrix(simulationPath + "We.txt");
 
-                    if (props.containsKey("curvedBoundary")) {
-                        curvedBoundary = props.getBoolean("curvedBoundary");
-                    } else {
-                        curvedBoundary = false;
-                    }
-
-                    if (curvedBoundary) {
+                    if (par.curvedBoundary) {
                         fCurv = CurvedBoundary.modifyMesh(elemsType, PXY, TP, TT);
                     } else {
                         fCurv = new FaceCurvature[TP.length];
-                        elemsType = firstDigit(elemsType);
+                        //elemsType = firstDigit(elemsType);
                     }
                     break;
             }
@@ -249,7 +241,7 @@ public class ResultsPlot {
                             System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                         }
                         ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
-                        Transformation transform = elemType.getVolumeTransformation(vertices, null);
+                        Transformation transform = elemType.getVolumeTransformation(vertices, null, par);
                         Basis basis = elemType.getBasis(transform);
                         int nBasis = basis.nBasis;
                         for (int j = 0; j < TP[i].length; j++) {
@@ -329,7 +321,7 @@ public class ResultsPlot {
                         System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                     }
                     ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
-                    Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i]);
+                    Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i], par);
                     Basis basis = elemType.getBasis(transform);
                     int nBasis = basis.nBasis;
                     LocalElementSubdivision triLoc = new LocalElementSubdivision(elemsType[i], precision);
@@ -473,7 +465,7 @@ public class ResultsPlot {
                 return 1;
             case 2:
                 return 3;
-            case 3:   
+            case 3:
                 return 5;
             case 4:
                 return 9;

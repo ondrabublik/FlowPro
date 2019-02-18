@@ -163,7 +163,7 @@ public class FlowProMain {
                         dgfem = new FlowProMain();
                         System.out.println();
                         System.out.println("FlowPro parameters:");
-                        Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false).getClass();
+                        Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false, jarURLList).getClass();
                         Field[] fields = par.getFields();
                         for (Field field : fields) {
                             System.out.println(field.getName() + ": " + field.getGenericType());
@@ -190,8 +190,8 @@ public class FlowProMain {
             parallelMode = true;
         }
         Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
-        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode); // read numerical parameters            
-
+        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode, jarURLList); // read numerical parameters                    
+        
         LOG.info("loading data...");
         // load matrices defining the mesh
         double[][] PXY = Mat.loadDoubleMatrix(meshPath + "vertices.txt"); // mesh vertices coordinates
@@ -264,7 +264,7 @@ public class FlowProMain {
             wallDistance = Mat.loadDoubleArray(meshPath + "wallDistance.txt");
         } catch (FileNotFoundException ex) {
             LOG.info("generating wall distance function");
-            wallDistance = generateWallDistanceFunction(elemsType, PXY, TP, TT);
+            wallDistance = generateWallDistanceFunction(eqn, elemsType, PXY, TP, TT);
             Mat.save(wallDistance, meshPath + "wallDistance.txt");
         }
 
@@ -602,7 +602,7 @@ public class FlowProMain {
         }
     }
 
-    public double[] generateWallDistanceFunction(int[] type, double[][] PXY, int[][] TP, int[][] TT) {
+    public double[] generateWallDistanceFunction(Equation eqn, int[] type, double[][] PXY, int[][] TP, int[][] TT) {
         int nRows = TP.length;
         // creating elementTypes
         ElementType[] elemType = new ElementType[nRows];
@@ -616,7 +616,7 @@ public class FlowProMain {
         Arrays.fill(wallDistance, 1e30);
         for (int i = 0; i < nElem; i++) {
             for (int k = 0; k < TT[i].length; k++) {
-                if (TT[i][k] == -1) {
+                if (eqn.isIPFace(TT[i][k])) {
                     int[] faceIndexes = elemType[i].getFaceIndexes(k);
                     for (int j = 0; j < faceIndexes.length; j++) {
                         wallDistance[TP[i][faceIndexes[j]]] = 0;

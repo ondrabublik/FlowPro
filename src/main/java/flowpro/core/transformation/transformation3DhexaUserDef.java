@@ -1,14 +1,21 @@
 package flowpro.core.transformation;
 
+import flowpro.api.DomainTransformationObject;
 import flowpro.api.Mat;
+import flowpro.core.Parameters;
 import flowpro.core.quadrature.Quadrature;
 
-public class transformation3DhexaCylinderCoords extends Transformation {
+public class transformation3DhexaUserDef extends Transformation {
 
     private double[][] A;
     private final double[][] invV;
+    DomainTransformationObject domTrans;
 
-    public transformation3DhexaCylinderCoords() {
+    public transformation3DhexaUserDef(Parameters par) {
+        domTrans = par.domainTransformationObject;
+        if(domTrans == null){
+            throw new UnsupportedOperationException("Domain transformation object not defined!");
+        }
         coordsXi = new double[][]{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}};
 
         double[][] V = new double[8][8]; // Vandermondova matice
@@ -57,8 +64,7 @@ public class transformation3DhexaCylinderCoords extends Transformation {
     }
 
     public double[] cylinderTransform(double[] X) {
-        return new double[]{X[0], X[2] * Math.cos(X[1]), -X[2] * Math.sin(X[1])};
-        //return new double[]{X[0], X[1], X[2]};
+        return domTrans.transform(X);
     }
 
     @Override

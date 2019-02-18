@@ -1,9 +1,11 @@
 package flowpro.core;
 
+import flowpro.api.DomainTransformationObject;
 import flowpro.api.FlowProProperties;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 
 /**
  *
@@ -36,6 +38,9 @@ public class Parameters implements Serializable {
     public final double beta0;  // direct discontinuous constant 
     public final double meshScale; // mesh scale
     public boolean useJacobiMatrix;
+    
+    // transformation object
+    public DomainTransformationObject domainTransformationObject;
     
     // solver type
     public String linearSolver;
@@ -83,7 +88,7 @@ public class Parameters implements Serializable {
     // external field
     public boolean externalField;
     
-    public Parameters(String parameterFilePath, boolean parallelMode) throws IOException {
+    public Parameters(String parameterFilePath, boolean parallelMode, URL[] jarURLList) throws IOException {
         try {
             this.parallelMode = parallelMode;
             FlowProProperties props = new FlowProProperties();
@@ -172,6 +177,12 @@ public class Parameters implements Serializable {
                 useJacobiMatrix = props.getBoolean("useJacobiMatrix");
             } else {
                 useJacobiMatrix = false;
+            }
+            
+            // domain transformation object
+            domainTransformationObject = null;
+            if (props.containsKey("domainTransformationObject")) {
+                domainTransformationObject = (new DomainTransformationObjectFactory()).getDomainTransformationObject(parameterFilePath, jarURLList);
             }
             
             // dynamics parameters

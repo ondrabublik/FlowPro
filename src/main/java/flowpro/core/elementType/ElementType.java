@@ -1,5 +1,6 @@
 package flowpro.core.elementType;
 
+import flowpro.core.Parameters;
 import flowpro.core.basis.*;
 import flowpro.core.transformation.*;
 import flowpro.core.curvedBoundary.FaceCurvature;
@@ -26,7 +27,7 @@ public abstract class ElementType implements Serializable {
 
     public abstract Quadrature getQVolumeRule(QuadratureCentral qRules);
 
-    public abstract Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv);
+    public abstract Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par);
 
     public abstract int getFaceType(int k);
 
@@ -75,7 +76,7 @@ public abstract class ElementType implements Serializable {
                 elemType = new triangleElement(order);
                 break;
             case 33:
-                elemType = new triangleElementNURBS(order);
+                elemType = new triangleElementUserDef(order);
                 break;
             case 31:
                 elemType = new curvedBoundaryTriangleElement(order);
@@ -93,7 +94,7 @@ public abstract class ElementType implements Serializable {
                 elemType = new hexahedralElement(order);
                 break;
             case 63:
-                elemType = new hexahedralElementCylinderCoords(order);
+                elemType = new hexahedralElementUserDef(order);
                 break; 
             case 7:
                 elemType = new prismElement(order);

@@ -5,6 +5,7 @@
  */
 package flowpro.core.elementType;
 
+import flowpro.core.Parameters;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.transformation.*;
 
@@ -12,14 +13,14 @@ import flowpro.core.transformation.*;
  *
  * @author obublik
  */
-public class hexahedralElementCylinderCoords extends hexahedralElement {
+public class hexahedralElementUserDef extends hexahedralElement {
     
-    hexahedralElementCylinderCoords(int order){
+    hexahedralElementUserDef(int order){
         super(order);
     }
     
-    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv) {
-        Transformation transform = new transformation3DhexaCylinderCoords();
+    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {
+        Transformation transform = new transformation3DhexaUserDef(par);
         transform.computeTransform(vertices);
         return transform;
     }

@@ -5,6 +5,7 @@
  */
 package flowpro.core.elementType;
 
+import flowpro.core.Parameters;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.transformation.*;
 
@@ -12,14 +13,14 @@ import flowpro.core.transformation.*;
  *
  * @author obublik
  */
-public class triangleElementNURBS extends triangleElement {
+public class triangleElementUserDef extends triangleElement {
     
-    triangleElementNURBS(int order){
+    triangleElementUserDef(int order){
         super(order);
     }
     
-    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv) {
-        Transformation transform = new transformation2DtriangleNURBS(vertices);
+    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {
+        Transformation transform = new transformation2DtriangleUserDef(vertices, par);
         transform.computeTransform(vertices);
         return transform;
     }

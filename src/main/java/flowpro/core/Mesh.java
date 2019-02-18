@@ -435,7 +435,7 @@ public class Mesh implements Serializable {
         }
 
         public void initBasis() throws IOException {
-            transform = elemType.getVolumeTransformation(vertices, fCurv);
+            transform = elemType.getVolumeTransformation(vertices, fCurv, par);
             basis = elemType.getBasis(transform);
             nBasis = basis.nBasis;
         }

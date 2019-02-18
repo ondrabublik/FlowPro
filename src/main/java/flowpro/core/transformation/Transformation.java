@@ -21,13 +21,33 @@ public abstract class Transformation implements Serializable {
 
     public double getDX(double[] Xi, int dimTop, int dimBottom) {
         double h = 1e-8;
+        double[] Y = getX(Xi);
         Xi[dimBottom] += h;
         double[] Yph = getX(Xi);
-        Xi[dimBottom] -= 2 * h;
-        double[] Ymh = getX(Xi);
-        return (Yph[dimTop] - Ymh[dimTop]) / (2 * h);
+        return (Yph[dimTop] - Y[dimTop]) / h;
     }
 
+//    public double getDX(double[] Xi, int dimTop, int dimBottom) {
+//        double h = 1e-8;
+//        Xi[dimBottom] += h;
+//        double[] Yph = getX(Xi);
+//        Xi[dimBottom] -= 2 * h;
+//        double[] Ymh = getX(Xi);
+//        return (Yph[dimTop] - Ymh[dimTop]) / (2 * h);
+//    }  
+   
+//    public double getDX(double[] Xi, int dimTop, int dimBottom) { // fourth order approximation
+//        double h = 1e-8;
+//        Xi[dimBottom] += 2 * h;
+//        double[] Yp2h = getX(Xi);
+//        Xi[dimBottom] -= h;
+//        double[] Yph = getX(Xi);
+//        Xi[dimBottom] -= 2 * h;
+//        double[] Ymh = getX(Xi);
+//        Xi[dimBottom] -= h;
+//        double[] Ym2h = getX(Xi);
+//        return (-Yp2h[dimTop] + 8 * Yph[dimTop] - 8 * Ymh[dimTop] + Ym2h[dimTop]) / (12 * h);
+//    }
     public double[] getXi(double[] X) {
         int dim = X.length;
         double[] Xi = new double[dim];
