@@ -87,6 +87,19 @@ public class FlowProMain {
     }
 
     public static void main(String args[]) throws InterruptedException, IOException {
+        System.out.println();
+        System.out.println();
+        System.out.println("FFFFF  L       OOOO   W    W    W  PPPPP   RRRRR    OOOO ");
+        System.out.println("F      L      O    O  W   W W   W  P    P  R    R  O    O");
+        System.out.println("FFFFF  L      O    O   W  W W  W   PPPPP   RRRRR   O    O");
+        System.out.println("F      L      O    O   W W   W W   P       R   R   O    O");
+        System.out.println("F      LLLLL   OOOO     W     W    P       R    R   OOOO ");
+        System.out.println();
+        System.out.println();
+        System.out.println("CFD solver based on discontinuous Galerkin method.");
+        System.out.println();
+        System.out.println();
+        
         LOG.info("starting FlowPro...");
         jarURLList = getJarURLList("modules");
         try {
