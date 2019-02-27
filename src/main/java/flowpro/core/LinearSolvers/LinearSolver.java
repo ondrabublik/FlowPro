@@ -58,9 +58,9 @@ abstract public class LinearSolver {
                     solver = new EigenExternSolver(A, par);
                     break;
 
-//                case "matlab":
-//                    solver = new Matlab(elems, dofs, par);
-//                    break;   
+                case "matlab":
+                    solver = new Matlab(A, par);
+                    break;   
                     
                 default:
                     throw new IOException("unknown solver " + par.linearSolver);

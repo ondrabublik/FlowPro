@@ -20,34 +20,60 @@ public abstract class Transformation implements Serializable {
     abstract public double[] getXs();
 
     public double getDX(double[] Xi, int dimTop, int dimBottom) {
-        double h = 1e-8;
-        double[] Y = getX(Xi);
-        Xi[dimBottom] += h;
-        double[] Yph = getX(Xi);
-        return (Yph[dimTop] - Y[dimTop]) / h;
+        double h = 1e-5;
+        double[] Xih = new double[Xi.length];
+        System.arraycopy(Xi, 0, Xih, 0, Xi.length);
+        
+        Xih[dimBottom] = Xi[dimBottom] + 4*h;
+        double[] Yp4h = getX(Xih);
+        
+        Xih[dimBottom] = Xi[dimBottom] + 3*h;
+        double[] Yp3h = getX(Xih);
+        
+        Xih[dimBottom] = Xi[dimBottom] + 2*h;
+        double[] Yp2h = getX(Xih);
+        
+        Xih[dimBottom] = Xi[dimBottom] + h;
+        double[] Yph = getX(Xih);
+        
+        Xih[dimBottom] = Xi[dimBottom] - h;
+        double[] Ymh = getX(Xih);
+        
+        Xih[dimBottom] = Xi[dimBottom] - 2*h;
+        double[] Ym2h = getX(Xih);
+        
+        Xih[dimBottom] = Xi[dimBottom] - 3*h;
+        double[] Ym3h = getX(Xih);
+        
+        Xih[dimBottom] = Xi[dimBottom] - 4*h;
+        double[] Ym4h = getX(Xih);
+        
+        double D = (-1.0/280*Yp4h[dimTop] + 4.0/105*Yp3h[dimTop] - 1.0/5*Yp2h[dimTop] + 4.0/5*Yph[dimTop] - 4.0/5*Ymh[dimTop] + 1.0/5*Ym2h[dimTop] - 4.0/105*Ym3h[dimTop] + 1.0/280*Ym4h[dimTop]) / h;
+        
+        return D;
     }
-
+    
 //    public double getDX(double[] Xi, int dimTop, int dimBottom) {
-//        double h = 1e-8;
-//        Xi[dimBottom] += h;
-//        double[] Yph = getX(Xi);
-//        Xi[dimBottom] -= 2 * h;
-//        double[] Ymh = getX(Xi);
-//        return (Yph[dimTop] - Ymh[dimTop]) / (2 * h);
-//    }  
-   
-//    public double getDX(double[] Xi, int dimTop, int dimBottom) { // fourth order approximation
-//        double h = 1e-8;
-//        Xi[dimBottom] += 2 * h;
-//        double[] Yp2h = getX(Xi);
-//        Xi[dimBottom] -= h;
-//        double[] Yph = getX(Xi);
-//        Xi[dimBottom] -= 2 * h;
-//        double[] Ymh = getX(Xi);
-//        Xi[dimBottom] -= h;
-//        double[] Ym2h = getX(Xi);
-//        return (-Yp2h[dimTop] + 8 * Yph[dimTop] - 8 * Ymh[dimTop] + Ym2h[dimTop]) / (12 * h);
+//        double h = 1e-5;
+//        double[] Xih = new double[Xi.length];
+//        System.arraycopy(Xi, 0, Xih, 0, Xi.length);
+//        Xih[dimBottom] = Xi[dimBottom] + 2*h;
+//        double[] Yp2h = getX(Xih);
+//        
+//        Xih[dimBottom] = Xi[dimBottom] + h;
+//        double[] Yph = getX(Xih);
+//        
+//        Xih[dimBottom] = Xi[dimBottom] - h;
+//        double[] Ymh = getX(Xih);
+//        
+//        Xih[dimBottom] = Xi[dimBottom] - 2*h;
+//        double[] Ym2h = getX(Xih);
+//        
+//        double D = (-Yp2h[dimTop] + 8*Yph[dimTop] - 8*Ymh[dimTop] + Ym2h[dimTop])/ (12*h);
+//        
+//        return D;
 //    }
+
     public double[] getXi(double[] X) {
         int dim = X.length;
         double[] Xi = new double[dim];

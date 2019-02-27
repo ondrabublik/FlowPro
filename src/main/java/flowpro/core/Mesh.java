@@ -147,7 +147,7 @@ public class Mesh implements Serializable {
         }
         System.out.println("basis       **********");
         System.out.print("integration ");
-        
+
         // Secondly init volume integration rules on each of elements
         for (int i = 0; i < nElems; i++) {
             elems[i].initIntegration();
@@ -156,7 +156,7 @@ public class Mesh implements Serializable {
             }
         }
         System.out.println();
-        
+
         System.out.print("geometry    ");
         int dofs0 = 0;
         int nBrokenElements = 0;
@@ -367,6 +367,7 @@ public class Mesh implements Serializable {
 
         // damping
         double[][] TrunOrd;
+        double dampInner;
 
         // local time step
         public double tLTS;
@@ -515,6 +516,13 @@ public class Mesh implements Serializable {
 
                 if (eqn.isDiffusive()) {
                     c_IP = par.penalty; // * elemSize;
+                }
+
+                // testing
+                if (par.dampTolVolume > 0) {
+                    dampInner = lam * elemSize / elemType.order * shock_senzor(par.dampTolVolume);
+                } else {
+                    dampInner = 0;
                 }
             }
         }
@@ -1076,7 +1084,7 @@ public class Mesh implements Serializable {
                                     fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
                                     dWsum += dWInt[nEqs * d + m] * dBase[j][d];
                                 }
-                                K[nBasis * m + j] += Jac * weight * fsum - (eps + par.dampConst) * Jac * weight * dWsum;
+                                K[nBasis * m + j] += Jac * weight * fsum - (eps + par.dampConst + dampInner) * Jac * weight * dWsum;
                             }
                             if (eqn.isDiffusive()) {
                                 double fvsum = 0;
@@ -1092,8 +1100,7 @@ public class Mesh implements Serializable {
                     }
                 }
             } else// production term for FVM
-            {
-                if (eqn.isSourcePresent()) {
+             if (eqn.isSourcePresent()) {
                     double[] Jac = Int.JacobianVolume;
                     double[] weights = Int.weightsVolume;
 
@@ -1116,7 +1123,6 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
-            }
         }
 
         // tato funkce vypocitava reziduum__________________________________________
@@ -1469,7 +1475,7 @@ public class Mesh implements Serializable {
                 elemData.currentWallDistance += innerInterpolant[j] * wallDistance[j];
             }
             elemData.currentX = transform.getX(currentXi);
-            
+
             if (par.externalField) {
                 int nExternalField = externalField[0].length;
                 elemData.externalField = new double[nExternalField];
@@ -1482,7 +1488,7 @@ public class Mesh implements Serializable {
             elemData.currentT = t;
             elemData.integralMonitor = integralMonitor;
             elemData.elemIndex = index;
-            if(par.solutionAverage){
+            if (par.solutionAverage) {
                 elemData.Wavg = calculateAvgW();
             }
 
@@ -1504,7 +1510,7 @@ public class Mesh implements Serializable {
                 elemData.currentWallDistance += innerInterpolant[j] * wallDistance[edgeIndex[j]];
             }
             elemData.currentX = transform.getX(currentXi);
-            
+
             if (par.externalField) {
                 int nExternalField = externalField[0].length;
                 elemData.externalField = new double[nExternalField];
@@ -1517,7 +1523,7 @@ public class Mesh implements Serializable {
             elemData.currentT = t;
             elemData.integralMonitor = integralMonitor;
             elemData.elemIndex = index;
-            if(par.solutionAverage){
+            if (par.solutionAverage) {
                 elemData.Wavg = calculateAvgW();
             }
 

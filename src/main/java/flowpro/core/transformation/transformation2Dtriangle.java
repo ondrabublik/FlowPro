@@ -84,6 +84,7 @@ public class transformation2Dtriangle extends Transformation {
                 D = B[1];
             }
         }
+       
         return D;
     }
 

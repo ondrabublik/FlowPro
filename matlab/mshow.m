@@ -6,7 +6,10 @@ args = '';
 for i = 1:nargin
     quantityName = varargin{i};
     
-    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'order') || strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum') || strcmp(lower(quantityName),'av')
+    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'order') || ...
+       strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum') || ...
+       strcmp(lower(quantityName),'av') || strcmp(lower(quantityName),'y') || ...
+       strcmp(lower(quantityName),'bf')
         continue
     end
     
@@ -49,6 +52,9 @@ for k = 1 : nargin
             continue
         case 'y'
             showWallDistance;
+            continue
+        case 'bf'
+            showBlendingFunctions;
             continue
     end
 
@@ -337,5 +343,28 @@ function t = firstDigit(typ)
             t(i) = typ(i);
             typ(i) = fix(typ(i)/10);
         end
+    end
+end
+
+function showBlendingFunctions
+    [meshPath, simulPath, ~] = getPath;   
+    
+    bfs = load([meshPath,'blendingFunctions.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = firstDigit(dlmread([meshPath, 'elementType.txt']));
+    tri = convert2Triangular(elems, type);
+    
+    for i = 1:length(bfs(1,:))
+        figure('color', 'w');
+        [~, h2] = tricontf(xy(:,1),xy(:,2),tri,bfs(:,i),30);
+        % tricontour(tri,PX,PY,Quantity,30)
+        set(h2, 'linestyle', 'none');
+        box on;
+        axis equal;
+        osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+        axis(osy);
+        colorbar;
+        colormap jet
     end
 end

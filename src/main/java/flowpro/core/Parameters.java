@@ -62,6 +62,7 @@ public class Parameters implements Serializable {
     
     // artificial damping
     public final double dampTol;   // tolerance pro pridavnou viskozitu
+    public final double dampTolVolume; // tolerance pro pridavnou viskozitu uvnitr
     public final double dampConst; // konstantni pridavna viskozita 
 
     // Finite volume method limiter
@@ -195,6 +196,13 @@ public class Parameters implements Serializable {
             dampTol = props.getDouble("dampTol");
             dampConst = props.getDouble("dampConst");
 
+            // iterative solver setting
+            if (props.containsKey("dampTolVolume")) {
+                dampTolVolume = props.getDouble("dampTolVolume");
+            } else {
+                dampTolVolume = 0;
+            }
+            
             // iterative solver setting
             if (props.containsKey("linearSolver")) {
                 linearSolver = props.getString("linearSolver");

@@ -27,3 +27,6 @@ if ~exist(path, 'dir')
 else
     edit([path,'parameters.txt']);
 end
+
+[~, simulPath, ~] = getPath;
+cd(simulPath);

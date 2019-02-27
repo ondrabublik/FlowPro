@@ -95,9 +95,9 @@ public class FlowProMain {
         System.out.println("F      L      O    O   W W   W W   P       R   R   O    O");
         System.out.println("F      LLLLL   OOOO     W     W    P       R    R   OOOO ");
         System.out.println();
-        System.out.println();
-        System.out.println("CFD solver based on discontinuous Galerkin method.");
-        System.out.println();
+        System.out.println("---------------------------------------------------------");
+        System.out.println("Welcome to the CFD opensource software FlowPro!          ");
+        System.out.println("---------------------------------------------------------");
         System.out.println();
         
         LOG.info("starting FlowPro...");
