@@ -293,10 +293,12 @@ public class Mesh implements Serializable {
         return PXY;
     }
 
-    public double[] getArtificialViscosity() {
-        double[] artVis = new double[nElems];
+    public double[][] getArtificialViscosity() {
+        double[][] artVis = new double[nElems][nEqs];
         for (int i = 0; i < nElems; ++i) {
-            artVis[i] = elems[i].eps;
+            for (int m = 0; m < nEqs; m++) {
+                artVis[i][m] = elems[i].dampInner[m];
+            }
         }
         return artVis;
     }
@@ -367,7 +369,7 @@ public class Mesh implements Serializable {
 
         // damping
         double[][] TrunOrd;
-        double dampInner;
+        double[] dampInner;
 
         // local time step
         public double tLTS;
@@ -433,6 +435,9 @@ public class Mesh implements Serializable {
             elemData = new ElementData(dim);
             centreVolumeInterpolant = new double[nVertices];
             Arrays.fill(centreVolumeInterpolant, 1.0 / nVertices);
+
+            // damping
+            dampInner = new double[nEqs];
         }
 
         public void initBasis() throws IOException {
@@ -509,20 +514,30 @@ public class Mesh implements Serializable {
             eps = 0;
             c_IP = 0;
             if (elemType.order > 1) {
+                // max eigenvalue
+                double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
+                
+                // artificial viscosity
                 double g_shock = shock_senzor(par.dampTol);
                 //double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
-                double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
                 eps = lam * elemSize / elemType.order * g_shock;
 
+                // inner damping based on artificial viscosity
+                double[] g_shockInner = eqn.combineShockSensors(shock_senzor_all_eqn(par.dampInnerTol));
+                for (int m = 0; m < nEqs; m++) {
+                    if (par.dampInnerCoef != null) {
+                        if (par.dampInnerCoef.length == 1) {
+                            dampInner[m] = par.dampInnerCoef[0] * g_shockInner[m];
+                        } else {
+                            dampInner[m] = par.dampInnerCoef[m] * g_shockInner[m];
+                        }
+                    } else {
+                        dampInner[m] = lam * elemSize / elemType.order * g_shockInner[m];
+                    }
+                }
+                
                 if (eqn.isDiffusive()) {
                     c_IP = par.penalty; // * elemSize;
-                }
-
-                // testing
-                if (par.dampTolVolume > 0) {
-                    dampInner = lam * elemSize / elemType.order * shock_senzor(par.dampTolVolume);
-                } else {
-                    dampInner = 0;
                 }
             }
         }
@@ -1084,7 +1099,7 @@ public class Mesh implements Serializable {
                                     fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
                                     dWsum += dWInt[nEqs * d + m] * dBase[j][d];
                                 }
-                                K[nBasis * m + j] += Jac * weight * fsum - (eps + par.dampConst + dampInner) * Jac * weight * dWsum;
+                                K[nBasis * m + j] += Jac * weight * fsum - (eps + par.dampConst + dampInner[m]) * Jac * weight * dWsum;
                             }
                             if (eqn.isDiffusive()) {
                                 double fvsum = 0;
@@ -1100,7 +1115,8 @@ public class Mesh implements Serializable {
                     }
                 }
             } else// production term for FVM
-             if (eqn.isSourcePresent()) {
+            {
+                if (eqn.isSourcePresent()) {
                     double[] Jac = Int.JacobianVolume;
                     double[] weights = Int.weightsVolume;
 
@@ -1123,6 +1139,7 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
+            }
         }
 
         // tato funkce vypocitava reziduum__________________________________________
@@ -1634,6 +1651,60 @@ public class Mesh implements Serializable {
             } else {
                 return shock;
             }
+        }
+
+        //__________________________________________________________________________
+        public double[] shock_senzor_all_eqn(double kap) {
+
+            double[][] base = Int.basisVolume;
+            double[] Jac = Int.JacobianVolume;
+            double[] weights = Int.weightsVolume;
+
+            double[] shock = new double[nEqs];
+            for (int m = 0; m < nEqs; m++) {
+                double Se = 0;
+                double pod = 0;
+                double[] varTrunCoef = new double[nBasis];
+                if (elemType.order > 2) {
+                    for (int i = 0; i < nBasis; i++) {
+                        for (int j = 0; j < nBasis; j++) {
+                            varTrunCoef[i] += TrunOrd[i][j] * W[m * nBasis + j];
+                        }
+                    }
+                } else {
+                    double[] Ws = calculateAvgW();
+                    if ("taylor".equals(basis.basisType)) {
+                        varTrunCoef[0] = Ws[m];
+                    } else {
+                        Arrays.fill(varTrunCoef, Ws[m]);
+                    }
+                }
+                for (int p = 0; p < Int.nIntVolume; p++) { // hodnoty funkci f a g v integracnich bodech
+                    double varInt = 0;
+                    double varTrun = 0;
+                    for (int i = 0; i < nBasis; i++) {
+                        varInt += W[m * nBasis + i] * base[p][i];
+                        varTrun += varTrunCoef[i] * base[p][i];
+                    }
+                    Se += Jac[p] * weights[p] * (varInt - varTrun) * (varInt - varTrun);
+                    pod += Jac[p] * weights[p] * varInt * varInt;
+                }
+                Se = Math.log10(Math.abs(Se / pod));
+                double S0 = Math.log10(1. / Math.pow(elemType.order - 1, 4.0));
+                shock[m] = 0.5 * (1 + Math.sin(Math.PI * (Se - S0) / (2 * kap)));
+
+                if (Se < S0 - kap) {
+                    shock[m] = 0;
+                }
+                if (Se > S0 + kap) {
+                    shock[m] = 1;
+                }
+                if (Double.isNaN(shock[m])) {
+                    shock[m] = 0;
+                }
+            }
+            
+            return shock;
         }
 
         public double shock_senzor2() {

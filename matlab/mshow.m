@@ -245,26 +245,29 @@ function showArtificialViscosity
     type = firstDigit(dlmread([meshPath, 'elementType.txt']));
     tri = convert2Triangular(elems, type);
     
-    vav = zeros(size(xy,1),1);
-    pom = zeros(size(xy,1),1);
-    for i = 1:size(elems,1)
-        for j = 1:type(i)
-            vav(elems(i,j)) = vav(elems(i,j)) + av(i);
-            pom(elems(i,j)) = pom(elems(i,j)) + 1;
-        end
-    end
-    vav = vav./pom;
     
-    figure('color', 'w');
-    [~, h2] = tricontf(xy(:,1),xy(:,2),tri,vav,30);
-    % tricontour(tri,PX,PY,Quantity,30)
-    set(h2, 'linestyle', 'none');
-    box on;
-    axis equal;
-    osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
-    axis(osy);
-    colorbar;
-    colormap jet
+    for m = 1:length(av(1,:))
+        vav = zeros(size(xy,1),1);
+        pom = zeros(size(xy,1),1);
+        for i = 1:size(elems,1)
+            for j = 1:type(i)
+                vav(elems(i,j)) = vav(elems(i,j)) + av(i,m);
+                pom(elems(i,j)) = pom(elems(i,j)) + 1;
+            end
+        end
+        vav = vav./pom;
+
+        figure('color', 'w');
+        [~, h2] = tricontf(xy(:,1),xy(:,2),tri,vav,30);
+        % tricontour(tri,PX,PY,Quantity,30)
+        set(h2, 'linestyle', 'none');
+        box on;
+        axis equal;
+        osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+        axis(osy);
+        colorbar;
+        colormap jet
+    end
 end
 
 function showWallDistance

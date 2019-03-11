@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import flowpro.core.solver.MasterSolver;
 import flowpro.core.solver.SlaveSolver;
 import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *
