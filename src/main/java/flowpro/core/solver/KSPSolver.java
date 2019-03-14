@@ -307,6 +307,7 @@ public class KSPSolver extends MasterSolver {
             Mat.save(mesh.getArtificialViscosity(), simulationPath + "artificialViscosity.txt");
             if (par.movingMesh) {
                 Mat.save(sol.vertices, simulationPath + "PXY.txt");
+                Mat.save(sol.meshVelocity, simulationPath + "UXY.txt");
             }
             File[] content = new File(simulationPath + "output").listFiles();
             if (content != null) {
@@ -332,6 +333,7 @@ public class KSPSolver extends MasterSolver {
             }
             if (par.movingMesh) {
                 Mat.save(sol.vertices, simulationPath + "animation/vertices" + (10000000 + step) + ".txt");
+                Mat.save(sol.meshVelocity, simulationPath + "animation/verticesVelocity" + (10000000 + step) + ".txt");
             }
             lock.notify();
         }

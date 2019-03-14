@@ -135,6 +135,7 @@ public class LocalImplicitSolver extends MasterSolver {
         int totalSteps = state.steps + par.steps;
         long assembleTime = 0;
         long solveTime = 0;
+        boolean firstIter = true;
 
         // save zero iteration
         if (par.animation && state.steps == 0) {
@@ -185,9 +186,10 @@ public class LocalImplicitSolver extends MasterSolver {
                 if (par.movingMesh) {
                     dfm.calculateForces(elems, dyn.getMeshMove());
                     dyn.computeBodyMove(dt, state.t, dfm.getFluidForces());
-                    dfm.newMeshPosition(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
-                    if (state.t == 0) {
-                        dfm.relaxFirstIteration(elems);
+                    dfm.newMeshPositionAndVelocity(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
+                    if (firstIter) {
+                        dfm.relaxFirstIteration(elems,dt);
+                        firstIter = false;
                     }
                     dfm.recalculateMesh(elems, par.order);
                 }
@@ -292,6 +294,7 @@ public class LocalImplicitSolver extends MasterSolver {
             Mat.save(mesh.getArtificialViscosity(), simulationPath + "artificialViscosity.txt");
             if (par.movingMesh) {
                 Mat.save(sol.vertices, simulationPath + "PXY.txt");
+                Mat.save(sol.meshVelocity, simulationPath + "UXY.txt");
             }
             File[] content = new File(simulationPath + "output").listFiles();
             if (content != null) {
@@ -317,6 +320,7 @@ public class LocalImplicitSolver extends MasterSolver {
             }
             if (par.movingMesh) {
                 Mat.save(sol.vertices, simulationPath + "animation/vertices" + (10000000 + step) + ".txt");
+                Mat.save(sol.meshVelocity, simulationPath + "animation/verticesVelocity" + (10000000 + step) + ".txt");
             }
             lock.notify();
         }

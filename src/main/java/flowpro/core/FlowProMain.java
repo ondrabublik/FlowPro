@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import flowpro.core.solver.MasterSolver;
 import flowpro.core.solver.SlaveSolver;
 import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *
@@ -100,7 +99,7 @@ public class FlowProMain {
         System.out.println("Welcome to the CFD opensource software FlowPro!          ");
         System.out.println("---------------------------------------------------------");
         System.out.println();
-        
+
         LOG.info("starting FlowPro...");
         jarURLList = getJarURLList("modules");
         try {
@@ -205,7 +204,7 @@ public class FlowProMain {
         }
         Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
         Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode, jarURLList); // read numerical parameters                    
-        
+
         LOG.info("loading data...");
         // load matrices defining the mesh
         double[][] PXY = Mat.loadDoubleMatrix(meshPath + "vertices.txt"); // mesh vertices coordinates
@@ -217,6 +216,17 @@ public class FlowProMain {
             }
             LOG.info("Mesh was scaled with parameter " + par.meshScale);
         }
+
+        double[][] UXY = null;
+        if (par.movingMesh && par.continueComputation) {
+            try {
+                UXY = Mat.loadDoubleMatrix(simulationPath + "UXY.txt"); // mesh vertices velocity
+                LOG.info("Mesh velocities were loades!");
+            } catch (FileNotFoundException ex) {
+                LOG.warn("Mesh velocities file UXY.txt was not found. Velocities were set to zero!");
+            }
+        }
+
         int[] elemsType = Mat.loadIntArray(meshPath + "elementType.txt");   // element type
         int[][] TP = Mat.loadIntMatrix(meshPath + "elements.txt"); // inexes of points defining element
         LOG.info("Mesh info: " + PXY.length + "-vertices, " + TP.length + "-elements.");
@@ -402,7 +412,7 @@ public class FlowProMain {
         for (int d = 0; d < nDoms; ++d) {
             LOG.info("domain " + d + " from " + (nDoms - 1) + ":");
             Domain.Subdomain subdom = domain.getSubdomain(d);
-            mesh[d] = new Mesh(eqn, dfm, par, solMonitor, qRules, PXY, subdom.elemsOrder, wallDistance, externalField, subdom.elemsType,
+            mesh[d] = new Mesh(eqn, dfm, par, solMonitor, qRules, PXY, UXY, subdom.elemsOrder, wallDistance, externalField, subdom.elemsType,
                     subdom.TP, subdom.TT, subdom.TEale, subdom.TEshift, shift, subdom.fCurv, subdom.initW, subdom);
             if (!parallelMode) {
                 mesh[d].init();

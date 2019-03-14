@@ -35,7 +35,7 @@ public abstract class Deformation implements Serializable {
         }
     }
 
-    abstract public void newMeshPosition(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov);
+    abstract public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov);
 
     abstract public void nextTimeLevel(Element[] elems);
 
@@ -61,14 +61,14 @@ public abstract class Deformation implements Serializable {
         }
     }
 
-    public void relaxFirstIteration(Element[] elems) { // prevent solution error, when jump in mesh position in first iteration occure
+    public void relaxFirstIteration(Element[] elems, double dt) { // prevent solution error, when jump in mesh position in first iteration occure
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
                 for (int j = 0; j < elem.nVertices; j++) {
                     for (int d = 0; d < elem.dim; d++) {
-                        elem.verticesOld2[j][d] = elem.vertices[j][d];
-                        elem.verticesOld[j][d] = elem.vertices[j][d];
-                        elem.U[j][d] = 0;
+                        elem.verticesOld2[j][d] = elem.vertices[j][d] - 2*dt*elem.Uinit[j][d];
+                        elem.verticesOld[j][d] = elem.vertices[j][d] - dt*elem.Uinit[j][d];
+                        elem.U[j][d] = elem.Uinit[j][d];
                     }
                 }
             }

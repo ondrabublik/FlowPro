@@ -52,6 +52,7 @@ public class Mesh implements Serializable {
      * @param solMonitor
      * @param qRules
      * @param PXY
+     * @param UXY
      * @param elemsOrder
      * @param wallDistance
      * @param externalField
@@ -66,7 +67,7 @@ public class Mesh implements Serializable {
      * @param domain
      * @throws IOException
      */
-    public Mesh(Equation eqn, Deformation dfm, Parameters par, SolutionMonitor solMonitor, QuadratureCentral qRules, double[][] PXY, int[] elemsOrder, double[] wallDistance, double[][] externalField, int[] elemsType, int[][] TP, int[][] TT, int[][] TEale, int[][] TEshift, double[][] shift,
+    public Mesh(Equation eqn, Deformation dfm, Parameters par, SolutionMonitor solMonitor, QuadratureCentral qRules, double[][] PXY, double[][] UXY, int[] elemsOrder, double[] wallDistance, double[][] externalField, int[] elemsType, int[][] TP, int[][] TT, int[][] TEale, int[][] TEshift, double[][] shift,
             FaceCurvature[] fCurv, double[][] initW, Subdomain domain) throws IOException {
         this.eqn = eqn;
         this.dfm = dfm;
@@ -85,6 +86,7 @@ public class Mesh implements Serializable {
             int nVertices = TP[i].length;
             int nEdges = TT[i].length;
             double[][] vertices = new double[nVertices][eqn.dim()];
+            double[][] meshVelocity = new double[nVertices][eqn.dim()];
             double[] wallDistancee = new double[nVertices];
             int[] TTe = new int[nEdges];
             int[] TPe = new int[nVertices];
@@ -94,6 +96,11 @@ public class Mesh implements Serializable {
                 System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, eqn.dim());
                 wallDistancee[j] = wallDistance[TP[i][j]];
                 TPe[j] = TP[i][j];
+            }
+            if (UXY != null) {
+                for (int j = 0; j < nVertices; j++) {
+                    System.arraycopy(UXY[TP[i][j]], 0, meshVelocity[j], 0, eqn.dim());
+                }
             }
             for (int j = 0; j < nEdges; j++) {
                 TTe[j] = TT[i][j];
@@ -125,7 +132,7 @@ public class Mesh implements Serializable {
             // create element type
             ElementType elemType = ElementType.elementTypeFactory(elemsType[i], elemsOrder[i]);
 
-            elems[i] = new Element(i, vertices, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], eqn, par, qRules, elemType);
+            elems[i] = new Element(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], eqn, par, qRules, elemType);
         }
 
         // seting elements position in domain (load and insideComputeDomain parts)
@@ -222,8 +229,11 @@ public class Mesh implements Serializable {
     }
 
     public Solution getSolution() {
-//        return new Solution(getW(), getAvgW(), getDetailW());
-        return new Solution(getW(), getAvgW(), getMeshPosition());
+        if (par.movingMesh) {
+            return new Solution(getW(), getAvgW(), getMeshPosition(), getMeshVelocity());
+        } else {
+            return new Solution(getW(), getAvgW(), getMeshPosition());
+        }
     }
 
     /**
@@ -293,6 +303,18 @@ public class Mesh implements Serializable {
         return PXY;
     }
 
+    public double[][] getMeshVelocity() {
+        double[][] U = new double[nPoints][eqn.dim()];
+        for (Element elem : elems) {
+            for (int j = 0; j < elem.TP.length; j++) {
+                for (int d = 0; d < eqn.dim(); d++) {
+                    U[elem.TP[j]][d] = elem.U[j][d];
+                }
+            }
+        }
+        return U;
+    }
+
     public double[][] getArtificialViscosity() {
         double[][] artVis = new double[nElems][nEqs];
         for (int i = 0; i < nElems; ++i) {
@@ -330,6 +352,7 @@ public class Mesh implements Serializable {
         public double[][] verticesOld2;
         public double[][] vertices0;  // components of vertices [xi,yi,zi]
         public double[][] U;  // x-components of velocity [ui, vi, wi]
+        public double[][] Uinit;
         public double[][][] n;  // x-components of normals
         public double[] S;
         public double area;  // element area
@@ -399,7 +422,7 @@ public class Mesh implements Serializable {
         // external field
         double[][] externalField;
 
-        Element(int index, double[][] vertices, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
+        Element(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
                 Equation Eq, Parameters par, QuadratureCentral qRules, ElementType elemType) throws IOException {
             dim = eqn.dim();
             this.index = index;
@@ -410,6 +433,7 @@ public class Mesh implements Serializable {
             this.shift = shift;
             this.fCurv = fCurv;
             this.vertices = vertices;
+            this.Uinit = Uinit;
             this.blendFun = blendFun;
             this.wallDistance = wallDistance;
             this.externalField = externalField;
@@ -423,14 +447,9 @@ public class Mesh implements Serializable {
             gmresLoad = false;
             gmresSave = false;
 
+            U = new double[nVertices][dim];
             verticesOld = new double[nVertices][dim];
-            verticesOld2 = new double[nVertices][dim];
-            for (int d = 0; d < dim; d++) {
-                for (int i = 0; i < nVertices; i++) {
-                    verticesOld[i][d] = vertices[i][d];
-                    verticesOld2[i][d] = vertices[i][d];
-                }
-            }
+            verticesOld2 = new double[nVertices][dim];        
 
             elemData = new ElementData(dim);
             centreVolumeInterpolant = new double[nVertices];
@@ -457,11 +476,10 @@ public class Mesh implements Serializable {
 
         public void initCondition() throws IOException {
             vertices0 = new double[nVertices][dim];
-            U = new double[nVertices][dim];
             for (int d = 0; d < dim; d++) {
                 for (int i = 0; i < nVertices; i++) {
                     vertices0[i][d] = vertices[i][d];
-                    U[i][d] = 0;
+                    U[i][d] = Uinit[i][d];
                 }
             }
 
@@ -516,7 +534,7 @@ public class Mesh implements Serializable {
             if (elemType.order > 1) {
                 // max eigenvalue
                 double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
-                
+
                 // artificial viscosity
                 double g_shock = shock_senzor(par.dampTol);
                 //double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
@@ -535,7 +553,7 @@ public class Mesh implements Serializable {
                         dampInner[m] = lam * elemSize / elemType.order * g_shockInner[m];
                     }
                 }
-                
+
                 if (eqn.isDiffusive()) {
                     c_IP = par.penalty; // * elemSize;
                 }
@@ -1115,8 +1133,7 @@ public class Mesh implements Serializable {
                     }
                 }
             } else// production term for FVM
-            {
-                if (eqn.isSourcePresent()) {
+             if (eqn.isSourcePresent()) {
                     double[] Jac = Int.JacobianVolume;
                     double[] weights = Int.weightsVolume;
 
@@ -1139,7 +1156,6 @@ public class Mesh implements Serializable {
                         }
                     }
                 }
-            }
         }
 
         // tato funkce vypocitava reziduum__________________________________________
@@ -1703,7 +1719,7 @@ public class Mesh implements Serializable {
                     shock[m] = 0;
                 }
             }
-            
+
             return shock;
         }
 

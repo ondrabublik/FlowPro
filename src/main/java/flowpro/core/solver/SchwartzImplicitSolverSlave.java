@@ -219,9 +219,9 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
 
                     case Tag.ALE_NEW_MESH_POSITION:
                         ForcesAndDisplacements disp = (ForcesAndDisplacements) inMsg.getData();
-                        dfm.newMeshPosition(elems, par.orderInTime, disp.getDto(), disp.getDt(), disp.getMeshMove());
+                        dfm.newMeshPositionAndVelocity(elems, par.orderInTime, disp.getDto(), disp.getDt(), disp.getMeshMove());
                         if (firstTimeStep) {
-                            dfm.relaxFirstIteration(elems);
+                            dfm.relaxFirstIteration(elems,disp.getDt());
                         }
                         dfm.recalculateMesh(elems, par.order);
                         outMsg = new MPIMessage(Tag.MESH_POSITION_UPDATED);

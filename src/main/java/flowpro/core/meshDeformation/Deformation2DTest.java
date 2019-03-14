@@ -23,7 +23,7 @@ public class Deformation2DTest extends Deformation {
         super(par,eqn,TEale);
     }
 
-    public void newMeshPosition(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
+    public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
         
         if(dt > 1000){
             dt = 0;

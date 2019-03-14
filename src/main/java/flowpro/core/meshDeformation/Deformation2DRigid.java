@@ -21,7 +21,7 @@ public class Deformation2DRigid extends Deformation {
         super(par, eqn, TEale);
     }
 
-    public void newMeshPosition(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
+    public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 
         double a1 = 1.0 / dt;
         double a2 = -1.0 / dt;
