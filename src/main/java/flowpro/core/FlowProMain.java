@@ -218,7 +218,7 @@ public class FlowProMain {
         }
 
         double[][] UXY = null;
-        if (par.movingMesh && par.continueComputation) {
+        if (par.movingMesh && (par.continueComputation || optimalisation)) {
             try {
                 UXY = Mat.loadDoubleMatrix(simulationPath + "UXY.txt"); // mesh vertices velocity
                 LOG.info("Mesh velocities were loades!");
