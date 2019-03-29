@@ -135,7 +135,7 @@ public class LocalImplicitSolver extends MasterSolver {
         int totalSteps = state.steps + par.steps;
         long assembleTime = 0;
         long solveTime = 0;
-        boolean firstIter = true;
+        boolean isFirstIter = true;
 
         // save zero iteration
         if (par.animation && state.steps == 0) {
@@ -176,7 +176,7 @@ public class LocalImplicitSolver extends MasterSolver {
 
             // compute artificial viscosity
             for (int i = 0; i < nElems; i++) {
-                elems[i].limiter();
+                elems[i].limiter(isFirstIter);
             }
 
             assembleTime = 0;
@@ -187,9 +187,8 @@ public class LocalImplicitSolver extends MasterSolver {
                     dfm.calculateForces(elems, dyn.getMeshMove());
                     dyn.computeBodyMove(dt, state.t, dfm.getFluidForces());
                     dfm.newMeshPositionAndVelocity(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
-                    if (firstIter) {
+                    if (isFirstIter) {
                         dfm.relaxFirstIteration(elems,dt);
-                        firstIter = false;
                     }
                     dfm.recalculateMesh(elems, par.order);
                 }
@@ -237,10 +236,7 @@ public class LocalImplicitSolver extends MasterSolver {
             state.t += dt;
             dto = dt;
             saveResiduum(state.residuum, state.t, state.executionTime);
-            // limiter
-            for (int i = 0; i < nElems; i++) {
-                elems[i].limitUnphysicalValues();
-            }
+            
             copyW2Wo();
             mesh.updateTime(dt);
             if (par.movingMesh) {
@@ -263,6 +259,7 @@ public class LocalImplicitSolver extends MasterSolver {
             }
             System.out.printf(info);
             System.out.println();
+            isFirstIter = false;
         }
         watch.stop();
 

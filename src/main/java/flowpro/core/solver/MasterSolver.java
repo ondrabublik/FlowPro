@@ -35,10 +35,10 @@ abstract public class MasterSolver {
         try {
             if (par.parallelMode) {
                 switch (par.parallelSolverType.toLowerCase()) {
-                    case "distschwartz":
+                    case "schwartz":
                         return new SchwartzImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
 
-                    case "distksp":
+                    case "ksp":
                         return new KSPSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 }
             } else {

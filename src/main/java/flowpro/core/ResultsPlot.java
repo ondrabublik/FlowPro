@@ -20,6 +20,12 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Stack;
 import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *
@@ -241,7 +247,7 @@ public class ResultsPlot {
                         for (int j = 0; j < TP[i].length; j++) {
                             System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                         }
-                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
+                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
                         Transformation transform = elemType.getVolumeTransformation(vertices, null, par);
                         Basis basis = elemType.getBasis(transform);
                         int nBasis = basis.nBasis;
@@ -321,7 +327,7 @@ public class ResultsPlot {
                     for (int j = 0; j < TP[i].length; j++) {
                         System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                     }
-                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
+                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
                     Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i], par);
                     Basis basis = elemType.getBasis(transform);
                     int nBasis = basis.nBasis;
@@ -344,7 +350,7 @@ public class ResultsPlot {
                     }
                     resCol.add(i, xCoords, triLoc.TP, values, triLoc.localType);
 
-                    if ((i + 1) % (TP.length / 10) == 0) {
+                    if (TP.length > 10 && (i + 1) % (TP.length / 10) == 0) {
                         System.out.print("*");
                     }
                 }

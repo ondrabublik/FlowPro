@@ -95,18 +95,10 @@ public class KSPSolverSlave extends SlaveSolver{
         return dt;
     }
 
-    private void computeArtificialViscosity() {
+    private void computeArtificialViscosity(boolean isFirstIter) {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                elem.limiter();
-            }
-        }
-    }
-
-    private void callLimiters() {
-        for (Element elem : elems) {
-            if (elem.insideComputeDomain) {
-                elem.limitUnphysicalValues();
+                elem.limiter(isFirstIter);
             }
         }
     }
@@ -168,7 +160,7 @@ public class KSPSolverSlave extends SlaveSolver{
             JacobiAssembler assembler = new JacobiAssembler(elems, par);
             double dt = -1.0;
             double dto;
-            boolean firstTimeStep = true;
+            boolean isFirstIter = true;
 
             while (true) {
                 /* receive message */
@@ -180,7 +172,7 @@ public class KSPSolverSlave extends SlaveSolver{
                     case Tag.TIME_STEP_REQ: // vypocet dt
                         double CFL = (double) inMsg.getData();
                         double locDt = timeStep(CFL);
-                        computeArtificialViscosity();
+                        computeArtificialViscosity(isFirstIter);
 
                         outMsg = new MPIMessage(Tag.TIME_STEP, locDt);
                         break;
@@ -207,7 +199,7 @@ public class KSPSolverSlave extends SlaveSolver{
                     case Tag.ALE_NEW_MESH_POSITION:
                         ForcesAndDisplacements disp = (ForcesAndDisplacements) inMsg.getData();
                         dfm.newMeshPositionAndVelocity(elems, par.orderInTime, disp.getDto(), disp.getDt(), disp.getMeshMove());
-                        if (firstTimeStep) {
+                        if (isFirstIter) {
                             dfm.relaxFirstIteration(elems, disp.getDt());
                         }
                         dfm.recalculateMesh(elems, par.order);
@@ -222,10 +214,9 @@ public class KSPSolverSlave extends SlaveSolver{
 
                     case Tag.ASSEMBLE: // inicialization if equation Ax=b
                         // dalo by se tomu vyhnout kdybysme ukladali souboru dt a dto
-                        if (firstTimeStep) {  //  if dt has not yet been set
+                        if (isFirstIter) {  //  if dt has not yet been set
                             dt = (double) inMsg.getData();
                             dto = dt;
-                            firstTimeStep = false;
                         } else {  // if dt has already been set
                             dto = dt;
                             dt = (double) inMsg.getData();
@@ -250,10 +241,10 @@ public class KSPSolverSlave extends SlaveSolver{
 
                     case Tag.LIMITER_and_NEXT_TIME_LEVEL: // next time level
                         double residuum = calculateResiduumW(dt);
-                        callLimiters();
                         copyW2Wo();
                         mesh.updateTime(dt);
                         outMsg = new MPIMessage(Tag.RESIDUUM, residuum);
+                        isFirstIter = false;
                         break;
 
                     case Tag.DATA_REQ: // saving data into central structure

@@ -130,7 +130,7 @@ public class Mesh implements Serializable {
             }
 
             // create element type
-            ElementType elemType = ElementType.elementTypeFactory(elemsType[i], elemsOrder[i]);
+            ElementType elemType = ElementType.elementTypeFactory(elemsType[i], elemsOrder[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
 
             elems[i] = new Element(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], eqn, par, qRules, elemType);
         }
@@ -319,7 +319,7 @@ public class Mesh implements Serializable {
         double[][] artVis = new double[nElems][nEqs];
         for (int i = 0; i < nElems; ++i) {
             for (int m = 0; m < nEqs; m++) {
-                artVis[i][m] = elems[i].dampInner[m];
+                artVis[i][m] = elems[i].eps + elems[i].dampInner[m];
             }
         }
         return artVis;
@@ -393,6 +393,7 @@ public class Mesh implements Serializable {
         // damping
         double[][] TrunOrd;
         double[] dampInner;
+        double[] innerIndicatorOld;
 
         // local time step
         public double tLTS;
@@ -449,7 +450,7 @@ public class Mesh implements Serializable {
 
             U = new double[nVertices][dim];
             verticesOld = new double[nVertices][dim];
-            verticesOld2 = new double[nVertices][dim];        
+            verticesOld2 = new double[nVertices][dim];
 
             elemData = new ElementData(dim);
             centreVolumeInterpolant = new double[nVertices];
@@ -457,6 +458,7 @@ public class Mesh implements Serializable {
 
             // damping
             dampInner = new double[nEqs];
+            innerIndicatorOld = new double[nEqs];
         }
 
         public void initBasis() throws IOException {
@@ -466,7 +468,7 @@ public class Mesh implements Serializable {
         }
 
         public void initIntegration() throws IOException {
-            Int = new Integration(elemType, dim, basis, transform, TT, TEshift, shift, qRules, elemType.order);
+            Int = new Integration(elemType, dim, basis, transform, TT, TEshift, shift, qRules);
 
             if (!par.isExplicit) {
                 ADiag = new double[nEqs * nBasis][nEqs * nBasis];
@@ -528,7 +530,7 @@ public class Mesh implements Serializable {
         }
 
         // Aplikace limiteru
-        public void limiter() {
+        public void limiter(boolean isFirstIter) {
             eps = 0;
             c_IP = 0;
             if (elemType.order > 1) {
@@ -536,21 +538,32 @@ public class Mesh implements Serializable {
                 double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
 
                 // artificial viscosity
-                double g_shock = shock_senzor(par.dampTol);
-                //double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
-                eps = lam * elemSize / elemType.order * g_shock;
+                if (par.dampTol > 0) {
+                    double g_shock = shock_senzor(par.dampTol);
+                    eps = lam * elemSize / elemType.order * g_shock;
+                }
 
-                // inner damping based on artificial viscosity
-                double[] g_shockInner = eqn.combineShockSensors(shock_senzor_all_eqn(par.dampInnerTol));
-                for (int m = 0; m < nEqs; m++) {
-                    if (par.dampInnerCoef != null) {
-                        if (par.dampInnerCoef.length == 1) {
-                            dampInner[m] = par.dampInnerCoef[0] * g_shockInner[m];
-                        } else {
-                            dampInner[m] = par.dampInnerCoef[m] * g_shockInner[m];
+                if (par.dampInnerTol > 0) {
+                    // inner damping based on artificial viscosity
+                    double[] g_shockInner = eqn.combineShockSensors(shock_senzor_all_eqn(par.dampInnerTol));
+                    if (isFirstIter && !par.continueComputation) {
+                        for (int i = 0; i < g_shockInner.length; i++) {
+                            // g_shockInner[i] = 1;
                         }
-                    } else {
-                        dampInner[m] = lam * elemSize / elemType.order * g_shockInner[m];
+                    }
+
+                    for (int m = 0; m < nEqs; m++) {
+                        double indicator = Math.max(g_shockInner[m], innerIndicatorOld[m]);
+                        innerIndicatorOld[m] = 0.1 * indicator;
+                        if (par.dampInnerCoef != null) {
+                            if (par.dampInnerCoef.length == 1) {
+                                dampInner[m] = par.dampInnerCoef[0] * indicator;
+                            } else {
+                                dampInner[m] = par.dampInnerCoef[m] * indicator;
+                            }
+                        } else {
+                            dampInner[m] = lam * elemSize / elemType.order * indicator;
+                        }
                     }
                 }
 
@@ -560,15 +573,11 @@ public class Mesh implements Serializable {
             }
         }
 
-        public void limitUnphysicalValues() { // limituje zaporne hodnoty
-            eqn.limitUnphysicalValues(calculateAvgW(), W, nBasis);
-        }
-
         public void computeExplicitStep(double dtStep) {
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
             double[][] RwN = new double[nFaces][];
-            limiter();
+            limiter(false);
             switch (par.orderInTime) {
                 case 2: // RK2
                     System.arraycopy(W, 0, WLTS, 0, nBasis * nEqs);
@@ -618,7 +627,7 @@ public class Mesh implements Serializable {
                         W[j] = 1.0 / 3 * WLTS[j] + 2.0 / 3 * (W2LTS[j] + dtStep * Rw[j]);
                     }
             }
-            limitUnphysicalValues();
+            //eqn.limitUnphysicalValues(calculateAvgW(), W, nBasis);
         }
 
         void assembleRHS(double[] Rw, double[] a1, double[] a2, double[] a3) {

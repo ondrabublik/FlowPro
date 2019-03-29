@@ -108,13 +108,13 @@ public abstract class Deformation implements Serializable {
         } catch (FileNotFoundException ex) {
             System.out.println("Generating blending functions!");
             ElementType[] eTyp = new ElementType[8];
-            eTyp[1] = new pointElement(1);
-            eTyp[2] = new lineElement(1);
-            eTyp[3] = new triangleElement(1);
-            eTyp[4] = new squareElement(1);
-            eTyp[5] = new tetrahedralElement(1);
-            eTyp[6] = new hexahedralElement(1);
-            eTyp[7] = new prismElement(1);
+            eTyp[1] = new pointElement(1,1,1);
+            eTyp[2] = new lineElement(1,1,1);
+            eTyp[3] = new triangleElement(1,1,1);
+            eTyp[4] = new squareElement(1,1,1);
+            eTyp[5] = new tetrahedralElement(1,1,1);
+            eTyp[6] = new hexahedralElement(1,1,1);
+            eTyp[7] = new prismElement(1,1,1);
 
             int nPoints = PXY.length;
             int nElem = TP.length;

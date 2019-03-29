@@ -1,5 +1,7 @@
 package flowpro.core.transformation;
 
+import flowpro.api.Complex;
+import static flowpro.api.Complex.multiply;
 import flowpro.api.DomainTransformationObject;
 import flowpro.api.Mat;
 import flowpro.core.Parameters;
@@ -60,9 +62,75 @@ public class transformation3DhexaUserDef extends Transformation {
             A[1][0] * Xi[0] * Xi[1] * Xi[2] + A[1][1] * Xi[0] * Xi[1] + A[1][2] * Xi[0] * Xi[2] + A[1][3] * Xi[1] * Xi[2] + A[1][4] * Xi[0] + A[1][5] * Xi[1] + A[1][6] * Xi[2] + A[1][7],
             A[2][0] * Xi[0] * Xi[1] * Xi[2] + A[2][1] * Xi[0] * Xi[1] + A[2][2] * Xi[0] * Xi[2] + A[2][3] * Xi[1] * Xi[2] + A[2][4] * Xi[0] + A[2][5] * Xi[1] + A[2][6] * Xi[2] + A[2][7]};
 
-        return cylinderTransform(Xr);
+        return domTrans.transform(Xr);
+        
+//        Complex[] Xic = new Complex[Xi.length];
+//        for(int i = 0; i < Xi.length; i++){
+//            Xic[i] = new Complex(Xi[i], 0);
+//        }
+//        Complex[] Y =  getX(Xic);
+//        return new double[]{Y[0].getRe(), Y[1].getRe(), Y[2].getRe()};
     }
 
+    public Complex[] getX(Complex[] Xi) {
+        Complex[] Xr = new Complex[Xi.length];
+        Complex[] Ac = new Complex[8];
+        for(int i = 0; i < 8; i++){
+            Ac[i] = new Complex(A[0][i], 0);
+        }
+        Xr[0] = new Complex();
+        Xr[0].add(multiply(multiply(multiply(Xi[0],Ac[0]),Xi[1]),Xi[2]));
+        Xr[0].add(multiply(multiply(Xi[0],Ac[1]),Xi[1]));
+        Xr[0].add(multiply(multiply(Xi[0],Ac[2]),Xi[2]));
+        Xr[0].add(multiply(multiply(Xi[1],Ac[3]),Xi[2]));
+        Xr[0].add(multiply(Xi[0],Ac[4]));
+        Xr[0].add(multiply(Xi[1],Ac[5]));
+        Xr[0].add(multiply(Xi[2],Ac[6]));
+        Xr[0].add(Ac[7]);
+
+        for(int i = 0; i < 8; i++){
+            Ac[i] = new Complex(A[1][i], 0);
+        }
+        Xr[1] = new Complex();
+        Xr[1].add(multiply(multiply(multiply(Xi[0],Ac[0]),Xi[1]),Xi[2]));
+        Xr[1].add(multiply(multiply(Xi[0],Ac[1]),Xi[1]));
+        Xr[1].add(multiply(multiply(Xi[0],Ac[2]),Xi[2]));
+        Xr[1].add(multiply(multiply(Xi[1],Ac[3]),Xi[2]));
+        Xr[1].add(multiply(Xi[0],Ac[4]));
+        Xr[1].add(multiply(Xi[1],Ac[5]));
+        Xr[1].add(multiply(Xi[2],Ac[6]));
+        Xr[1].add(Ac[7]);
+
+        for(int i = 0; i < 8; i++){
+            Ac[i] = new Complex(A[2][i], 0);
+        }
+        Xr[2] = new Complex();
+        Xr[2].add(multiply(multiply(multiply(Xi[0],Ac[0]),Xi[1]),Xi[2]));
+        Xr[2].add(multiply(multiply(Xi[0],Ac[1]),Xi[1]));
+        Xr[2].add(multiply(multiply(Xi[0],Ac[2]),Xi[2]));
+        Xr[2].add(multiply(multiply(Xi[1],Ac[3]),Xi[2]));
+        Xr[2].add(multiply(Xi[0],Ac[4]));
+        Xr[2].add(multiply(Xi[1],Ac[5]));
+        Xr[2].add(multiply(Xi[2],Ac[6]));
+        Xr[2].add(Ac[7]);
+
+        return domTrans.transformComplex(Xr);
+    }
+
+    @Override
+    public double getDX(double[] Xi, int dimTop, int dimBottom) {
+        double h = 1e-8;
+        Complex ih = new Complex(0, h);
+        Complex[] Xic = new Complex[Xi.length];
+        for (int i = 0; i < Xi.length; i++) {
+            Xic[i] = new Complex(Xi[i], 0);
+        }
+        Xic[dimBottom].add(ih);
+        Complex[] Y = getX(Xic);
+
+        return Y[dimTop].getIm() / h;
+    }
+    
     public double[] cylinderTransform(double[] X) {
         return domTrans.transform(X);
     }

@@ -1,5 +1,7 @@
 package flowpro.core.transformation;
 
+import flowpro.api.Complex;
+import static flowpro.api.Complex.multiply;
 import flowpro.api.DomainTransformationObject;
 import flowpro.api.Mat;
 import flowpro.core.Parameters;
@@ -55,7 +57,42 @@ public class transformation2DtriangleUserDef extends Transformation {
         double[] Xr = new double[]{A[0] * Xi[0] + A[1] * Xi[1] + A[2], B[0] * Xi[0] + B[1] * Xi[1] + B[2]};
         return domTrans.transform(Xr);
     }
+    
+    public Complex[] getX(Complex[] Xi) {
+        Complex[] Xr = new Complex[Xi.length];
+        Complex A0 = new Complex(A[0], 0);
+        Complex A1 = new Complex(A[1], 0);
+        Complex A2 = new Complex(A[2], 0);
+        Xr[0] = new Complex();
+        Xr[0].add(multiply(Xi[0],A0));
+        Xr[0].add(multiply(Xi[1],A1));
+        Xr[0].add(A2);
+        
+        Complex B0 = new Complex(B[0],0);
+        Complex B1 = new Complex(B[1],0);
+        Complex B2 = new Complex(B[2],0);
+        Xr[1] = new Complex();
+        Xr[1].add(multiply(Xi[0], B0));
+        Xr[1].add(multiply(Xi[1], B1));
+        Xr[1].add(B2);
 
+        return domTrans.transformComplex(Xr);
+    }
+
+//    @Override
+//    public double getDX(double[] Xi, int dimTop, int dimBottom) {
+//        double h = 1e-10;
+//        Complex ih = new Complex(0, h);
+//        Complex[] Xic = new Complex[Xi.length];
+//        for (int i = 0; i < Xi.length; i++) {
+//            Xic[i] = new Complex(Xi[i], 0);
+//        }
+//        Xic[dimBottom].add(ih);
+//        Complex[] Y = getX(Xic);
+//
+//        return Y[dimTop].getIm() / h;
+//    } 
+   
     @Override
     public double jacobian(double[] Xi) {
         double dxdxi = getDX(Xi, 0, 0);

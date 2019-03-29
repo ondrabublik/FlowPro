@@ -21,7 +21,6 @@ public class Integration {
     QuadratureCentral qRules;
     Quadrature quadVolume;
     Transformation transform;
-    int order;
 
     // volume integral
     public int dimension;
@@ -37,7 +36,7 @@ public class Integration {
     int nEdges;
     public Face[] faces;
 
-    Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, QuadratureCentral qRules, int order) {
+    Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, QuadratureCentral qRules) {
         this.transform = transform;
         this.dimension = dimension;
         this.TT = TT;
@@ -45,7 +44,6 @@ public class Integration {
         this.shift = shift;
         this.quadVolume = elemType.getQVolumeRule(qRules);
         this.qRules = qRules;
-        this.order = order;
         nEdges = TT.length;
 
         // volume
@@ -104,6 +102,7 @@ public class Integration {
         public double[][] coordinatesFaceXiRef;
         public double[][] basisFaceLeft, basisFaceRight;
         public double[][][] dXibasisFaceLeft, dXibasisFaceRight;
+        
         public double[][][] dXbasisFaceLeft, dXbasisFaceRight;
         public double[][] interpolantFace;
         public FaceTransformation faceTransform;
@@ -114,9 +113,9 @@ public class Integration {
             this.shift = shift;
             this.faceIndexes = elemType.getFaceIndexes(k);
             this.elemRight = elemRight;
-            int faceOrder = elemType.order;
+            int faceOrder = elemType.faceQuadratureOrder;
             if (elemRight != null) {
-                faceOrder = Math.max(elemType.order, elemRight.elemType.order);
+                faceOrder = Math.max(elemType.faceQuadratureOrder, elemRight.elemType.faceQuadratureOrder);
             }
 
             nVerticesEdge = faceIndexes.length;

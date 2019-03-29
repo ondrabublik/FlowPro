@@ -27,6 +27,9 @@ import org.slf4j.LoggerFactory;
 import flowpro.core.solver.MasterSolver;
 import flowpro.core.solver.SlaveSolver;
 import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *
@@ -471,7 +474,7 @@ public class FlowProMain {
         // creating elementTypes
         ElementType[] elemType = new ElementType[nRows];
         for (int i = 0; i < nRows; i++) {
-            elemType[i] = ElementType.elementTypeFactory(type[i], 0);
+            elemType[i] = ElementType.elementTypeFactory(type[i], 0, 0, 0);
         }
 
         // saving face indexes
@@ -571,7 +574,7 @@ public class FlowProMain {
         // creating elementTypes
         ElementType[] elemType = new ElementType[nRows];
         for (int i = 0; i < nRows; i++) {
-            elemType[i] = ElementType.elementTypeFactory(type[i], 0);
+            elemType[i] = ElementType.elementTypeFactory(type[i], 0, 0, 0);
         }
 
         int[][] TEale = new int[TT.length][];
@@ -631,7 +634,7 @@ public class FlowProMain {
         // creating elementTypes
         ElementType[] elemType = new ElementType[nRows];
         for (int i = 0; i < nRows; i++) {
-            elemType[i] = ElementType.elementTypeFactory(type[i], 0);
+            elemType[i] = ElementType.elementTypeFactory(type[i], 0, 0, 0);
         }
 
         int nPoints = PXY.length;

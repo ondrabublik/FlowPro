@@ -10,8 +10,8 @@ import java.io.IOException;
  */
 public class squareElementTaylor extends squareElement{
     
-    public squareElementTaylor(int order) {
-        super(order);
+    public squareElementTaylor(int order, int volumeQuardatureOrder, int faceQuardatureOrder) {
+        super(order, volumeQuardatureOrder, faceQuardatureOrder);
     }
 
     public Basis getBasis(Transformation transform) throws IOException {

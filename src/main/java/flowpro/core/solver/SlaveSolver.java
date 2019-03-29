@@ -20,9 +20,9 @@ abstract public class SlaveSolver {
 
         try {
             switch (parallelSolverType.toLowerCase()) {              
-                case "distschwartz":
+                case "schwartz":
                     return new SchwartzImplicitSolverSlave(masterIP, masterPort);
-                case "distksp":
+                case "ksp":
                     return new KSPSolverSlave(masterIP, masterPort);
                 
             }

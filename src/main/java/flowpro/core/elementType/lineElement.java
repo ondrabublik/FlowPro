@@ -13,8 +13,10 @@ import java.io.IOException;
  */
 public class lineElement extends ElementType {
     
-    public lineElement(int order) {
+    public lineElement(int order, int volumeQuardatureOrder, int faceQuardatureOrder) {
         this.order = order;
+        this.volumeQuadratureOrder = volumeQuardatureOrder;
+        this.faceQuadratureOrder = faceQuardatureOrder;
         nVertices = numberOfPoints();
         nFaces = numberOfEdges();
     }
@@ -34,7 +36,7 @@ public class lineElement extends ElementType {
     }
 
     public Quadrature getQVolumeRule(QuadratureCentral qRules) {
-        return qRules.qLine[order];
+        return qRules.qLine[volumeQuadratureOrder];
     }
 
     public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {

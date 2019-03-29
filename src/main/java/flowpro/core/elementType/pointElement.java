@@ -13,8 +13,10 @@ import java.io.IOException;
  */
 public class pointElement extends ElementType {
     
-    public pointElement(int order) {
+    public pointElement(int order, int volumeQuardatureOrder, int faceQuardatureOrder) {
         this.order = order;
+        this.volumeQuadratureOrder = volumeQuardatureOrder;
+        this.faceQuadratureOrder = faceQuardatureOrder;
         nVertices = numberOfPoints();
         nFaces = numberOfEdges();
     }

@@ -42,6 +42,10 @@ public class Parameters implements Serializable {
     // transformation object
     public DomainTransformationObject domainTransformationObject;
     
+    // integration rules
+    public int volumeQuardatureOrder;
+    public int faceQuardatureOrder;
+    
     // solver type
     public String linearSolver;
     public String preconditioner;
@@ -133,6 +137,16 @@ public class Parameters implements Serializable {
                 order = props.getInt("order");
             } else {
                 order = Integer.MIN_VALUE;
+            }
+            
+            volumeQuardatureOrder = order;
+            if (props.containsKey("volumeQuardatureOrder")) {
+                volumeQuardatureOrder = props.getInt("volumeQuardatureOrder");
+            }
+            
+            faceQuardatureOrder = order;
+            if (props.containsKey("faceQuardatureOrder")) {
+                faceQuardatureOrder = props.getInt("faceQuardatureOrder");
             }
             
             orderInTime = props.getInt("orderInTime");
@@ -232,7 +246,7 @@ public class Parameters implements Serializable {
                 localSolverType = props.getString("localSolverType");
             }
             
-            parallelSolverType = "distKSP";
+            parallelSolverType = "ksp";
             if (props.containsKey("parallelSolverType")) {
                 parallelSolverType = props.getString("parallelSolverType");
             }

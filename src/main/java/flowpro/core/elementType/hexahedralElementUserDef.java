@@ -15,8 +15,8 @@ import flowpro.core.transformation.*;
  */
 public class hexahedralElementUserDef extends hexahedralElement {
     
-    hexahedralElementUserDef(int order){
-        super(order);
+    hexahedralElementUserDef(int order, int volumeQuardatureOrder, int faceQuardatureOrder){
+        super(order, volumeQuardatureOrder, faceQuardatureOrder);
     }
     
     public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {

@@ -17,7 +17,7 @@ public class Neighbour {
         this.typ = typ;
     }
 
-    void vynuluj() {
+    void nullMatrix() {
         if (typ > -1) {
             for (int i = 0; i < nBasis * nr; i++) {
                 for (int j = 0; j < neR * nr; j++) {

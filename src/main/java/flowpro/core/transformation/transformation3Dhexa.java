@@ -54,6 +54,7 @@ public class transformation3Dhexa extends Transformation {
             A[2][0] * Xi[0] * Xi[1] * Xi[2] + A[2][1] * Xi[0] * Xi[1] + A[2][2] * Xi[0] * Xi[2] + A[2][3] * Xi[1] * Xi[2] + A[2][4] * Xi[0] + A[2][5] * Xi[1] + A[2][6] * Xi[2] + A[2][7]};
     }
 
+    
     /*
     public double[] getXi(double[] X) {
         double[] Xi = new double[]{0.5, 0.5, 0.5};

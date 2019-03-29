@@ -13,8 +13,10 @@ import java.io.IOException;
  */
 public class prismElement extends ElementType {
 
-    public prismElement(int order) {
+    public prismElement(int order, int volumeQuardatureOrder, int faceQuardatureOrder) {
         this.order = order;
+        this.volumeQuadratureOrder = volumeQuardatureOrder;
+        this.faceQuadratureOrder = faceQuardatureOrder;
         nVertices = numberOfPoints();
         nFaces = numberOfEdges();
     }
@@ -34,7 +36,7 @@ public class prismElement extends ElementType {
     }
 
     public Quadrature getQVolumeRule(QuadratureCentral qRules) {
-        return qRules.qPrism[order];
+        return qRules.qPrism[volumeQuadratureOrder];
     }
 
     public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {

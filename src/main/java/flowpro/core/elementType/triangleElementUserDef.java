@@ -15,8 +15,8 @@ import flowpro.core.transformation.*;
  */
 public class triangleElementUserDef extends triangleElement {
     
-    triangleElementUserDef(int order){
-        super(order);
+    triangleElementUserDef(int order, int volumeQuardatureOrder, int faceQuardatureOrder){
+        super(order, volumeQuardatureOrder, faceQuardatureOrder);
     }
     
     public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {

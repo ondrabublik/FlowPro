@@ -37,7 +37,7 @@ public class transformation1Dline extends Transformation {
     public double[] getX(double[] Xi) {
         return new double[]{A[0] * Xi[0] + A[1]};
     }
-
+    
     @Override
     public double[] getXi(double[] X) {
         return new double[]{(X[0]-A[1])/A[0]};
