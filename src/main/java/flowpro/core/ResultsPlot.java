@@ -17,6 +17,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Stack;
 
@@ -41,7 +42,7 @@ public class ResultsPlot {
     int[][] TP;
     int[][] TT;
     int dim;
-    int order;
+    int[] order;
     boolean curvedBoundary;
     FlowProProperties props;
 
@@ -146,7 +147,29 @@ public class ResultsPlot {
             System.out.println("MeshScale found: " + meshScale + " ");
         } catch (Exception e) {
             System.out.println("MeshScale not defined!");
-        };
+        }
+
+        try {
+            order = Mat.loadIntArray(simulationPath + "order.txt");
+            System.out.println("reading local order of spatial accuracy from file order.txt");
+        } catch (FileNotFoundException ex) {
+//            if (par.order < 1) {
+//                throw new IOException("neither global nor local order of spatial accuracy defined, "
+//                        + " either define variable order in file " + simulationPath + PARAMETER_FILE_NAME
+//                        + " or create file " + "order.txt" + " in simulation path");
+//            }
+            order = new int[TP.length];
+            if (props.containsKey("order")) {
+                Arrays.fill(order, props.getInt("order"));
+            } else {
+                throw new IOException("neither global nor local order of spatial accuracy defined, "
+                        + " either define variable order in file " + simulationPath + PARAMETER_FILE_NAME
+                        + " or create file " + "order.txt" + " in simulation path");
+            }
+            
+            System.out.println("file " + simulationPath + "order.txt not found"
+                    + ", setting global order of spatial accuracy to " + order[0]);            
+        }
 
         // loading result
         double[][] W = null;
@@ -167,7 +190,6 @@ public class ResultsPlot {
                     }
                     elemsType = Mat.loadIntArray(meshPath + "elementType.txt");
 
-                    order = props.getInt("order");
                     break;
                 default:
                     if (iter != -1) {
@@ -185,8 +207,6 @@ public class ResultsPlot {
 //                        System.out.println("-p property is valid only for 2D elements!");
 //                        System.exit(0);
 //                    }
-                    order = props.getInt("order");
-
                     if (props.containsKey("curvedBoundary")) {
                         curvedBoundary = props.getBoolean("curvedBoundary");
                     } else {
@@ -210,7 +230,7 @@ public class ResultsPlot {
             int listSize = names.size();
             for (int s = 0; s < listSize; s++) {
                 String variableName = names.pop();
-                double[] value = eqn.getResults(W[0], new double[eqn.nEqs()*dim], new double[dim], variableName);
+                double[] value = eqn.getResults(W[0], new double[eqn.nEqs() * dim], new double[dim], variableName);
                 double[][] result;
                 if (value.length == 1) {
                     result = new double[PXY.length][1]; // scalar
@@ -227,7 +247,7 @@ public class ResultsPlot {
                             }
                             XCenter[d] /= TP[i].length;
                         }
-                        value = eqn.getResults(W[i], new double[eqn.nEqs()*dim], XCenter, variableName);
+                        value = eqn.getResults(W[i], new double[eqn.nEqs() * dim], XCenter, variableName);
                         for (int j = 0; j < TP[i].length; j++) {
                             for (int k = 0; k < value.length; k++) {
                                 result[TP[i][j]][k] += value[k];
@@ -241,7 +261,7 @@ public class ResultsPlot {
                         for (int j = 0; j < TP[i].length; j++) {
                             System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                         }
-                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order);
+                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
                         Transformation transform = elemType.getVolumeTransformation(vertices, null);
                         Basis basis = elemType.getBasis(transform);
                         int nBasis = basis.nBasis;
@@ -315,13 +335,13 @@ public class ResultsPlot {
                 System.out.println();
                 System.out.println(variableName);
                 System.out.println("|        |");
-                double[] value = eqn.getResults(W[0], new double[eqn.nEqs()*dim], new double[dim], variableName);
+                double[] value = eqn.getResults(W[0], new double[eqn.nEqs() * dim], new double[dim], variableName);
                 for (int i = 0; i < TP.length; i++) {
                     double[][] vertices = new double[TP[i].length][dim];
                     for (int j = 0; j < TP[i].length; j++) {
                         System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                     }
-                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order);
+                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
                     Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i]);
                     Basis basis = elemType.getBasis(transform);
                     int nBasis = basis.nBasis;
