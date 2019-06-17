@@ -16,7 +16,7 @@ for i = 1:nargin
     end
 end
 
-if args ~= ''
+if ~isempty(args)
     show(args);
 end
 

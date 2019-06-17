@@ -14,7 +14,7 @@ end
 s = 0;
 while 1
     try
-        eval(['show ', quantity,' -i', num2str(s), ' -p1 -fvtk -n',num2str(s)]);
+        eval(['show ', quantity,' -i', num2str(s), ' -fvtk -n',num2str(s)]);
 %         axis([-0.6 1.2 -1 1])
 %         caxis([0 1.4]);
 %         caxis([0 0.08]);
