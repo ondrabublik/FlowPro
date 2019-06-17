@@ -525,7 +525,7 @@ public class Solver {
                         for (int d = 0; d < nDoms; ++d) {
                             forDis[d] = (ForcesAndDisplacements) mpi.receive(d, Tag.FORCES).getData();
                         }
-                        dyn.computeBodyMove(dt, state.t, forDis[0].combine(forDis));
+                        dyn.computeBodyMove(dt, state.t, newtonIter, forDis[0].combine(forDis));
                         mpi.sendAll(new MPIMessage(Tag.ALE_NEW_MESH_POSITION, new ForcesAndDisplacements(dt, dto, dyn.getMeshMove())));
                         mpi.waitForAll(Tag.MESH_POSITION_UPDATED);
                     }
@@ -709,7 +709,7 @@ public class Solver {
                 // mesh deformation
                 if (par.movingMesh) {
                     dfm.calculateForces(elems, dyn.getMeshMove());
-                    dyn.computeBodyMove(dt, state.t, dfm.getFluidForces());
+                    dyn.computeBodyMove(dt, state.t, s, dfm.getFluidForces());
                     dfm.newMeshPosition(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
                     if (state.t == 0) {
                         dfm.relaxFirstIteration(elems);
@@ -873,7 +873,7 @@ public class Solver {
     public void testDynamic(double dt) throws IOException {
         double t = 0;
         for (int step = 0; step <= par.steps; step++) {
-            dyn.computeBodyMove(dt, t, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
+            dyn.computeBodyMove(dt, t, 0, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
             dyn.nextTimeLevel();
             dyn.savePositionsAndForces();
             t += dt;
@@ -899,12 +899,12 @@ public class Solver {
             if (par.movingMesh) {
                 Mat.save(sol.vertices, simulationPath + "PXY.txt");
             }
-            File[] content = new File(simulationPath + "output").listFiles();
-            if (content != null) {
-                for (File file : content) {
-                    file.delete();
-                }
-            }
+//            File[] content = new File(simulationPath + "output").listFiles();
+//            if (content != null) {
+//                for (File file : content) {
+//                    file.delete();
+//                }
+//            }
 
             lock.notify();
         }
