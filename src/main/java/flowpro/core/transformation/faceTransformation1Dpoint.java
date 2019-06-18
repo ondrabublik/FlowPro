@@ -38,5 +38,10 @@ public class faceTransformation1Dpoint extends FaceTransformation {
     public double[] getNormal(double[] Xi) {
         return new double[]{1};
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{1});
+    }
 }
 

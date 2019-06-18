@@ -1,0 +1,53 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% physical parameters %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+model = AdiabaticEulers
+results = mach, pressure, velocity
+
+dimension = 2
+
+%%% either kappa, or cp and cv must be defined 
+%cp =         % heat capacity at constant pressure
+cv =  1       % heat capacity at constant volume
+kappa = 1.4   % heat capacity ratio
+
+%tEnd =   % physical time at which the computatin is to be terminated
+
+%%% inlet
+isInletSupersonic = false  % true / false
+attackAngle = 0   % angle of attack
+%%% subsonic inlet boundary condition (isInletSupersonic = false)
+pIn0 = 1    % inlet stagnation pressure
+rhoIn0 = 1  % inlet stagnation density
+%TIn0 =    % inlet stagnation temperature (can be defined instead of rhoIn0)
+%%% supersonic inlet boundary condition (isInletSupersonic = true)
+pIn =     % inlet pressure
+rhoIn =   % inlet density
+%TIn =    % inlet temperature (can be defined instead of rhoIn)
+vIn =     % inlet velocity
+
+%%% outlet
+pOut = 0.737       % outlet pressure
+%machInf =    % Mach number of undisturbed flow (can be defined instead of pOut)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% numerical parameters %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+continueComputation = false   % true / false
+steps = 20   % number of time steps
+%residuum = 
+%saveRate = 50
+%animation = true
+
+order = 2
+orderInTime = 1
+CFL = 5
+threads = 1
+newtonIters = 1
+penalty = 1
+
+%%% damping
+dampTol = 3
+dampConst = 0
+

@@ -10,9 +10,9 @@ import java.io.IOException;
 public class basis2Dsquare extends Basis {
 
     public double[][] coeffs;    // koeficieny bazovych polynomu
-    private int[] xExp;   //  exponent of variable xi of the k-th basis function
-    private int[] yExp;  // exponent of variable eta of the k-th basis function   
-    private int order;
+    private final int[] xExp;   //  exponent of variable xi of the k-th basis function
+    private final int[] yExp;  // exponent of variable eta of the k-th basis function   
+    private final int order;
 
     public basis2Dsquare(int order) throws IOException {
         this.order = order;

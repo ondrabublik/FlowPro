@@ -1,5 +1,6 @@
 package flowpro.core.elementType;
 
+import flowpro.core.Parameters;
 import flowpro.core.basis.*;
 import flowpro.core.transformation.*;
 import flowpro.core.curvedBoundary.FaceCurvature;
@@ -17,6 +18,8 @@ public abstract class ElementType implements Serializable {
     public int nVertices;
     public int nFaces;
     public int order;
+    public int volumeQuadratureOrder;
+    public int faceQuadratureOrder;
 
     public abstract int numberOfPoints();
 
@@ -26,7 +29,7 @@ public abstract class ElementType implements Serializable {
 
     public abstract Quadrature getQVolumeRule(QuadratureCentral qRules);
 
-    public abstract Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv);
+    public abstract Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par);
 
     public abstract int getFaceType(int k);
 
@@ -47,47 +50,56 @@ public abstract class ElementType implements Serializable {
         }
     }
     
-    public Quadrature getQFaceRule(int elemFaceType, QuadratureCentral qRules) {
+    public Quadrature getQFaceRule(int elemFaceType, QuadratureCentral qRules, int faceOrder) {
         switch (elemFaceType) {
             case 1:
-                return qRules.qPoint[order];
+                return qRules.qPoint[faceOrder];
             case 2:
-                return qRules.qLine[order];
+                return qRules.qLine[faceOrder];
             case 3:
-                return qRules.qTriangle[order];
+                return qRules.qTriangle[faceOrder];
             case 4:
-                return qRules.qSquare[order];
+                return qRules.qSquare[faceOrder];
             default:
                 throw new RuntimeException("unknown face type");
         }
     }
     
-    public static ElementType elementTypeFactory(int type, int order) {
+    public static ElementType elementTypeFactory(int type, int order, int volumeQuardatureOrder, int faceQuardatureOrder) {
         ElementType elemType = null;
         switch (type) {
             case 1:
-                elemType = new pointElement(order);
+                elemType = new pointElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
             case 2:
-                elemType = new lineElement(order);
+                elemType = new lineElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
             case 3:
-                elemType = new triangleElement(order);
+                elemType = new triangleElement(order, volumeQuardatureOrder, faceQuardatureOrder);
+                break;
+            case 33:
+                elemType = new triangleElementUserDef(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
             case 31:
-                elemType = new curvedBoundaryTriangleElement(order);
+                elemType = new curvedBoundaryTriangleElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
             case 4:
-                elemType = new squareElement(order);
+                elemType = new squareElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
+            case 42:
+                elemType = new squareElementTaylor(order, volumeQuardatureOrder, faceQuardatureOrder);
+                break;    
             case 5:
-                elemType = new tetrahedralElement(order);
+                elemType = new tetrahedralElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
             case 6:
-                elemType = new hexahedralElement(order);
+                elemType = new hexahedralElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
+            case 63:
+                elemType = new hexahedralElementUserDef(order, volumeQuardatureOrder, faceQuardatureOrder);
+                break; 
             case 7:
-                elemType = new prismElement(order);
+                elemType = new prismElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
         }
         return elemType;

@@ -4,6 +4,7 @@ import flowpro.api.FlowProProperties;
 import flowpro.api.Mat;
 import flowpro.core.Mesh.Element;
 import flowpro.api.Functional;
+import flowpro.core.solver.MasterSolver;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,7 +26,7 @@ public class OptimisationToolExport {
     URL[] jarURLList;
     public static final String PARAMETER_FILE_NAME = "parameters.txt";
 
-    OptimisationToolExport(Solver solver, String simulationPath, String mode, URL[] jarURLList) throws IOException {
+    OptimisationToolExport(MasterSolver solver, String simulationPath, String mode, URL[] jarURLList) throws IOException {
         this.mesh = solver.getMesh();
         this.simulationPath = simulationPath;
         this.mode = mode;
@@ -130,10 +131,12 @@ public class OptimisationToolExport {
 
     public void exportJacobiTranspose() throws IOException {
         Element[] elems = mesh.getElems();
+        for (int k = 0; k < mesh.nElems; k++) {
+            elems[k].exportLocalJacobiMatrix();
+        }
         FileWriter fw = new FileWriter(optimisationPath + "J.txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
             for (int k = 0; k < mesh.nElems; k++) {
-                elems[k].exportLocalJacobiMatrix();
                 int n = elems[k].nBasis * mesh.nEqs;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
@@ -146,7 +149,7 @@ public class OptimisationToolExport {
                         Element elemR = elems[elems[k].TT[face]];
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < elemR.nBasis * mesh.nEqs; j++) {
-                                out.write(elems[k].gi_U[i] + " " + elemR.gi_U[j] + " " + elems[k].ANeighs[face].MR[j][i]);
+                                out.write(elems[k].gi_U[i] + " " + elemR.gi_U[j] + " " + elems[k].ANeighs[face].A[j][i]);
                                 out.newLine();
                             }
                         }
@@ -173,8 +176,8 @@ public class OptimisationToolExport {
     }
 
     public void exportFunctionalDerivative() throws IOException {
+        Parameters par = mesh.getPar();
         Element[] elems = mesh.getElems();
-        // compute functional I0
         int nFunctional = elems[0].optimalisationFunctional.getN();
         double[] f = new double[nFunctional];
         for (Element elem : elems) {
@@ -183,28 +186,27 @@ public class OptimisationToolExport {
                 f[j] += aux[j];
             }
         }
-        double combinedFunctional0 = elems[0].optimalisationFunctional.combineFunctionals(f);
-
-        // compute combined function derivatives
-        double[] derivativeCombinedFunctional = new double[nFunctional];
-        double h = 1e-6;
-        for (int j = 0; j < nFunctional; j++) {
-            f[j] += h;
-            derivativeCombinedFunctional[j] = (elems[0].optimalisationFunctional.combineFunctionals(f) - combinedFunctional0) / h;
-            f[j] -= h;
-        }
-
+        double combF = elems[0].optimalisationFunctional.combineFunctionals(f);
+             
         // compute functional derivative
         FileWriter fw = new FileWriter(optimisationPath + "dIdw.txt");
         try (BufferedWriter out = new BufferedWriter(fw)) {
-            for (int k = 0; k < mesh.nElems; k++) {
-                elems[k].exportLocalFunctionalDerivative();
-                for (int i = 0; i < elems[k].optimFunDer.length; i++) {
-                    double dfdwi = 0;
+            for (Element elem : elems) {
+                int n = elem.nBasis * mesh.nEqs;
+                double[] V = new double[n];
+                double[] f0loc = elem.computeFunctional(null);
+                for (int i = 0; i < n; i++) {
+                    V[i] = par.h;
+                    double[] fhloc = elem.computeFunctional(V);
                     for (int j = 0; j < nFunctional; j++) {
-                        dfdwi += derivativeCombinedFunctional[j] * elems[k].optimFunDer[i][j];
+                        f[j] += fhloc[j] - f0loc[j];
                     }
-                    out.write(dfdwi + " ");
+                    double combFh = elems[0].optimalisationFunctional.combineFunctionals(f);
+                    V[i] = 0;
+                    for (int j = 0; j < nFunctional; j++) {
+                        f[j] -= fhloc[j] - f0loc[j];
+                    }
+                    out.write((combFh-combF)/par.h + " ");
                     out.newLine();
                 }
             }

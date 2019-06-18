@@ -90,7 +90,7 @@ if strcmp(action,'initialize')
     bound = najdiHranicniBody(P,Q); % vraci indexy bodu na hranici
     % vykresluje body hranice
     hold on;
-    plot(bound(:,1),bound(:,2),'.','Color','b');
+    plot(bound(:,1),bound(:,2),'.','color','b');
     hold off;
     
     % inicializacni funkce

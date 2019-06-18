@@ -84,6 +84,7 @@ public class transformation2Dtriangle extends Transformation {
                 D = B[1];
             }
         }
+       
         return D;
     }
 
@@ -108,5 +109,10 @@ public class transformation2Dtriangle extends Transformation {
 
         }
         return interpolant;
+    }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{1.0/3,1.0/3});
     }
 }

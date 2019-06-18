@@ -10,7 +10,7 @@ public class QuadratureHexa extends Quadrature {
         nPoints = quad.nPoints * quad.nPoints * quad.nPoints;
         coords = new double[nPoints][3];
         weights = new double[nPoints];
-
+        
         int s = 0;
         for (int i = 0; i < quad.nPoints; i++) {
             for (int j = 0; j < quad.nPoints; j++) {

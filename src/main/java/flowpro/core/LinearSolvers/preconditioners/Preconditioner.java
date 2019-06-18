@@ -31,11 +31,14 @@ abstract public class Preconditioner {
                 case "blockjacobiinversion":
                     M = new BlockJacobiInversion(par);
                     break;
-                case "SSOR":
+                case "ssor":
                     M = new SSOR(par);
                     break;
                 case "ilu0":
                     M = new ILU0(par);
+                    break;
+                case "blockilu0":
+                    M = new BlockILU0(par);
                     break;
 
                 default:

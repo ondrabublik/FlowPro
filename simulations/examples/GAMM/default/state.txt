@@ -1,0 +1,8 @@
+#Mon Feb 04 10:07:31 CET 2019
+order=2
+transfer=0
+steps=20
+CFL=5.0
+CPU=1314
+t=0.8796319197771354
+residuum=0.3021989211585392

@@ -27,6 +27,12 @@ penalty = 1
 dampTol = 1
 dampConst = 0
 
+% solvers setup
+%localSolverType =       % localImplicit, localExplicit
+%parallelSolverType = % distSchwartz, distKSP
+%linearSolver = 
+%preconditioner = 
+
 % parallel mode
 overlap = 2  % must be specified only for parallel computations
 schwarzIters = 0

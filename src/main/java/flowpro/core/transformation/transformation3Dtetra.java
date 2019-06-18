@@ -110,4 +110,9 @@ public class transformation3Dtetra extends Transformation {
         }
         return interpolant;
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{0.25, 0.25, 0,25});
+    }
 }

@@ -1,5 +1,6 @@
 package flowpro.core.elementType;
 
+import flowpro.core.Parameters;
 import flowpro.core.basis.*;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.quadrature.*;
@@ -12,8 +13,10 @@ import java.io.IOException;
  */
 public class hexahedralElement extends ElementType {
 
-    public hexahedralElement(int order) {
+    public hexahedralElement(int order, int volumeQuardatureOrder, int faceQuardatureOrder) {
         this.order = order;
+        this.volumeQuadratureOrder = volumeQuardatureOrder;
+        this.faceQuadratureOrder = faceQuardatureOrder;
         nVertices = numberOfPoints();
         nFaces = numberOfEdges();
     }
@@ -33,10 +36,10 @@ public class hexahedralElement extends ElementType {
     }
 
     public Quadrature getQVolumeRule(QuadratureCentral qRules) {
-        return qRules.qHexa[order];
+        return qRules.qHexa[volumeQuadratureOrder];
     }
 
-    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv) {
+    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {
         Transformation transform = new transformation3Dhexa();
         transform.computeTransform(vertices);
         return transform;

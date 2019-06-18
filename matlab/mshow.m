@@ -6,7 +6,10 @@ args = '';
 for i = 1:nargin
     quantityName = varargin{i};
     
-    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum')
+    if strcmp(lower(quantityName),'mesh') || strcmp(lower(quantityName),'order') || ...
+       strcmp(lower(quantityName),'bodies') || strcmp(lower(quantityName),'residuum') || ...
+       strcmp(lower(quantityName),'av') || strcmp(lower(quantityName),'y') || ...
+       strcmp(lower(quantityName),'bf')
         continue
     end
     
@@ -16,19 +19,15 @@ for i = 1:nargin
     end
 end
 
+<<<<<<< HEAD
 if ~isempty(args)
+=======
+if ~strcmp(args,'')
+>>>>>>> 4968a5076632d4dd332e71b237bf1a15125532f4
     show(args);
 end
 
 par = loadParam(simulPath);
-
-if par.dimension ~= 2
-    error('mshow supports only 2D view');
-end
-elements = dlmread([meshPath, 'elements.txt'], ' ');
-elementType = load([meshPath, 'elementType.txt']);
-
-tri = convert2Triangular(elements, elementType);
 
 for k = 1 : nargin
     q = varargin{k};
@@ -37,18 +36,38 @@ for k = 1 : nargin
         warning('cannot evaluate option ''%s'': switches are not allowed here', q)
         continue
     end
-    
+
     switch lower(q)
         case 'mesh'
             showMesh;
-            continue        
+            continue  
+        case 'order'
+            showMesh;
+            showOrder;
+            continue
         case 'bodies'
             showBodies;
             continue        
         case 'residuum'
             showResiduum;
             continue
+        case 'av'
+            showArtificialViscosity;
+            continue
+        case 'y'
+            showWallDistance;
+            continue
+        case 'bf'
+            showBlendingFunctions;
+            continue
     end
+
+    if par.dimension ~= 2
+        error('mshow supports only 2D view');
+    end
+    elements = dlmread([meshPath, 'elements.txt'], ' ');
+    elementType = load([meshPath, 'elementType.txt']);
+    tri = convert2Triangular(elements, elementType);
     
     plotMe(q)
 end
@@ -68,7 +87,7 @@ function plotMe(quantityName)
     elseif m > 2
         figure('name', quantityName, 'color', 'w');
         quiver(vertices(:,1), vertices(:,2), quantity(:,1), quantity(:,2));
-        axis equal
+%         axis equal
     end
 end
 
@@ -80,7 +99,7 @@ function myContour(tri, vertices, Quantity, name)
     % tricontour(tri,PX,PY,Quantity,30)
     set(h2, 'linestyle', 'none');
     box on;
-    axis equal;
+%     axis equal;
     osy = [min(vertices(:,1)) max(vertices(:,1)) min(vertices(:,2)) max(vertices(:,2))];
     axis(osy);
     colorbar;
@@ -94,7 +113,7 @@ function tri = convert2Triangular(elements, elementType)
     nElems = size(elements, 1);
     
     if nargin > 1
-        squares = elements(elementType == 4, :);        
+        squares = elements(firstDigit(elementType) == 4, :);        
     else
         squares = elements(elements(:,4) ~= 0, :);
     end
@@ -115,7 +134,7 @@ if nargin == 0
     neigh = dlmread([meshPath, 'neighbors.txt']);
     type = dlmread([meshPath, 'elementType.txt']);
 
-    fprintf('sit ma %d elementu\n', length(elems));
+    fprintf('Mesh has %d elements and %d vertices.\n', length(elems), length(xy));
 end
 
 x = xy(:,1);
@@ -143,6 +162,31 @@ end
 axis equal
 box on
 
+end
+
+function showOrder
+    [meshPath, simulPath, ~] = getPath;
+    
+    order = dlmread([simulPath, 'order.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = dlmread([meshPath, 'elementType.txt']);
+    nElem = length(elems(:,1));
+    xys = zeros(nElem,2);
+    for i = 1:nElem
+        for j = 1:type(i)
+            xys(i,:) = xys(i,:) + xy(elems(i,j),:);
+        end
+        xys(i,:) = xys(i,:)/type(i);
+    end
+    
+    col = 'brgmckybrgmcky';
+    hold on
+    for i = 1:10
+        x = xys(order == i,1);
+        y = xys(order == i,2);
+        plot(x,y,'marker','.','color',col(i),'linestyle','none');
+    end
 end
 
 function showBodies
@@ -196,6 +240,61 @@ xlabel('CPU [s]')
 
 end
 
+function showArtificialViscosity
+    [meshPath, simulPath, ~] = getPath;   
+    
+    av = load([simulPath,'artificialViscosity.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = firstDigit(dlmread([meshPath, 'elementType.txt']));
+    tri = convert2Triangular(elems, type);
+    
+    
+    for m = 1:length(av(1,:))
+        vav = zeros(size(xy,1),1);
+        pom = zeros(size(xy,1),1);
+        for i = 1:size(elems,1)
+            for j = 1:type(i)
+                vav(elems(i,j)) = vav(elems(i,j)) + av(i,m);
+                pom(elems(i,j)) = pom(elems(i,j)) + 1;
+            end
+        end
+        vav = vav./pom;
+
+        figure('color', 'w');
+        [~, h2] = tricontf(xy(:,1),xy(:,2),tri,vav,30);
+        % tricontour(tri,PX,PY,Quantity,30)
+        set(h2, 'linestyle', 'none');
+        box on;
+        axis equal;
+        osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+        axis(osy);
+        colorbar;
+        colormap jet
+    end
+end
+
+function showWallDistance
+    [meshPath, simulPath, ~] = getPath;   
+    
+    dist = load([meshPath,'wallDistance.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = firstDigit(dlmread([meshPath, 'elementType.txt']));
+    tri = convert2Triangular(elems, type);
+    
+    figure('color', 'w');
+    [~, h2] = tricontf(xy(:,1),xy(:,2),tri,dist,30);
+    % tricontour(tri,PX,PY,Quantity,30)
+    set(h2, 'linestyle', 'none');
+    box on;
+    axis equal;
+    osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+    axis(osy);
+    colorbar;
+    colormap jet
+end
+
 function x = reorganise(x)
     n = length(x);
     for i = 2:n
@@ -244,4 +343,35 @@ fclose(fid);
 par = cell2struct(vals, keys, 2);
 end
 
+function t = firstDigit(typ)
+    t = typ;
+    for i = 1:length(typ)
+        while(typ(i) > 0)
+            t(i) = typ(i);
+            typ(i) = fix(typ(i)/10);
+        end
+    end
+end
 
+function showBlendingFunctions
+    [meshPath, simulPath, ~] = getPath;   
+    
+    bfs = load([meshPath,'blendingFunctions.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = firstDigit(dlmread([meshPath, 'elementType.txt']));
+    tri = convert2Triangular(elems, type);
+    
+    for i = 1:length(bfs(1,:))
+        figure('color', 'w');
+        [~, h2] = tricontf(xy(:,1),xy(:,2),tri,bfs(:,i),30);
+        % tricontour(tri,PX,PY,Quantity,30)
+        set(h2, 'linestyle', 'none');
+        box on;
+        axis equal;
+        osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+        axis(osy);
+        colorbar;
+        colormap jet
+    end
+end

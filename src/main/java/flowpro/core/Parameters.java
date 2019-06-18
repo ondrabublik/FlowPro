@@ -1,9 +1,11 @@
 package flowpro.core;
 
+import flowpro.api.DomainTransformationObject;
 import flowpro.api.FlowProProperties;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 
 /**
  *
@@ -27,7 +29,7 @@ public class Parameters implements Serializable {
     public double cfl;        // max CFL cislo
     public double cflLTS;
     public boolean varyCFL;
-    final int order;         // rad metody v prostoru
+    public final int order;         // rad metody v prostoru
     public int orderInTime; // rad metody v case
     public final int nThreads;      // pocet vlaken
     public final int newtonIters;   // pocet vnitrnich iteraci    
@@ -37,13 +39,22 @@ public class Parameters implements Serializable {
     public final double meshScale; // mesh scale
     public boolean useJacobiMatrix;
     
+    // transformation object
+    public DomainTransformationObject domainTransformationObject;
+    
+    // integration rules
+    public int volumeQuardatureOrder;
+    public int faceQuardatureOrder;
+    
     // solver type
     public String linearSolver;
     public String preconditioner;
     public double iterativeSolverTol;
 
     // single time / dual time
-    public boolean explicitTimeIntegration;
+    public String localSolverType;
+    public String parallelSolverType;
+    public boolean isExplicit;
     public String timeMethod;
     public double[] coeffsPhys;
     public double[] coeffsDual;
@@ -55,6 +66,8 @@ public class Parameters implements Serializable {
     
     // artificial damping
     public final double dampTol;   // tolerance pro pridavnou viskozitu
+    public final double dampInnerTol; // tolerance pro pridavnou viskozitu uvnitr
+    public final double[] dampInnerCoef; // koeficienty pro pridavnou viskozitu uvnitr
     public final double dampConst; // konstantni pridavna viskozita 
 
     // Finite volume method limiter
@@ -65,6 +78,7 @@ public class Parameters implements Serializable {
     public String meshDeformationType;
     
     /* parallel mode */
+    public final boolean parallelMode;
     public final int overlap;
     public final int schwarzIters;
     public final double schwarzTol;
@@ -73,14 +87,16 @@ public class Parameters implements Serializable {
     public final int fetcherPort;
 
     // solution monitor
-    String solutionMonitor;
-    boolean solutionMonitorOn;
+    public String solutionMonitor;
+    public boolean solutionMonitorOn;
+    public boolean solutionAverage; // solution average in elementData
     
     // external field
     public boolean externalField;
     
-    public Parameters(String parameterFilePath, boolean parallelMode) throws IOException {
+    public Parameters(String parameterFilePath, boolean parallelMode, URL[] jarURLList) throws IOException {
         try {
+            this.parallelMode = parallelMode;
             FlowProProperties props = new FlowProProperties();
             props.load(new FileInputStream(parameterFilePath));
 
@@ -121,6 +137,16 @@ public class Parameters implements Serializable {
                 order = props.getInt("order");
             } else {
                 order = Integer.MIN_VALUE;
+            }
+            
+            volumeQuardatureOrder = order;
+            if (props.containsKey("volumeQuardatureOrder")) {
+                volumeQuardatureOrder = props.getInt("volumeQuardatureOrder");
+            }
+            
+            faceQuardatureOrder = order;
+            if (props.containsKey("faceQuardatureOrder")) {
+                faceQuardatureOrder = props.getInt("faceQuardatureOrder");
             }
             
             orderInTime = props.getInt("orderInTime");
@@ -169,6 +195,12 @@ public class Parameters implements Serializable {
                 useJacobiMatrix = false;
             }
             
+            // domain transformation object
+            domainTransformationObject = null;
+            if (props.containsKey("domainTransformationObject")) {
+                domainTransformationObject = (new DomainTransformationObjectFactory()).getDomainTransformationObject(parameterFilePath, jarURLList);
+            }
+            
             // dynamics parameters
             movingMesh = false;
             if (props.containsKey("movingMesh")) {
@@ -179,6 +211,18 @@ public class Parameters implements Serializable {
             dampTol = props.getDouble("dampTol");
             dampConst = props.getDouble("dampConst");
 
+            // iterative solver setting
+            if (props.containsKey("dampInnerTol")) {
+                dampInnerTol = props.getDouble("dampInnerTol");
+            } else {
+                dampInnerTol = 0;
+            }
+            if (props.containsKey("dampInnerCoef")) {
+                dampInnerCoef = props.getDoubleArray("dampInnerCoef");
+            } else {
+                dampInnerCoef = null;
+            }
+            
             // iterative solver setting
             if (props.containsKey("linearSolver")) {
                 linearSolver = props.getString("linearSolver");
@@ -196,9 +240,15 @@ public class Parameters implements Serializable {
                 iterativeSolverTol = 1e-2;
             }
 
-            explicitTimeIntegration = false;
-            if (props.containsKey("explicitTimeIntegration")) {
-                explicitTimeIntegration = props.getBoolean("explicitTimeIntegration");
+            localSolverType = "localimplicit";
+            isExplicit = false;
+            if (props.containsKey("localSolverType")) {
+                localSolverType = props.getString("localSolverType");
+            }
+            
+            parallelSolverType = "ksp";
+            if (props.containsKey("parallelSolverType")) {
+                parallelSolverType = props.getString("parallelSolverType");
             }
             
             if (props.containsKey("timeMethod")) {                
@@ -256,6 +306,11 @@ public class Parameters implements Serializable {
                 solutionMonitorOn = true;
             } else {
                 solutionMonitor = null;
+            }
+            
+            solutionAverage = false;
+            if (props.containsKey("solutionAverage")) {
+                solutionAverage = props.getBoolean("solutionAverage");
             }
 
         } catch (IOException ex) {

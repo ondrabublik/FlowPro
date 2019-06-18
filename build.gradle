@@ -8,14 +8,6 @@ if (!hasProperty('mainClass')) {
 
 dependencies {
     implementation fileTree(dir: 'lib', include: ['*.jar'])
-    
-    //    implementation 'org.slf4j:slf4j-api:1.7.21'
-    //    implementation 'org.slf4j:slf4j-log4j12:1.7.21'
-    //    implementation 'log4j:log4j:1.2.17'
-    
-    implementation 'org.apache.commons:commons-lang3:3.0'
-    implementation 'commons-cli:commons-cli:1.4'    
-    
 }
 
 buildscript {
@@ -23,7 +15,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.1'
     }
 }
 

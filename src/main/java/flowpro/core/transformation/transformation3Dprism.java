@@ -121,4 +121,9 @@ public class transformation3Dprism extends Transformation {
         }
         return interpolant;
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{0.5, 0.5, 1.0/5});
+    }
 }

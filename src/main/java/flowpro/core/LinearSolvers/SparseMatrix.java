@@ -23,7 +23,7 @@ public class SparseMatrix {
         this.elems = elems;
         scanMatrixStructure();
     }
-
+    
     private void scanMatrixStructure() {
         dofs = computeDofs();
         nnz = computeNNZ();
@@ -46,7 +46,7 @@ public class SparseMatrix {
                     }
                 }
                 for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TT[k] > -1) {
+                    if (elem.TT[k] > -1 && elems[elem.TT[k]].insideComputeDomain) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
                         int[] globe = elems[elem.TT[k]].gi_U;
                         for (int i = 0; i < n; i++) {
@@ -91,7 +91,7 @@ public class SparseMatrix {
                 int n = elem.getNEqs() * elem.nBasis;
                 s += n * n;
                 for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TT[k] > -1) {
+                    if (elem.TT[k] > -1  && elems[elem.TT[k]].insideComputeDomain) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
                         s += n * ne;
                     }
@@ -122,9 +122,9 @@ public class SparseMatrix {
                     }
                 }
                 for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TT[k] > -1) {
+                    if (elem.TT[k] > -1 && elems[elem.TT[k]].insideComputeDomain) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        double[][] An = elem.ANeighs[k].MR;
+                        double[][] An = elem.ANeighs[k].A;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 H[indexMap[s]] = An[j][i];
@@ -261,8 +261,8 @@ public class SparseMatrix {
                 }
             }
         }
-    }
-
+    }   
+    
     public int[] getRowIndexesCRS() {
         return Icrs;
     }
@@ -308,7 +308,6 @@ public class SparseMatrix {
     }
 
     public int[] compress(int[] I) {
-
         int[] Icomp = new int[dofs + 1];
         int s = 0;
         for (int i = 1; i < dofs; i++) {
@@ -321,8 +320,8 @@ public class SparseMatrix {
             Icomp[i] = Icomp[i - 1] + sum;
         }
         Icomp[dofs] = nnz;
+        
         return Icomp;
-
     }
 
     private void quickSort(int[] array, int[] array2, int[] index, int lowerIndex, int higherIndex) {

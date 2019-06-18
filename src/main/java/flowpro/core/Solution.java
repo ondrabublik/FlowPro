@@ -14,7 +14,8 @@ public class Solution implements Serializable {
 
     public final double[][] W;
     public final double[][] avgW;
-    public double[][] vertices;
+    public double[][] vertices = null;
+    public double[][] meshVelocity = null;
 
     public Solution(double[][] W, double[][] avgW) {
         nElems = W.length;
@@ -31,6 +32,15 @@ public class Solution implements Serializable {
         this.vertices = PXY;
     }
 
+    public Solution(double[][] W, double[][] avgW, double[][] PXY, double[][] U) {
+        nElems = W.length;
+
+        this.W = W;
+        this.avgW = avgW;
+        this.vertices = PXY;
+        this.meshVelocity = U;
+    }
+
     public Solution(Solution[] sols, Domain domain) {
         nElems = domain.nElems;
         int nPoints = domain.nPoints;
@@ -38,6 +48,9 @@ public class Solution implements Serializable {
         avgW = new double[nElems][];
         int dim = sols[0].vertices[0].length;
         vertices = new double[nPoints][dim];
+        if (sols[0].meshVelocity != null) {
+            meshVelocity = new double[nPoints][dim];
+        }
 
         for (int d = 0; d < sols.length; ++d) {
             Domain.Subdomain subdom = domain.getSubdomain(d);
@@ -48,8 +61,15 @@ public class Solution implements Serializable {
                 W[pos] = sols[d].W[i];
                 avgW[pos] = sols[d].avgW[i];
                 for (int j = 0; j < TP[i].length; j++) {
-                    for(int k = 0; k < dim; k++){
+                    for (int k = 0; k < dim; k++) {
                         vertices[TP[i][j]][k] = sols[d].vertices[TP[i][j]][k];
+                    }
+                }
+                if (sols[d].meshVelocity != null) {
+                    for (int j = 0; j < TP[i].length; j++) {
+                        for (int k = 0; k < dim; k++) {
+                            meshVelocity[TP[i][j]][k] = sols[d].meshVelocity[TP[i][j]][k];
+                        }
                     }
                 }
             }

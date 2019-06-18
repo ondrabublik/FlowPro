@@ -16,13 +16,13 @@ global meshPath optimisationPath
     paramFile = [simulationPath,'parameters.txt'];
 
     % vlastni optimalizace
-    h = 1e-3;
+    h = 1e-4;
     k = 0.5;
     alpha = 0;
     alphaEvo = [alpha];
     IEvo = [];
     derI = [];
-    optStep = 10;
+    optStep = 1;
     optTol = 1e-4;
     
     % initMesh
@@ -61,7 +61,7 @@ global meshPath optimisationPath
             simpleMetis(nDomains,'x');
             system(['java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)])
         else
-            system('java -d64 -Xmx8g -jar FlowPro.jar local');
+            system('java -d64 -Xmx8g -jar FlowPro.jar master 0');
         end
         cd(currentPath)
         

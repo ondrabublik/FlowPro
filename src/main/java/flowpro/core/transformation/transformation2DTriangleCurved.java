@@ -55,7 +55,7 @@ public class transformation2DTriangleCurved extends Transformation {
     public double[] getX(double[] Xi) {
         return new double[]{A[0] * Xi[0]* Xi[1] + A[1] * Xi[0] + A[2]* Xi[1] + A[3], B[0] * Xi[0]* Xi[1] + B[1] * Xi[0] + B[2]* Xi[1] + B[3]};
     }
-
+    
     @Override
     public double[] getXi(double[] X) {
         double[] Xi = new double[]{0.25, 0.25};
@@ -136,5 +136,10 @@ public class transformation2DTriangleCurved extends Transformation {
         double[] n = new double[]{x1[1]-x2[1],x2[0]-x1[0]};
         n = Mat.times(n, 1/Mat.L2Norm(n));
         return Mat.plusVec(xs, Mat.times(n,-h));
+    }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{1.0/3,1.0/3});
     }
 }

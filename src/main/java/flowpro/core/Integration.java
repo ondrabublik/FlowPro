@@ -18,11 +18,9 @@ public class Integration {
     int[] TP;
     int[] TEshift;
     double[][] shift;
-    double[][] vertices;
     QuadratureCentral qRules;
     Quadrature quadVolume;
     Transformation transform;
-    int order;
 
     // volume integral
     public int dimension;
@@ -38,16 +36,14 @@ public class Integration {
     int nEdges;
     public Face[] faces;
 
-    Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, double[][] vertices, QuadratureCentral qRules, int order) {
+    Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, QuadratureCentral qRules) {
         this.transform = transform;
         this.dimension = dimension;
         this.TT = TT;
         this.TEshift = TEshift;
         this.shift = shift;
-        this.vertices = vertices;
         this.quadVolume = elemType.getQVolumeRule(qRules);
         this.qRules = qRules;
-        this.order = order;
         nEdges = TT.length;
 
         // volume
@@ -83,6 +79,7 @@ public class Integration {
             if (TT[k] > -1) {
                 elemRight = elems[TT[k]];
             }
+            // tady by mel vstupovat vetsi z radu sousednich elementu !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             faces[k] = new Face(elem.elemType, k, elem.basis, TT[k], TEshift[k], shift, elemRight);
         }
     }
@@ -105,6 +102,7 @@ public class Integration {
         public double[][] coordinatesFaceXiRef;
         public double[][] basisFaceLeft, basisFaceRight;
         public double[][][] dXibasisFaceLeft, dXibasisFaceRight;
+        
         public double[][][] dXbasisFaceLeft, dXbasisFaceRight;
         public double[][] interpolantFace;
         public FaceTransformation faceTransform;
@@ -115,10 +113,14 @@ public class Integration {
             this.shift = shift;
             this.faceIndexes = elemType.getFaceIndexes(k);
             this.elemRight = elemRight;
+            int faceOrder = elemType.faceQuadratureOrder;
+            if (elemRight != null) {
+                faceOrder = Math.max(elemType.faceQuadratureOrder, elemRight.elemType.faceQuadratureOrder);
+            }
 
             nVerticesEdge = faceIndexes.length;
             faceType = elemType.getFaceType(k);
-            quadFace = elemType.getQFaceRule(faceType,qRules);
+            quadFace = elemType.getQFaceRule(faceType, qRules, faceOrder);
             faceTransform = elemType.getFaceTransformation(faceType, transform, elemType.getFaceIndexes(k));
             coordinatesFace = faceTransform.getX(quadFace.getCoords());
 

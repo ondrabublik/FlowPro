@@ -18,6 +18,8 @@ public abstract class FaceTransformation implements Serializable{
     
     abstract public double[] getNormal(double[] Xi);
     
+    abstract public double[] getXs();
+    
     public double[] jacobian(Quadrature quad) {
         double[] Jac = new double[quad.nPoints];
         for (int i = 0; i < quad.nPoints; i++) {

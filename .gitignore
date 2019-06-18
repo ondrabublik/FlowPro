@@ -9,7 +9,10 @@ testkeystor
 fetcherState.txt
 *.tmp
 *.jar
+FlowProManager.jar
 *.zip
+*.txt
+*.mat
 
 # all simulations except for some chosen examles
 simulations/*

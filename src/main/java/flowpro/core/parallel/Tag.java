@@ -11,6 +11,7 @@ public class Tag {
     public static final int ASSEMBLE_INTERIOR = 3;
     public static final int ASSEMBLE_OVERLAP_and_SOLVE = 13;
     public static final int ASSEMBLE_AND_SOLVE = 21;
+    public static final int ASSEMBLE = 22;
     public static final int SOLVE = 4;
     public static final int LIMITER_and_NEXT_TIME_LEVEL = 50;
     public static final int INTERIOR_LIMITER_and_NEXT_TIME_LEVEL = 5;
@@ -29,6 +30,7 @@ public class Tag {
     public static final int GET_MEMORY = 17;
     public static final int GETSOLUTIONMONITOR = 18;
     public static final int SETSOLUTIONMONITOR = 19;
+    public static final int GMRES2SLAVE = 20;
     
     // tags from slave to master
     public static final int DATA_INITIALIZED = -1;
@@ -48,4 +50,5 @@ public class Tag {
     public static final int NEWTON_UPDATED = -30;
     public static final int LOCALSOLUTIONMONITOR = -31;
     public static final int SOLUTIONMONITORSET = -32;
+    public static final int GMRES2MASTER = -33;
 }

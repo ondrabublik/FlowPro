@@ -155,7 +155,7 @@ public class Gmres extends LinearSolver{
             // paralelni sestavovani a plneni matic
             for (int j = nStart; j < n; j = j + nThreads) {
                 for (int k = 0; k <= i; k++) {
-                    x[j] = x[j] + V[k][j] * y[k];
+                    x[j] += V[k][j] * y[k];
                 }
             }
         }
@@ -188,19 +188,19 @@ public class Gmres extends LinearSolver{
     }
 
     double norm(double[] a) {
-        double n = 0;
+        double norm = 0;
         for (int i = 0; i < a.length; i++) {
-            n = n + a[i] * a[i];
+            norm += a[i] * a[i];
         }
-        n = Math.sqrt(n);
+        norm = Math.sqrt(norm);
 
-        return n;
+        return norm;
     }
 
     double scalarProduct(double[] a, double[] b) {
         double s = 0;
         for (int i = 0; i < a.length; i++) {
-            s = s + a[i] * b[i];
+            s += a[i] * b[i];
         }
         return s;
     }

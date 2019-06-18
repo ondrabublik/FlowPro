@@ -35,7 +35,7 @@ public abstract class Deformation implements Serializable {
         }
     }
 
-    abstract public void newMeshPosition(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov);
+    abstract public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov);
 
     abstract public void nextTimeLevel(Element[] elems);
 
@@ -61,14 +61,14 @@ public abstract class Deformation implements Serializable {
         }
     }
 
-    public void relaxFirstIteration(Element[] elems) { // prevent solution error, when jump in mesh position in first iteration occure
+    public void relaxFirstIteration(Element[] elems, double dt) { // prevent solution error, when jump in mesh position in first iteration occure
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
                 for (int j = 0; j < elem.nVertices; j++) {
                     for (int d = 0; d < elem.dim; d++) {
-                        elem.verticesOld2[j][d] = elem.vertices[j][d];
-                        elem.verticesOld[j][d] = elem.vertices[j][d];
-                        elem.U[j][d] = 0;
+                        elem.verticesOld2[j][d] = elem.vertices[j][d] - 2*dt*elem.Uinit[j][d];
+                        elem.verticesOld[j][d] = elem.vertices[j][d] - dt*elem.Uinit[j][d];
+                        elem.U[j][d] = elem.Uinit[j][d];
                     }
                 }
             }
@@ -108,13 +108,13 @@ public abstract class Deformation implements Serializable {
         } catch (FileNotFoundException ex) {
             System.out.println("Generating blending functions!");
             ElementType[] eTyp = new ElementType[8];
-            eTyp[1] = new pointElement(1);
-            eTyp[2] = new lineElement(1);
-            eTyp[3] = new triangleElement(1);
-            eTyp[4] = new squareElement(1);
-            eTyp[5] = new tetrahedralElement(1);
-            eTyp[6] = new hexahedralElement(1);
-            eTyp[7] = new prismElement(1);
+            eTyp[1] = new pointElement(1,1,1);
+            eTyp[2] = new lineElement(1,1,1);
+            eTyp[3] = new triangleElement(1,1,1);
+            eTyp[4] = new squareElement(1,1,1);
+            eTyp[5] = new tetrahedralElement(1,1,1);
+            eTyp[6] = new hexahedralElement(1,1,1);
+            eTyp[7] = new prismElement(1,1,1);
 
             int nPoints = PXY.length;
             int nElem = TP.length;

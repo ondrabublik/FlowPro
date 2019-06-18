@@ -9,7 +9,6 @@ import flowpro.core.quadrature.QuadratureCentral;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.parallel.Domain;
 import flowpro.core.elementType.ElementType;
-import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.meshDeformation.*;
 import litempi.MPIException;
 import java.io.BufferedReader;
@@ -25,6 +24,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import flowpro.core.solver.MasterSolver;
+import flowpro.core.solver.SlaveSolver;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
+import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *
@@ -46,6 +51,15 @@ public class FlowProMain {
 
     public FlowProMain() throws IOException {
         lock = new Object();
+
+        File f = new File(ARG_FILE_NAME);
+        if (!f.exists()) {
+            LOG.warn("File args.txt not exists. Default args.txt file was create.");
+            f.createNewFile();
+            PrintWriter writer = new PrintWriter(ARG_FILE_NAME, "UTF-8");
+            writer.print("examples/GAMM default");
+            writer.close();
+        }
 
         BufferedReader reader;
         reader = new BufferedReader(new FileReader(ARG_FILE_NAME));
@@ -76,6 +90,19 @@ public class FlowProMain {
     }
 
     public static void main(String args[]) throws InterruptedException, IOException {
+        System.out.println();
+        System.out.println();
+        System.out.println("FFFFF  L       OOOO   W    W    W  PPPPP   RRRRR    OOOO ");
+        System.out.println("F      L      O    O  W   W W   W  P    P  R    R  O    O");
+        System.out.println("FFFFF  L      O    O   W  W W  W   PPPPP   RRRRR   O    O");
+        System.out.println("F      L      O    O   W W   W W   P       R   R   O    O");
+        System.out.println("F      LLLLL   OOOO     W     W    P       R    R   OOOO ");
+        System.out.println();
+        System.out.println("---------------------------------------------------------");
+        System.out.println("Welcome to the CFD opensource software FlowPro!          ");
+        System.out.println("---------------------------------------------------------");
+        System.out.println();
+
         LOG.info("starting FlowPro...");
         jarURLList = getJarURLList("modules");
         try {
@@ -84,13 +111,14 @@ public class FlowProMain {
             }
 
             FlowProMain dgfem;
-            Solver solver;
+            MasterSolver solver;
+            SlaveSolver slave;
             Solution solution;
             switch (args[0].toLowerCase()) {
-                case "local":
+                case "master":
                     dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(false, false, 0);
-                    solution = solver.localSolve();
+                    solver = dgfem.solverFactory(false, Integer.valueOf(args[1]));
+                    solution = solver.solve();
                     solver.saveData(solution);
                     break;
 
@@ -100,8 +128,8 @@ public class FlowProMain {
                     Proxy proxy = new Proxy(args[1], 6666, args[2], dgfem.simulationPath, lock);
                     Thread proxyThread = new Thread(proxy);
                     proxyThread.start();
-                    solver = dgfem.solverFactory(false, false, 0);
-                    solution = solver.localSolve();
+                    solver = dgfem.solverFactory(false, 0);
+                    solution = solver.solve();
                     solver.saveData(solution);
                     synchronized (lock) {
                         proxy.stop();
@@ -109,23 +137,17 @@ public class FlowProMain {
                     }
                     break;
 
-                case "master":
-                    dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(true, false, Integer.valueOf(args[1]));
-                    solution = solver.masterSolve();
-                    solver.saveData(solution);
-                    break;
-
                 case "slave":
-                    if (args.length < 3) {
+                    if (args.length < 4) {
                         throw new IllegalArgumentException("missing arguments after slave");
                     }
                     String masterIP = args[1];
                     int masterPort = Integer.parseInt(args[2]);
+                    String parallelSolverType = args[3];
                     try {
-                        solver = new Solver(masterIP, masterPort);
+                        slave = SlaveSolver.factory(parallelSolverType, masterIP, masterPort);
                         LOG.info("mesh was received and initialised");
-                        solver.slaveSolve();
+                        slave.solve();
                     } catch (IOException | MPIException ex) {
                         LOG.error("", ex);
                     }
@@ -141,15 +163,15 @@ public class FlowProMain {
 
                 case "optimalisationexport":
                     dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(false, false, 0);
+                    solver = dgfem.solverFactory(true, 0);
                     new OptimisationToolExport(solver, dgfem.simulationPath, args[1].toLowerCase(), jarURLList).export();
                     LOG.info("Optimalisation arrays were exported..");
                     break;
 
                 case "testdynamicmodel":
                     dgfem = new FlowProMain();
-                    solver = dgfem.solverFactory(false, false, 0);
-                    solver.testDynamic(Double.valueOf(args[1]));
+                    solver = dgfem.solverFactory(false, 0);
+                    solver.testDynamic(Double.valueOf(args[1]), 0);
                     break;
 
                 case "getparameters": // get all solver parameters
@@ -157,7 +179,7 @@ public class FlowProMain {
                         dgfem = new FlowProMain();
                         System.out.println();
                         System.out.println("FlowPro parameters:");
-                        Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false).getClass();
+                        Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false, jarURLList).getClass();
                         Field[] fields = par.getFields();
                         for (Field field : fields) {
                             System.out.println(field.getName() + ": " + field.getGenericType());
@@ -178,9 +200,13 @@ public class FlowProMain {
         }
     }
 
-    private Solver solverFactory(boolean parallelMode, boolean optimalisation, int nDomains) throws IOException {
+    private MasterSolver solverFactory(boolean optimalisation, int nDomains) throws IOException {
+        boolean parallelMode = false;
+        if (nDomains > 0) {
+            parallelMode = true;
+        }
         Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
-        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode); // read numerical parameters            
+        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode, jarURLList); // read numerical parameters                    
 
         LOG.info("loading data...");
         // load matrices defining the mesh
@@ -193,6 +219,17 @@ public class FlowProMain {
             }
             LOG.info("Mesh was scaled with parameter " + par.meshScale);
         }
+
+        double[][] UXY = null;
+        if (par.movingMesh && (par.continueComputation || optimalisation)) {
+            try {
+                UXY = Mat.loadDoubleMatrix(simulationPath + "UXY.txt"); // mesh vertices velocity
+                LOG.info("Mesh velocities were loades!");
+            } catch (FileNotFoundException ex) {
+                LOG.warn("Mesh velocities file UXY.txt was not found. Velocities were set to zero!");
+            }
+        }
+
         int[] elemsType = Mat.loadIntArray(meshPath + "elementType.txt");   // element type
         int[][] TP = Mat.loadIntMatrix(meshPath + "elements.txt"); // inexes of points defining element
         LOG.info("Mesh info: " + PXY.length + "-vertices, " + TP.length + "-elements.");
@@ -231,7 +268,7 @@ public class FlowProMain {
             CurvedBoundary.saveMesh(meshPath, elemsType, TP, TT);
         } else {
             fCurv = new FaceCurvature[nElems];
-            elemsType = firstDigit(elemsType);
+            //elemsType = firstDigit(elemsType);
         }
 
         // domain partition for parallel computing
@@ -254,7 +291,7 @@ public class FlowProMain {
             wallDistance = Mat.loadDoubleArray(meshPath + "wallDistance.txt");
         } catch (FileNotFoundException ex) {
             LOG.info("generating wall distance function");
-            wallDistance = generateWallDistanceFunction(elemsType, PXY, TP, TT);
+            wallDistance = generateWallDistanceFunction(eqn, elemsType, PXY, TP, TT);
             Mat.save(wallDistance, meshPath + "wallDistance.txt");
         }
 
@@ -378,14 +415,14 @@ public class FlowProMain {
         for (int d = 0; d < nDoms; ++d) {
             LOG.info("domain " + d + " from " + (nDoms - 1) + ":");
             Domain.Subdomain subdom = domain.getSubdomain(d);
-            mesh[d] = new Mesh(eqn, dfm, par, solMonitor, qRules, PXY, subdom.elemsOrder, wallDistance, externalField, subdom.elemsType,
+            mesh[d] = new Mesh(eqn, dfm, par, solMonitor, qRules, PXY, UXY, subdom.elemsOrder, wallDistance, externalField, subdom.elemsType,
                     subdom.TP, subdom.TT, subdom.TEale, subdom.TEshift, shift, subdom.fCurv, subdom.initW, subdom);
             if (!parallelMode) {
                 mesh[d].init();
             }
         }
 
-        return new Solver(simulationPath, mesh, dyn, eqn, par, state, domain, lock);
+        return MasterSolver.factory(simulationPath, mesh, dyn, eqn, par, state, domain, lock);
     }
 
     public static String millisecsToTime(long nanoseconds) {
@@ -437,7 +474,7 @@ public class FlowProMain {
         // creating elementTypes
         ElementType[] elemType = new ElementType[nRows];
         for (int i = 0; i < nRows; i++) {
-            elemType[i] = ElementType.elementTypeFactory(type[i], 0);
+            elemType[i] = ElementType.elementTypeFactory(type[i], 0, 0, 0);
         }
 
         // saving face indexes
@@ -537,7 +574,7 @@ public class FlowProMain {
         // creating elementTypes
         ElementType[] elemType = new ElementType[nRows];
         for (int i = 0; i < nRows; i++) {
-            elemType[i] = ElementType.elementTypeFactory(type[i], 0);
+            elemType[i] = ElementType.elementTypeFactory(type[i], 0, 0, 0);
         }
 
         int[][] TEale = new int[TT.length][];
@@ -561,21 +598,21 @@ public class FlowProMain {
             TEale[i] = new int[TT[i].length];
             for (int k = 0; k < TT[i].length; k++) {
                 //if (TT[i][k] < 0) {
-                    int[] faceIndexes = elemType[i].getFaceIndexes(k);
-                    for (int j = 0; j < faceIndexes.length; j++) {
-                        faceIndexes[j] = TP[i][faceIndexes[j]];
-                    }
-                    Arrays.sort(faceIndexes);
-                    String key = "";
-                    for (int j = 0; j < faceIndexes.length; j++) {
-                        key = key + Integer.toString(faceIndexes[j]) + "$";
-                    }
-                    Integer index = boundMap.get(key);
-                    if (index != null) {
-                        TEale[i][k] = index;
-                    } else {
-                        TEale[i][k] = 0;
-                    }
+                int[] faceIndexes = elemType[i].getFaceIndexes(k);
+                for (int j = 0; j < faceIndexes.length; j++) {
+                    faceIndexes[j] = TP[i][faceIndexes[j]];
+                }
+                Arrays.sort(faceIndexes);
+                String key = "";
+                for (int j = 0; j < faceIndexes.length; j++) {
+                    key = key + Integer.toString(faceIndexes[j]) + "$";
+                }
+                Integer index = boundMap.get(key);
+                if (index != null) {
+                    TEale[i][k] = index;
+                } else {
+                    TEale[i][k] = 0;
+                }
                 //}
             }
         }
@@ -592,12 +629,12 @@ public class FlowProMain {
         }
     }
 
-    public double[] generateWallDistanceFunction(int[] type, double[][] PXY, int[][] TP, int[][] TT) {
+    public double[] generateWallDistanceFunction(Equation eqn, int[] type, double[][] PXY, int[][] TP, int[][] TT) {
         int nRows = TP.length;
         // creating elementTypes
         ElementType[] elemType = new ElementType[nRows];
         for (int i = 0; i < nRows; i++) {
-            elemType[i] = ElementType.elementTypeFactory(type[i], 0);
+            elemType[i] = ElementType.elementTypeFactory(type[i], 0, 0, 0);
         }
 
         int nPoints = PXY.length;
@@ -606,7 +643,7 @@ public class FlowProMain {
         Arrays.fill(wallDistance, 1e30);
         for (int i = 0; i < nElem; i++) {
             for (int k = 0; k < TT[i].length; k++) {
-                if (TT[i][k] == -1) {
+                if (eqn.isIPFace(TT[i][k])) {
                     int[] faceIndexes = elemType[i].getFaceIndexes(k);
                     for (int j = 0; j < faceIndexes.length; j++) {
                         wallDistance[TP[i][faceIndexes[j]]] = 0;
@@ -706,18 +743,18 @@ public class FlowProMain {
         }
         return part;
     }
-    
-    public static URL[] getJarURLList(String s) throws IOException{
+
+    public static URL[] getJarURLList(String s) throws IOException {
         URL[] u = null;
-        try{
-        File currentDir = new File(s); // current directory
-        ArrayList<URL> URLs = new ArrayList();
-        System.out.print("Found libraries: ");
-        addDirectoryContents(currentDir, URLs);
-        System.out.println();
-        u = new URL[URLs.size()];
-        URLs.toArray(u);
-        } catch (Exception e){
+        try {
+            File currentDir = new File(s); // current directory
+            ArrayList<URL> URLs = new ArrayList();
+            System.out.print("Found libraries: ");
+            addDirectoryContents(currentDir, URLs);
+            System.out.println();
+            u = new URL[URLs.size()];
+            URLs.toArray(u);
+        } catch (Exception e) {
             System.out.println(e);
         }
         return u;

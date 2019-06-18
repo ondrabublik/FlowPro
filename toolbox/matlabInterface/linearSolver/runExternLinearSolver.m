@@ -32,17 +32,18 @@ while 1
 
         case 'solve'
             % read data from FlowPro
-            I = ois.readObject();
-            J = ois.readObject();
+            I = double(ois.readObject());
+            J = double(ois.readObject());
             H = ois.readObject();
             rhs = ois.readObject();
             n = length(rhs);
             A = sparse(I+1,J+1,H,n,n);
             
+            condest(A)
             % UMFPACK ==================================
-            tic
+            %tic
             x = A\rhs;
-            toc
+            %toc
             % UMFPACK ==================================
             
             

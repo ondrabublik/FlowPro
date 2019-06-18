@@ -8,7 +8,6 @@ import flowpro.core.basis.Basis;
 import flowpro.core.curvedBoundary.CurvedBoundary;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.elementType.ElementType;
-import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.transformation.Transformation;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -20,6 +19,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Stack;
+import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *
@@ -43,7 +43,7 @@ public class ResultsPlot {
     int[][] TT;
     int dim;
     int[] order;
-    boolean curvedBoundary;
+    
     FlowProProperties props;
 
     double lRef;
@@ -58,6 +58,8 @@ public class ResultsPlot {
     }
 
     void generateResults() throws IOException {
+
+        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, false, jarURLList); // read numerical parameters    
 
         // equations model
         Equation eqn = null;
@@ -123,10 +125,18 @@ public class ResultsPlot {
         props = new FlowProProperties();
         props.load(new FileInputStream(simulationPath + PARAMETER_FILE_NAME));
 
-        boolean movingMesh = false;
-        if (props.containsKey("movingMesh")) {
-            movingMesh = props.getBoolean("movingMesh");
+        order = null;
+        try {
+            order = Mat.loadIntArray(simulationPath + "order.txt");
+        } catch (FileNotFoundException ex) {
+            int orderGlob = props.getInt("order");
+            order = new int[TP.length];
+            for (int i = 0; i < TP.length; i++) {
+                order[i] = orderGlob;
+            }
         }
+
+        boolean movingMesh = par.movingMesh;
 
         // mesh points
         double[][] PXY = null;
@@ -148,6 +158,7 @@ public class ResultsPlot {
         } catch (Exception e) {
             System.out.println("MeshScale not defined!");
         }
+//<<<<<<< HEAD
 
         try {
             order = Mat.loadIntArray(simulationPath + "order.txt");
@@ -170,6 +181,8 @@ public class ResultsPlot {
             System.out.println("file " + simulationPath + "order.txt not found"
                     + ", setting global order of spatial accuracy to " + order[0]);            
         }
+//=======
+//>>>>>>> 4968a5076632d4dd332e71b237bf1a15125532f4
 
         // loading result
         double[][] W = null;
@@ -203,21 +216,12 @@ public class ResultsPlot {
                     TT = Mat.loadIntMatrix(meshPath + "neighbors.txt");
                     Wcoef = Mat.loadDoubleMatrix(simulationPath + "We.txt");
 
-//                    if (dim != 2) {
-//                        System.out.println("-p property is valid only for 2D elements!");
-//                        System.exit(0);
-//                    }
-                    if (props.containsKey("curvedBoundary")) {
-                        curvedBoundary = props.getBoolean("curvedBoundary");
-                    } else {
-                        curvedBoundary = false;
-                    }
 
-                    if (curvedBoundary) {
+                    if (par.curvedBoundary) {
                         fCurv = CurvedBoundary.modifyMesh(elemsType, PXY, TP, TT);
                     } else {
                         fCurv = new FaceCurvature[TP.length];
-                        elemsType = firstDigit(elemsType);
+                        //elemsType = firstDigit(elemsType);
                     }
                     break;
             }
@@ -226,6 +230,9 @@ public class ResultsPlot {
         }
 
         if (precision < 2) {
+            if (precision == 0) { // only copy center value
+                System.out.println("Warning: derivatives dW/dxi are supported only with -p option and for order higher then 1!");
+            }
             // result generated and mesh interpolation
             int listSize = names.size();
             for (int s = 0; s < listSize; s++) {
@@ -261,8 +268,10 @@ public class ResultsPlot {
                         for (int j = 0; j < TP[i].length; j++) {
                             System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                         }
-                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
-                        Transformation transform = elemType.getVolumeTransformation(vertices, null);
+
+                        ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
+                        Transformation transform = elemType.getVolumeTransformation(vertices, null, par);
+
                         Basis basis = elemType.getBasis(transform);
                         int nBasis = basis.nBasis;
                         for (int j = 0; j < TP[i].length; j++) {
@@ -341,8 +350,10 @@ public class ResultsPlot {
                     for (int j = 0; j < TP[i].length; j++) {
                         System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                     }
-                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i]);
-                    Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i]);
+                    
+                    ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
+                    Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i], par);
+                    
                     Basis basis = elemType.getBasis(transform);
                     int nBasis = basis.nBasis;
                     LocalElementSubdivision triLoc = new LocalElementSubdivision(elemsType[i], precision);
@@ -364,7 +375,7 @@ public class ResultsPlot {
                     }
                     resCol.add(i, xCoords, triLoc.TP, values, triLoc.localType);
 
-                    if ((i + 1) % (TP.length / 10) == 0) {
+                    if (TP.length > 10 && (i + 1) % (TP.length / 10) == 0) {
                         System.out.print("*");
                     }
                 }
@@ -481,7 +492,7 @@ public class ResultsPlot {
     }
 
     int VTKType(int elementType) {
-        switch (elementType) {
+        switch (firstDigit(elementType)) {
             case 1:
                 return 1;
             case 2:
@@ -748,7 +759,7 @@ public class ResultsPlot {
                 }
             }
 
-            int[] localElementType = new int[nCoord];
+            int[] localElementType = new int[nTriLoc];
             p = 0;
             for (int i = 0; i < n; i++) {
                 int[] localType = localTypeMap.get(i);

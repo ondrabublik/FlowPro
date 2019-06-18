@@ -58,4 +58,9 @@ public class faceTransformation2Dline extends FaceTransformation {
         double[] n = Mat.normVector(new double[]{Js[1], -Js[0]});
         return n;
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{0});
+    }
 }

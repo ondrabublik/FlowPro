@@ -9,8 +9,8 @@ import flowpro.core.transformation.*;
  */
 public class curvedBoundaryTriangleElement extends triangleElement{
     
-    curvedBoundaryTriangleElement(int order){
-            super(order);
+    curvedBoundaryTriangleElement(int order, int volumeQuardatureOrder, int faceQuardatureOrder){
+            super(order, volumeQuardatureOrder, faceQuardatureOrder);
     }
     
     public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv) {

@@ -91,6 +91,11 @@ public class faceTransformation3Dsquare extends FaceTransformation{
         double[] Js2 = transform.jacobianMatrixDirection(getXiRef(Xi), s2);
         return Mat.normVector(Mat.cross(Js2,Js1));
     }
+    
+    @Override
+    public double[] getXs(){
+        return getX(new double[]{0.5, 0.5});
+    }
 }
 
 

@@ -53,10 +53,14 @@ abstract public class LinearSolver {
                 case "umfpack":
                     solver = new UmfpackExternSolver(A, par);
                     break;
+                    
+                case "eigen":
+                    solver = new EigenExternSolver(A, par);
+                    break;
 
-//                case "matlab":
-//                    solver = new Matlab(elems, dofs, par);
-//                    break;   
+                case "matlab":
+                    solver = new Matlab(A, par);
+                    break;   
                     
                 default:
                     throw new IOException("unknown solver " + par.linearSolver);

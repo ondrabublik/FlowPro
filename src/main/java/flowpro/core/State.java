@@ -16,15 +16,15 @@ public class State implements Serializable {
     public final int order; // order of accuracy in space
     private boolean hasOrderChanged;
 
-    int steps; // number of time steps that has already been taken
-    double t;  // physical time
-    double cfl;
-    double residuum;
-    long executionTime;  // current execution time
-    long transferTime;   // current transfer time
+    public int steps; // number of time steps that has already been taken
+    public double t;  // physical time
+    public double cfl;
+    public double residuum;
+    public long executionTime;  // current execution time
+    public long transferTime;   // current transfer time
 
-    long initExecutionTime; // initial execution time
-    long initTransferTime;  // initial transfer time
+    public long initExecutionTime; // initial execution time
+    public long initTransferTime;  // initial transfer time
 
     public State(String stateFilePath, int order) throws IOException {
         this.stateFilePath = stateFilePath;
