@@ -4,12 +4,10 @@ tasks
 matlab/pclist.txt
 matlab/flowProPath.txt
 network/*
-log.*
-testkeystor
-fetcherState.txt
+testkeystore.ks
+log*
 *.tmp
 *.jar
-FlowProManager.jar
 *.zip
 *.txt
 *.mat

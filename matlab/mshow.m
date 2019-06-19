@@ -19,11 +19,7 @@ for i = 1:nargin
     end
 end
 
-<<<<<<< HEAD
 if ~isempty(args)
-=======
-if ~strcmp(args,'')
->>>>>>> 4968a5076632d4dd332e71b237bf1a15125532f4
     show(args);
 end
 
