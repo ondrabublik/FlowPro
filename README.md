@@ -13,12 +13,12 @@ The main feature of the software is that you can easily define your own mathemat
 * paraview (for visualisation) 
 
 ## Running the tests
-At first, you must set a path of the simulation in file args.txt Open file args.txt, write "examples/NACA default" and save it. 
-Then run the command at commandline
+At first, you need to set the path of the simulation in the file args.txt. Open or create args.txt, write "examples/NACA default" and save it.
+Then run the following command in the command line
 
-java -jar FlowPro.jar local
+java -jar FlowPro.jar master 0
 
-To show results run at commandline
+To show results run
 
 java -jar FlowPro.jar postprocessing mach pressure -fvtk
 
