@@ -12,14 +12,16 @@ The main feature of the software is that you can easily define your own mathemat
 * java 8
 * paraview (for visualisation) 
 
-## Running the first simulation
-FlowPro is executed sith the command
+## Running first simulation
+Open command line window and navigate to your FlowPro directory. FlowPro is executed with the command
 
 java -jar FlowPro.jar master 0
 
-To show results run
+When the simulation is done, you can generate results by running
 
 java -jar FlowPro.jar postprocessing mach pressure -fvtk
+
+In order to display the results, open file <FlowProDirectory>/simulations/examples/GAMM/default/output/results.vtk in paraview.
 
 ## Built With
 * [Gradle](https://gradle.org/)

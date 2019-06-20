@@ -1,9 +1,10 @@
 build
-modules
-tasks
 matlab/pclist.txt
 matlab/flowProPath.txt
+modules
 network/*
+simulations/*
+tasks
 testkeystore.ks
 log*
 *.tmp
@@ -11,6 +12,3 @@ log*
 *.zip
 *.txt
 *.mat
-
-# all simulations except for some chosen examles
-simulations/*
