@@ -83,7 +83,7 @@ function plotMe(quantityName)
     elseif m > 2
         figure('name', quantityName, 'color', 'w');
         quiver(vertices(:,1), vertices(:,2), quantity(:,1), quantity(:,2));
-%         axis equal
+        axis equal
     end
 end
 
@@ -95,7 +95,7 @@ function myContour(tri, vertices, Quantity, name)
     % tricontour(tri,PX,PY,Quantity,30)
     set(h2, 'linestyle', 'none');
     box on;
-%     axis equal;
+    axis equal;
     osy = [min(vertices(:,1)) max(vertices(:,1)) min(vertices(:,2)) max(vertices(:,2))];
     axis(osy);
     colorbar;
