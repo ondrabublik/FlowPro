@@ -14,4 +14,3 @@ log*
 
 # all simulations except for some chosen examles
 simulations/*
-!simulations/examples/

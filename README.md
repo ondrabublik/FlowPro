@@ -12,9 +12,8 @@ The main feature of the software is that you can easily define your own mathemat
 * java 8
 * paraview (for visualisation) 
 
-## Running the tests
-At first, you need to set the path of the simulation in the file args.txt. Open or create args.txt, write "examples/NACA default" and save it.
-Then run the following command in the command line
+## Running the first simulation
+FlowPro is executed sith the command
 
 java -jar FlowPro.jar master 0
 
