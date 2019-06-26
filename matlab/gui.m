@@ -1,4 +1,5 @@
 function gui
+%gui Run FlowPro GUI.
 
 path = pwd;
 cd(getFlowProPath);

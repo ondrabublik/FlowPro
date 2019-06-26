@@ -1,4 +1,5 @@
-function setValue(propName,propVal)
+function setValue(propName, propVal)
+% setValue   Change value of a parameter in parameters.txt.
 
 [meshPath, simulPath, outputPath] = getPath;
 fileName = [simulPath,'parameters.txt'];

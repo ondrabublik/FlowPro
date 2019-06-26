@@ -1,4 +1,4 @@
-% getPath - return mesh, simulation and output paths
+% getPath   Return mesh, simulation and output paths.
 % [meshPath, simulPath, outputPath] = getPath returns path of the mesh,
 % simulation nad outpud folders for the current simulation.
 % [meshPath, simulPath, outputPath] = getPath(geometry, simulation) returns
@@ -17,15 +17,15 @@ simulPath = sprintf('%s/simulations/%s/%s/',flowProPath, geometry, simulation);
 outputPath = sprintf('%s/simulations/%s/%s/%s/',flowProPath, geometry, simulation, 'output');
 
 if ~exist(meshPath, 'dir')
-    error('Geometry %s does not exist.', geometry);
+    warning('Geometry %s does not exist.', geometry);
 end
 
 if ~exist(simulPath, 'dir')
     warning('Simulation %s does not exist.', simulation);
-    simulPath = [];
+%     simulPath = [];
 end
 
-if ~exist(outputPath, 'dir')
-    warning('Output directory does not exist.');
-    outputPath = [];
-end
+% if ~exist(outputPath, 'dir')
+%     warning('Output directory does not exist.');
+%     outputPath = [];
+% end

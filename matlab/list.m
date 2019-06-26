@@ -1,4 +1,6 @@
 function list
+% list   Print the list of geometries and simulations.
+
 flowProPath = getFlowProPath;
 
 searchDir([flowProPath,'/simulations/'], '');

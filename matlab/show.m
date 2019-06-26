@@ -1,5 +1,5 @@
 function show(varargin)
-    % show - export data for post-processing
+    % show   Export data for post-processing.
     % input parameters: 
     % show <variableName> -i<iteration> -f<format>    
     %
