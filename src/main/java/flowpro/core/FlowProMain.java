@@ -171,7 +171,7 @@ public class FlowProMain {
                 case "testdynamicmodel":
                     dgfem = new FlowProMain();
                     solver = dgfem.solverFactory(false, 0);
-                    solver.testDynamic(Double.valueOf(args[1]));
+                    solver.testDynamic(Double.valueOf(args[1]), 0);
                     break;
 
                 case "getparameters": // get all solver parameters

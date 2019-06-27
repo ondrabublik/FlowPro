@@ -314,17 +314,6 @@ public class KSPSolverSlave extends SlaveSolver{
         }
     }
 
-    public void testDynamic(double dt) throws IOException {
-        double t = 0;
-        for (int step = 0; step <= par.steps; step++) {
-            dyn.computeBodyMove(dt, t, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
-            dyn.nextTimeLevel();
-            dyn.savePositionsAndForces();
-            t += dt;
-            System.out.println(step + "-th iteration t = " + t);
-        }
-    }
-
     public void saveData(Solution sol) throws IOException {
         synchronized (lock) {
             state.save();

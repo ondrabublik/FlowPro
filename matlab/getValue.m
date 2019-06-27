@@ -1,4 +1,5 @@
 function val = getValue(propName)
+% getValue   Return the value of a specified parameter in parameters.txt.
 
 [meshPath, simulPath, outputPath] = getPath;
 fileName = [simulPath,'parameters.txt'];

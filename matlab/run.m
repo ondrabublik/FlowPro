@@ -1,4 +1,5 @@
 function run(nDomains)
+% run   Run FlowPro.
 
 if nargin == 0
     %metis(1);
@@ -25,7 +26,9 @@ else
     
     path = pwd;
     cd(getFlowProPath);
+
 %     system(['java -d64 -Xmx8g -jar FlowPro.jar master ',num2str(nDomains)]);
-    system(['start java -d64 -Xmx8g -jar FlowPro.jar master ',num2str(nDomains)]);
+    system(['start java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)]);
+
     cd(path)
 end

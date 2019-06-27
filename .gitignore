@@ -1,19 +1,14 @@
 build
-modules
-tasks
 matlab/pclist.txt
 matlab/flowProPath.txt
+modules
 network/*
-log.*
-testkeystor
-fetcherState.txt
+simulations/*
+tasks
+testkeystore.ks
+log*
 *.tmp
 *.jar
-FlowProManager.jar
 *.zip
 *.txt
 *.mat
-
-# all simulations except for some chosen examles
-simulations/*
-!simulations/examples/

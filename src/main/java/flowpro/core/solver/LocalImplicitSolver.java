@@ -185,7 +185,7 @@ public class LocalImplicitSolver extends MasterSolver {
                 // mesh deformation
                 if (par.movingMesh) {
                     dfm.calculateForces(elems, dyn.getMeshMove());
-                    dyn.computeBodyMove(dt, state.t, dfm.getFluidForces());
+                    dyn.computeBodyMove(dt, state.t, s, dfm.getFluidForces());
                     dfm.newMeshPositionAndVelocity(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
                     if (isFirstIter) {
                         dfm.relaxFirstIteration(elems,dt);
@@ -271,10 +271,11 @@ public class LocalImplicitSolver extends MasterSolver {
         return solution;
     }
 
-    public void testDynamic(double dt) throws IOException {
+    @Override
+    public void testDynamic(double dt, int newtonIter) throws IOException {
         double t = 0;
         for (int step = 0; step <= par.steps; step++) {
-            dyn.computeBodyMove(dt, t, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
+            dyn.computeBodyMove(dt, t, newtonIter, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
             dyn.nextTimeLevel();
             dyn.savePositionsAndForces();
             t += dt;

@@ -72,6 +72,7 @@ public class KSPSolver extends MasterSolver {
     }
 
 
+    @Override
     public Mesh getMesh() {
         return mesh;
     }
@@ -119,6 +120,7 @@ public class KSPSolver extends MasterSolver {
         }
     }
 
+    @Override
     public Solution solve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
         runFetcher(nDoms, par.masterIP, par.masterPort, par.parallelSolverType);
@@ -195,7 +197,7 @@ public class KSPSolver extends MasterSolver {
                         for (int d = 0; d < nDoms; ++d) {
                             forDis[d] = (ForcesAndDisplacements) mpi.receive(d, Tag.FORCES).getData();
                         }
-                        dyn.computeBodyMove(dt, state.t, forDis[0].combine(forDis));
+                        dyn.computeBodyMove(dt, state.t, newtonIter, forDis[0].combine(forDis));
                         mpi.sendAll(new MPIMessage(Tag.ALE_NEW_MESH_POSITION, new ForcesAndDisplacements(dt, dto, dyn.getMeshMove())));
                         mpi.waitForAll(Tag.MESH_POSITION_UPDATED);
                     }
@@ -279,10 +281,11 @@ public class KSPSolver extends MasterSolver {
         }
     }
 
-    public void testDynamic(double dt) throws IOException {
+    @Override
+    public void testDynamic(double dt, int newtonIter) throws IOException {
         double t = 0;
         for (int step = 0; step <= par.steps; step++) {
-            dyn.computeBodyMove(dt, t, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
+            dyn.computeBodyMove(dt, t, newtonIter, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
             dyn.nextTimeLevel();
             dyn.savePositionsAndForces();
             t += dt;
@@ -298,6 +301,7 @@ public class KSPSolver extends MasterSolver {
         fetcher.start();
     }
 
+    @Override
     public void saveData(Solution sol) throws IOException {
         synchronized (lock) {
             state.save();

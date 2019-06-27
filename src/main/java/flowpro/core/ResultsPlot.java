@@ -8,7 +8,6 @@ import flowpro.core.basis.Basis;
 import flowpro.core.curvedBoundary.CurvedBoundary;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.elementType.ElementType;
-import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.transformation.Transformation;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -17,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Stack;
 
@@ -42,6 +42,7 @@ public class ResultsPlot {
     int[][] TT;
     int dim;
     int[] order;
+    
     FlowProProperties props;
 
     double lRef;
@@ -156,6 +157,31 @@ public class ResultsPlot {
         } catch (Exception e) {
             System.out.println("MeshScale not defined!");
         }
+//<<<<<<< HEAD
+
+        try {
+            order = Mat.loadIntArray(simulationPath + "order.txt");
+            System.out.println("reading local order of spatial accuracy from file order.txt");
+        } catch (FileNotFoundException ex) {
+//            if (par.order < 1) {
+//                throw new IOException("neither global nor local order of spatial accuracy defined, "
+//                        + " either define variable order in file " + simulationPath + PARAMETER_FILE_NAME
+//                        + " or create file " + "order.txt" + " in simulation path");
+//            }
+            order = new int[TP.length];
+            if (props.containsKey("order")) {
+                Arrays.fill(order, props.getInt("order"));
+            } else {
+                throw new IOException("neither global nor local order of spatial accuracy defined, "
+                        + " either define variable order in file " + simulationPath + PARAMETER_FILE_NAME
+                        + " or create file " + "order.txt" + " in simulation path");
+            }
+            
+            System.out.println("file " + simulationPath + "order.txt not found"
+                    + ", setting global order of spatial accuracy to " + order[0]);            
+        }
+//=======
+//>>>>>>> 4968a5076632d4dd332e71b237bf1a15125532f4
 
         // loading result
         double[][] W = null;
@@ -188,6 +214,7 @@ public class ResultsPlot {
                     TP = Mat.loadIntMatrix(meshPath + "elements.txt");
                     TT = Mat.loadIntMatrix(meshPath + "neighbors.txt");
                     Wcoef = Mat.loadDoubleMatrix(simulationPath + "We.txt");
+
 
                     if (par.curvedBoundary) {
                         fCurv = CurvedBoundary.modifyMesh(elemsType, PXY, TP, TT);
@@ -240,8 +267,10 @@ public class ResultsPlot {
                         for (int j = 0; j < TP[i].length; j++) {
                             System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                         }
+
                         ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
                         Transformation transform = elemType.getVolumeTransformation(vertices, null, par);
+
                         Basis basis = elemType.getBasis(transform);
                         int nBasis = basis.nBasis;
                         for (int j = 0; j < TP[i].length; j++) {
@@ -320,8 +349,10 @@ public class ResultsPlot {
                     for (int j = 0; j < TP[i].length; j++) {
                         System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                     }
+                    
                     ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
                     Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i], par);
+                    
                     Basis basis = elemType.getBasis(transform);
                     int nBasis = basis.nBasis;
                     LocalElementSubdivision triLoc = new LocalElementSubdivision(elemsType[i], precision);

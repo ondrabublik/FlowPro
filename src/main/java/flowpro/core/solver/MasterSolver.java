@@ -27,7 +27,7 @@ abstract public class MasterSolver {
 
     abstract public Mesh getMesh();
 
-    abstract public void testDynamic(double dt) throws IOException;
+    abstract public void testDynamic(double dt, int newtonIter) throws IOException;
 
     public static MasterSolver factory(String simulationPath, Mesh[] meshes, Dynamics dyn,
             Equation eqn, Parameters par, State state, Domain domain, Object lock) {
