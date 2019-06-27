@@ -131,7 +131,7 @@ public class KSPSolver extends MasterSolver {
         long assembleTime = 0;
         long solveTime = 0;
 
-        ParallelGmresMaster linSolver = new ParallelGmresMaster(par, 30, mpi, domain);
+        ParallelGmresMaster linSolver = new ParallelGmresMaster(par, 40, mpi, domain);
 
         try {
             LOG.info("sending initial data");

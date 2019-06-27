@@ -37,6 +37,7 @@ abstract public class LinearSolver {
             switch (par.linearSolver.toLowerCase()) {
                 case "gmres":
                     solver = new Gmres(A, M, 30, 5, par.iterativeSolverTol, par.nThreads);
+                    System.out.println("linear solver: GMRES");
                     break;
 //                case "jacobi":
 //                    solver = new Jacobi(elems, dofs, 500, par.iterativeSolverTol, par.nThreads);
@@ -52,14 +53,17 @@ abstract public class LinearSolver {
 
                 case "umfpack":
                     solver = new UmfpackExternSolver(A, par);
+                    System.out.println("linear solver: UMFPACK");
                     break;
                     
                 case "eigen":
                     solver = new EigenExternSolver(A, par);
+                    System.out.println("linear solver: EIGEN");
                     break;
 
                 case "matlab":
                     solver = new Matlab(A, par);
+                    System.out.println("linear solver: MATLAB");
                     break;   
                     
                 default:

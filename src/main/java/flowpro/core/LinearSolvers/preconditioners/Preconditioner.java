@@ -21,24 +21,31 @@ abstract public class Preconditioner {
             switch (par.preconditioner) {
                 case "none":
                     M = new None(par);
+                    System.out.println("preconditioner: none");
                     break;
                 case "jacobi":
                     M = new Jacobi(par);
+                    System.out.println("preconditioner: jacobi");
                     break;
                 case "blockjacobi":
                     M = new blockJacobi(par);
+                    System.out.println("preconditioner: block jacobi");
                     break;
                 case "blockjacobiinversion":
                     M = new BlockJacobiInversion(par);
+                    System.out.println("preconditioner: inverted block jacobi");
                     break;
                 case "ssor":
                     M = new SSOR(par);
+                    System.out.println("preconditioner: SSOR");
                     break;
                 case "ilu0":
                     M = new ILU0(par);
+                    System.out.println("preconditioner: ILU(0)");
                     break;
                 case "blockilu0":
                     M = new BlockILU0(par);
+                    System.out.println("preconditioner: block ILU(0)");
                     break;
 
                 default:
