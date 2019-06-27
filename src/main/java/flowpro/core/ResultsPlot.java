@@ -8,6 +8,7 @@ import flowpro.core.basis.Basis;
 import flowpro.core.curvedBoundary.CurvedBoundary;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.elementType.ElementType;
+import static flowpro.core.elementType.ElementType.firstDigit;
 import flowpro.core.transformation.Transformation;
 import java.io.BufferedWriter;
 import java.io.File;
