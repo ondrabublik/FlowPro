@@ -19,13 +19,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Stack;
-import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**
  *

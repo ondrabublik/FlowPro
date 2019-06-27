@@ -193,7 +193,8 @@ public class Mesh implements Serializable {
             }
         }
         dofs = dofs0;
-
+        
+        System.out.println("Degrese of freedom: " + dofs);
         // initial condition on each of elements
         for (Element elem : elems) {
             elem.initCondition();

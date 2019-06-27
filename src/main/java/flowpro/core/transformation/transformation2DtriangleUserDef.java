@@ -89,7 +89,6 @@ public class transformation2DtriangleUserDef extends Transformation {
 //        }
 //        Xic[dimBottom].add(ih);
 //        Complex[] Y = getX(Xic);
-//
 //        return Y[dimTop].getIm() / h;
 //    } 
    
