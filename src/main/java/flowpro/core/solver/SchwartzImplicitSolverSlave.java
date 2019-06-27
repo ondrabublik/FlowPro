@@ -331,46 +331,6 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
         }
     }
 
-    public void saveData(Solution sol) throws IOException {
-        synchronized (lock) {
-            state.save();
-            eqn.saveReferenceValues(simulationPath + REF_VALUE_FILE_NAME);
-            Mat.save(sol.avgW, simulationPath + "W.txt");
-            Mat.save(sol.W, simulationPath + "We.txt");
-            Mat.save(mesh.getArtificialViscosity(), simulationPath + "artificialViscosity.txt");
-            if (par.movingMesh) {
-                Mat.save(sol.vertices, simulationPath + "PXY.txt");
-            }
-            File[] content = new File(simulationPath + "output").listFiles();
-            if (content != null) {
-                for (File file : content) {
-                    file.delete();
-                }
-            }
-
-            lock.notify();
-        }
-        LOG.info("results have been saved into " + simulationPath);
-    }
-
-    public void saveAnimationData(Solution sol, int step) throws IOException {
-        File directory = new File(simulationPath + "animation");
-        if (!directory.exists()) {
-            directory.mkdir();
-        }
-        synchronized (lock) {
-            Mat.save(sol.avgW, simulationPath + "animation/W" + (10000000 + step) + ".txt");
-            if (par.order > 1) {
-                Mat.save(sol.W, simulationPath + "animation/We" + (10000000 + step) + ".txt");
-            }
-            if (par.movingMesh) {
-                Mat.save(sol.vertices, simulationPath + "animation/vertices" + (10000000 + step) + ".txt");
-            }
-            lock.notify();
-        }
-        LOG.info("results have been saved into " + simulationPath);
-    }
-
     public class CFLSetup {
 
         double maxCFL;
@@ -523,19 +483,6 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
                     }
                 }
             }
-        }
-    }
-
-    public void saveResiduum(double residuum, double t, double CPU) {
-        try {
-            FileWriter fw;
-            fw = new FileWriter(simulationPath + "residuum.txt", true);
-            BufferedWriter bw = new BufferedWriter(fw);
-            PrintWriter out = new PrintWriter(bw);
-            out.println(Double.toString(residuum) + " " + Double.toString(t) + " " + Double.toString(CPU));
-            out.close();
-        } catch (Exception e) {
-            //exception handling left as an exercise for the reader
         }
     }
 }
