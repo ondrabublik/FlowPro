@@ -47,7 +47,7 @@ public class ParallelGmresSlave {
         aux = new double[dofs];
         b = new double[dofs];
         V = new double[m + 1][dofs];
-
+        
         // number of saved elements
         int nMetis = 0;
         nSave = 0;

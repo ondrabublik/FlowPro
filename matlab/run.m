@@ -28,7 +28,7 @@ else
     cd(getFlowProPath);
 
 %     system(['java -d64 -Xmx8g -jar FlowPro.jar master ',num2str(nDomains)]);
-    system(['start java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)]);
+    system(['java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)]);
 
     cd(path)
 end
