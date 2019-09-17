@@ -5,10 +5,11 @@ import flowpro.api.Mat;
 import flowpro.core.parallel.*;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.core.LinearSolvers.LinearSolver;
+import flowpro.core.element.ImplicitTimeIntegration;
 import flowpro.core.meshDeformation.*;
 
 import java.io.*;
@@ -218,7 +219,7 @@ public class LocalImplicitSolver extends MasterSolver {
 
                 // ulozeni novych hodnot
                 for (int i = 0; i < nElems; i++) {
-                    elems[i].updateW(x);
+                    ((ImplicitTimeIntegration)elems[i].ti).updateW(x);
                 }
 
                 double iner_tol = 1e-4;  // zadat jako parametr !!!!!!!
@@ -472,7 +473,7 @@ public class LocalImplicitSolver extends MasterSolver {
             @Override
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
-                    elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
+                    ((ImplicitTimeIntegration)elems[i].ti).assembleJacobiMatrix(a1, a2, a3, dual);
                 }
             }
         }

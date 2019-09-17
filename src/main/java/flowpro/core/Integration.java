@@ -5,7 +5,7 @@ import flowpro.core.transformation.FaceTransformation;
 import flowpro.core.quadrature.Quadrature;
 import flowpro.core.quadrature.QuadratureCentral;
 import flowpro.core.basis.Basis;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.core.elementType.ElementType;
 
 /**
@@ -19,8 +19,8 @@ public class Integration {
     int[] TEshift;
     double[][] shift;
     QuadratureCentral qRules;
-    Quadrature quadVolume;
-    Transformation transform;
+    public Quadrature quadVolume;
+    public Transformation transform;
 
     // volume integral
     public int dimension;
@@ -36,7 +36,7 @@ public class Integration {
     int nEdges;
     public Face[] faces;
 
-    Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, QuadratureCentral qRules) {
+    public Integration(ElementType elemType, int dimension, Basis basis, Transformation transform, int[] TT, int[] TEshift, double[][] shift, QuadratureCentral qRules) {
         this.transform = transform;
         this.dimension = dimension;
         this.TT = TT;
@@ -86,13 +86,13 @@ public class Integration {
 
     public class Face {
 
-        Quadrature quadFace;
+        public Quadrature quadFace;
         public int nIntEdge;
         private final int TT;
         private int TEshift;
         private double[][] shift;
         private final Element elemRight;
-        int nVerticesEdge;
+        public int nVerticesEdge;
         public int faceType;
         public int[] faceIndexes;
         public double[] JacobianFace;

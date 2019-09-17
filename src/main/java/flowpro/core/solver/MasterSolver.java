@@ -48,7 +48,7 @@ abstract public class MasterSolver {
 
                     case "localexplicit":
                         par.isExplicit = true;
-                        return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+//                        return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 }
             }
         } catch (Exception e) {

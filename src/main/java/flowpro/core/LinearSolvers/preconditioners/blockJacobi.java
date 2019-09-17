@@ -7,8 +7,9 @@ package flowpro.core.LinearSolvers.preconditioners;
 
 import flowpro.api.Mat;
 import flowpro.core.LinearSolvers.SparseMatrix;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.core.Parameters;
+import flowpro.core.element.ImplicitTimeIntegration;
 
 /**
  *
@@ -74,7 +75,7 @@ class blockJacobi extends Preconditioner {
             for (int i = nStart; i < nt; i = i + nThreads) {
                 Element elem = elems[i];
                 if (elem.insideComputeDomain) {
-                    double[][] Adiag = elem.ADiag;
+                    double[][] Adiag = ((ImplicitTimeIntegration)elem.ti).ADiag;
                     int[] glob = elem.gi_U;
                     double[] bp = new double[glob.length];
                     for (int j = 0; j < glob.length; j++) {

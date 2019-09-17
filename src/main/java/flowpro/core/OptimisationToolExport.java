@@ -2,8 +2,9 @@ package flowpro.core;
 
 import flowpro.api.FlowProProperties;
 import flowpro.api.Mat;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.api.Functional;
+import flowpro.core.element.ImplicitTimeIntegration;
 import flowpro.core.solver.MasterSolver;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -140,7 +141,7 @@ public class OptimisationToolExport {
                 int n = elems[k].nBasis * mesh.nEqs;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
-                        out.write(elems[k].gi_U[i] + " " + elems[k].gi_U[j] + " " + elems[k].ADiag[j][i]);
+                        out.write(elems[k].gi_U[i] + " " + elems[k].gi_U[j] + " " + ((ImplicitTimeIntegration)elems[k].ti).ADiag[j][i]);
                         out.newLine();
                     }
                 }
@@ -149,7 +150,7 @@ public class OptimisationToolExport {
                         Element elemR = elems[elems[k].TT[face]];
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < elemR.nBasis * mesh.nEqs; j++) {
-                                out.write(elems[k].gi_U[i] + " " + elemR.gi_U[j] + " " + elems[k].ANeighs[face].A[j][i]);
+                                out.write(elems[k].gi_U[i] + " " + elemR.gi_U[j] + " " + ((ImplicitTimeIntegration)elems[k].ti).ANeighs[face].A[j][i]);
                                 out.newLine();
                             }
                         }
@@ -166,8 +167,9 @@ public class OptimisationToolExport {
         try (BufferedWriter out = new BufferedWriter(fw)) {
             for (int i = 0; i < mesh.nElems; i++) {
                 elems[i].exportLocalR();
-                for (int j = 0; j < elems[i].RHS_loc.length; j++) {
-                    out.write(elems[i].RHS_loc[j] + " ");
+                double[] RHS_loc = ((ImplicitTimeIntegration)elems[i].ti).RHS_loc;
+                for (int j = 0; j < RHS_loc.length; j++) {
+                    out.write(RHS_loc[j] + " ");
                     out.newLine();
                 }
             }

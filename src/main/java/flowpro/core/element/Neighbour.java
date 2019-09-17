@@ -1,4 +1,4 @@
-package flowpro.core;
+package flowpro.core.element;
 
 public class Neighbour {
 
@@ -6,8 +6,8 @@ public class Neighbour {
     double[] V;  // e_j * h
     int nr, nBasis, neR, typ; // neR - pocet bazovych funkci souseda
 
-    Neighbour(int typ, int nBasis, int neR, int nr, boolean implicitIntegration) {
-        if (typ > -1 && implicitIntegration) {
+    public Neighbour(int typ, int nBasis, int neR, int nr) {
+        if (typ > -1) {
             A = new double[nr * neR][nr * nBasis];
         }
         V = new double[neR * nr];

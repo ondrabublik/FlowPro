@@ -5,11 +5,11 @@ import flowpro.api.Mat;
 import flowpro.core.parallel.*;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
-import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
 import flowpro.core.DistributedLinearSolver.ParallelGmresSlave;
+import flowpro.core.element.ImplicitTimeIntegration;
 import flowpro.core.meshDeformation.*;
 import litempi.*;
 
@@ -121,7 +121,7 @@ public class KSPSolverSlave extends SlaveSolver{
 
     private void updateW(double x[]) {
         for (Element elem : elems) {
-            elem.updateW(x);
+            ((ImplicitTimeIntegration)elem.ti).updateW(x);
         }
     }
 
@@ -502,7 +502,7 @@ public class KSPSolverSlave extends SlaveSolver{
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
-                        elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
+                        ((ImplicitTimeIntegration)elems[i].ti).assembleJacobiMatrix(a1, a2, a3, dual);
                     }
                 }
             }

@@ -6,8 +6,8 @@
 package flowpro.core.DistributedLinearSolver.preconditioner;
 
 import flowpro.core.LinearSolvers.SparseSubmatrix;
-import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
+import flowpro.core.element.Element;
 import java.util.Arrays;
 
 /**

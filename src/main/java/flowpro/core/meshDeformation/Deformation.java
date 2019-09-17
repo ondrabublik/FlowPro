@@ -1,7 +1,7 @@
 package flowpro.core.meshDeformation;
 
 import flowpro.api.*;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.core.Parameters;
 import flowpro.core.elementType.*;
 import java.io.*;

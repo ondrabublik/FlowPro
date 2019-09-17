@@ -1,8 +1,8 @@
 package flowpro.core.LinearSolvers;
 
 import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
-import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
+import flowpro.core.element.Element;
 import java.io.IOException;
 
 /**

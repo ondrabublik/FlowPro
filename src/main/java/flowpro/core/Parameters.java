@@ -54,6 +54,7 @@ public class Parameters implements Serializable {
     // single time / dual time
     public String localSolverType;
     public String parallelSolverType;
+    public String timeIntegration;
     public boolean isExplicit;
     public String timeMethod;
     public double[] coeffsPhys;
@@ -261,6 +262,12 @@ public class Parameters implements Serializable {
                 timeMethod = "singleTime";
             }
 
+            if (props.containsKey("timeIntegration")) {                
+                timeIntegration = props.getString("timeIntegration");
+            } else {
+                timeIntegration = "implicit";
+            }
+            
             if (props.containsKey("curvedBoundary")) {
                 curvedBoundary = props.getBoolean("curvedBoundary");
             } else {
