@@ -6,7 +6,7 @@
 package flowpro.core.LinearSolvers;
 
 import flowpro.core.element.Element;
-import flowpro.core.element.ImplicitTimeIntegration;
+import flowpro.core.element.ImplicitBDFElement;
 import java.util.Arrays;
 
 /**
@@ -115,7 +115,7 @@ public class SparseMatrix {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
                 int n = elem.getNEqs() * elem.nBasis;
-                double[][] Ad = ((ImplicitTimeIntegration)elem.ti).ADiag;
+                double[][] Ad = ((ImplicitBDFElement)elem.ti).ADiag;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
                         H[indexMap[s]] = Ad[j][i];
@@ -125,7 +125,7 @@ public class SparseMatrix {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TT[k] > -1 && elems[elem.TT[k]].insideComputeDomain) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        double[][] An = ((ImplicitTimeIntegration)elem.ti).ANeighs[k].A;
+                        double[][] An = ((ImplicitBDFElement)elem.ti).ANeighs[k].A;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 H[indexMap[s]] = An[j][i];
@@ -142,7 +142,7 @@ public class SparseMatrix {
         int s = 0;
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                double[] RHS_loc = ((ImplicitTimeIntegration)elem.ti).RHS_loc;
+                double[] RHS_loc = ((ImplicitBDFElement)elem.ti).RHS_loc;
                 int n = elem.getNEqs() * elem.nBasis;
                 for (int i = 0; i < n; i++) {
                     b[s] = RHS_loc[i];

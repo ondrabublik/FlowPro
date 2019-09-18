@@ -41,7 +41,7 @@ public abstract class Element implements Serializable {
     Element[] elems;
     
     // time integration
-    public TimeIntegration ti;
+    public TimeIntegrationElement ti;
     
     /* constants */
     public double c_IP;  // ???
@@ -186,10 +186,10 @@ public abstract class Element implements Serializable {
     public void createTimeIntegration(){
         switch(par.timeIntegration){
             case "implicit":
-                ti = new ImplicitTimeIntegration(this);
+                ti = new ImplicitBDFElement(this);
                 break;
             case "explicit":
-                ti = new ExplicitTimeIntegration(this);
+                ti = new RK3Element(this);
                 break;
             default:
                 throw new UnsupportedOperationException("unknown time integration method " + par.timeIntegration);
@@ -497,7 +497,7 @@ public abstract class Element implements Serializable {
             double[] Rw = new double[nBasis * nEqs];
             double[][] RwN = new double[nFaces][];
             residuum(V, Rw, RwN);
-            System.arraycopy(Rw, 0, ((ImplicitTimeIntegration)ti).RHS_loc, 0, Rw.length);
+            System.arraycopy(Rw, 0, ((ImplicitBDFElement)ti).RHS_loc, 0, Rw.length);
         } else{
             throw new UnsupportedOperationException("operation not supported for this time integration method");
         }
@@ -520,7 +520,7 @@ public abstract class Element implements Serializable {
             }
             // compute residuum
             residuum(V, Rw, RwNeigh);
-            double[][] ADiag = ((ImplicitTimeIntegration)ti).ADiag;
+            double[][] ADiag = ((ImplicitBDFElement)ti).ADiag;
             double h = par.h;
             for (int i = 0; i < nBasis * nEqs; i++) {
                 for (int j = 0; j < Rw.length; j++) {
@@ -531,7 +531,7 @@ public abstract class Element implements Serializable {
                 V[i] = 0;
                 for (int k = 0; k < nFaces; k++) {
                     if (TT[k] > -1) {
-                        double[][] Aaux = ((ImplicitTimeIntegration)elems[TT[k]].ti).ANeighs[faceIndexReverse[k]].A;
+                        double[][] Aaux = ((ImplicitBDFElement)elems[TT[k]].ti).ANeighs[faceIndexReverse[k]].A;
                         for (int j = 0; j < RwNeighH[k].length; j++) {
                             Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
                         }

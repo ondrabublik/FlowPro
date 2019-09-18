@@ -12,9 +12,9 @@ import java.util.Arrays;
  *
  * @author obublik
  */
-public class ExplicitTimeIntegration extends TimeIntegration {
+public class RK2Element extends TimeIntegrationElement {
     
-    ExplicitTimeIntegration(Element elem){
+    RK2Element(Element elem){
         super(elem);
     }
     
@@ -22,7 +22,7 @@ public class ExplicitTimeIntegration extends TimeIntegration {
         
     }
     
-    public void computeExplicitStep(double dtStep) {
+    public void computeExplicitStep(double dt) {
         double[] V = new double[nBasis * nEqs];
         double[] Rw = new double[nBasis * nEqs];
         double[][] RwN = new double[nFaces][];
@@ -35,14 +35,14 @@ public class ExplicitTimeIntegration extends TimeIntegration {
                 elem.residuum(V, Rw, RwN);
                 Rw = Mat.times(iM, Rw);
                 for (int j = 0; j < W.length; j++) {
-                    W[j] = Wo[j] + dtStep / 2 * Rw[j];
+                    W[j] = Wo[j] + dt / 2 * Rw[j];
                 }
 
                 Arrays.fill(Rw, 0);
                 elem.residuum(V, Rw, RwN);
                 Rw = Mat.times(iM, Rw);
                 for (int j = 0; j < W.length; j++) {
-                    W[j] = Wo[j] + dtStep * Rw[j];
+                    W[j] = Wo[j] + dt * Rw[j];
                 }
                 break;
             case 3: // RK3
@@ -51,7 +51,7 @@ public class ExplicitTimeIntegration extends TimeIntegration {
                 elem.residuum(V, Rw, RwN);
                 Rw = Mat.times(iM, Rw);
                 for (int j = 0; j < W.length; j++) {
-                    W[j] = Wo[j] + dtStep * Rw[j];
+                    W[j] = Wo[j] + dt * Rw[j];
                     W1[j] = W[j];
                 }
 
@@ -59,14 +59,14 @@ public class ExplicitTimeIntegration extends TimeIntegration {
                 elem.residuum(V, Rw, RwN);
                 Rw = Mat.times(iM, Rw);
                 for (int j = 0; j < W.length; j++) {
-                    W[j] = 0.75 * Wo[j] + 0.25 * (W1[j] + dtStep * Rw[j]);
+                    W[j] = 0.75 * Wo[j] + 0.25 * (W1[j] + dt * Rw[j]);
                 }
 
                 Arrays.fill(Rw, 0);
                 elem.residuum(V, Rw, RwN);
                 Rw = Mat.times(iM, Rw);
                 for (int j = 0; j < W.length; j++) {
-                    W[j] = 1.0 / 3 * Wo[j] + 2.0 / 3 * (W2[j] + dtStep * Rw[j]);
+                    W[j] = 1.0 / 3 * Wo[j] + 2.0 / 3 * (W2[j] + dt * Rw[j]);
                 }
         }
         //eqn.limitUnphysicalValues(calculateAvgW(), W, nBasis);

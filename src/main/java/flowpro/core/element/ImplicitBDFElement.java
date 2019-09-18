@@ -11,7 +11,7 @@ import flowpro.api.Mat;
  *
  * @author obublik
  */
-public class ImplicitTimeIntegration extends TimeIntegration {
+public class ImplicitBDFElement extends TimeIntegrationElement {
 
     public double[][] ADiag;
     double[][] PrecondJacobi; // inverze ADiag
@@ -20,7 +20,7 @@ public class ImplicitTimeIntegration extends TimeIntegration {
     public int[] TT;
     public Element[] elems;
 
-    ImplicitTimeIntegration(Element elem) {
+    ImplicitBDFElement(Element elem) {
         super(elem);
         isImplicit = true;
 
@@ -95,7 +95,7 @@ public class ImplicitTimeIntegration extends TimeIntegration {
             V[i] = 0;
             for (int k = 0; k < nFaces; k++) {
                 if (TT[k] > -1 && elems[TT[k]].insideComputeDomain) {
-                    double[][] Aaux = ((ImplicitTimeIntegration) elems[TT[k]].ti).ANeighs[elem.faceIndexReverse[k]].A;
+                    double[][] Aaux = ((ImplicitBDFElement) elems[TT[k]].ti).ANeighs[elem.faceIndexReverse[k]].A;
                     for (int j = 0; j < RwNeighH[k].length; j++) {
                         Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
                     }

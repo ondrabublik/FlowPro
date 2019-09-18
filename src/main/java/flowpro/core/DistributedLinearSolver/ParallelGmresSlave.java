@@ -3,7 +3,7 @@ package flowpro.core.DistributedLinearSolver;
 import flowpro.core.DistributedLinearSolver.preconditioner.*;
 import flowpro.core.Parameters;
 import flowpro.core.element.Element;
-import flowpro.core.element.ImplicitTimeIntegration;
+import flowpro.core.element.ImplicitBDFElement;
 import flowpro.core.parallel.LiteElement;
 import flowpro.core.parallel.Tag;
 import java.io.IOException;
@@ -100,7 +100,7 @@ public class ParallelGmresSlave {
                 for (Element elem : metisElems) {
                     int[] ind = elem.gi_U;
                     for (int i = 0; i < ind.length; i++) {
-                        b[ind[i]] = ((ImplicitTimeIntegration)elem.ti).RHS_loc[i];
+                        b[ind[i]] = ((ImplicitBDFElement)elem.ti).RHS_loc[i];
                     }
                 }
 

@@ -9,7 +9,7 @@ import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.MeshMove;
 import flowpro.core.LinearSolvers.LinearSolver;
-import flowpro.core.element.ImplicitTimeIntegration;
+import flowpro.core.element.ImplicitBDFElement;
 import flowpro.core.meshDeformation.*;
 import litempi.*;
 
@@ -127,14 +127,14 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
     private void updateRHS(double x[]) {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                ((ImplicitTimeIntegration)elem.ti).updateRHS(x);
+                ((ImplicitBDFElement)elem.ti).updateRHS(x);
             }
         }
     }
 
     private void updateW(double x[]) {
         for (Element elem : elems) {
-            ((ImplicitTimeIntegration)elem.ti).updateW(x);
+            ((ImplicitBDFElement)elem.ti).updateW(x);
         }
     }
 
@@ -519,7 +519,7 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
-                        ((ImplicitTimeIntegration)elems[i].ti).assembleJacobiMatrix(a1, a2, a3, dual);
+                        ((ImplicitBDFElement)elems[i].ti).assembleJacobiMatrix(a1, a2, a3, dual);
                     }
                 }
             }

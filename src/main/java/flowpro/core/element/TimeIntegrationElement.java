@@ -9,14 +9,14 @@ package flowpro.core.element;
  *
  * @author obublik
  */
-public abstract class TimeIntegration {
+public abstract class TimeIntegrationElement {
     boolean isImplicit;
     Element elem;
     int nEqs;
     int nBasis;
     int nFaces;
     
-    TimeIntegration(Element elem){
+    TimeIntegrationElement(Element elem){
         this.elem = elem;
         nEqs = elem.nEqs;
         nBasis = elem.nBasis;
