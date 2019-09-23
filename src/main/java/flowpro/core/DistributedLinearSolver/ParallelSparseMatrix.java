@@ -6,7 +6,7 @@
 package flowpro.core.DistributedLinearSolver;
 
 import flowpro.core.element.Element;
-import flowpro.core.element.ImplicitBDFElement;
+import flowpro.core.element.Implicit;
 
 
 /**
@@ -102,7 +102,7 @@ public class ParallelSparseMatrix {
         for (Element elem : elems) {
             if (elem.insideMetisDomain) {
                 int n = elem.getNEqs() * elem.nBasis;
-                double[][] Ad = ((ImplicitBDFElement)elem.ti).ADiag;
+                double[][] Ad = ((Implicit)elem.ti).ADiag;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
                         H[indexMap[s]] = Ad[j][i];
@@ -112,7 +112,7 @@ public class ParallelSparseMatrix {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TT[k] > -1) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        double[][] An = ((ImplicitBDFElement)elem.ti).ANeighs[k].A;
+                        double[][] An = ((Implicit)elem.ti).ANeighs[k].A;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 H[indexMap[s]] = An[j][i];
@@ -129,7 +129,7 @@ public class ParallelSparseMatrix {
         int s = 0;
         for (Element elem : elems) {
             if (elem.insideMetisDomain) {
-                double[] RHS_loc = ((ImplicitBDFElement)elem.ti).RHS_loc;
+                double[] RHS_loc = ((Implicit)elem.ti).RHS_loc;
                 int n = elem.getNEqs() * elem.nBasis;
                 for (int i = 0; i < n; i++) {
                     b[s] = RHS_loc[i];

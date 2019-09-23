@@ -11,41 +11,18 @@ import flowpro.api.Mat;
  *
  * @author obublik
  */
-public class ImplicitBDFElement extends TimeIntegrationElement {
-
-    public double[][] ADiag;
-    double[][] PrecondJacobi; // inverze ADiag
-    public double[] RHS_loc;
-    public Neighbour[] ANeighs; //matice sousedu
-    public int[] TT;
-    public Element[] elems;
-
-    ImplicitBDFElement(Element elem) {
-        super(elem);
-        isImplicit = true;
-
-        TT = elem.TT;
-        ADiag = new double[nEqs * nBasis][nEqs * nBasis];
-        RHS_loc = new double[nEqs * nBasis];
-        elems = elem.elems;
+public class BDF2 extends Implicit {
+    
+    BDF2(){
+        super();
     }
 
-    public void init(){
-        alocateNeigbourhsLinearSolver();
+
+    public int getOrder(){
+        return 2;
     }
     
-    public void alocateNeigbourhsLinearSolver() {
-        ANeighs = new Neighbour[nFaces];
-        for (int k = 0; k < nFaces; k++) {
-            if (TT[k] > -1) {
-                ANeighs[k] = new Neighbour(TT[k], nBasis, elems[TT[k]].nBasis, nEqs);
-            } else {
-                ANeighs[k] = new Neighbour(TT[k], nBasis, 0, nEqs);
-            }
-        }
-    }
-
-    void assembleRHS(double[] Rw, double[] a1, double[] a2, double[] a3) {
+    void assembleRHS(double[] Rw, double a1, double a2, double a3) {
         double[][] M = elem.M;
         double[][] Mo = elem.Mo;
         double[][] Mo2 = elem.Mo2;
@@ -57,15 +34,19 @@ public class ImplicitBDFElement extends TimeIntegrationElement {
         for (int m = 0; m < nEqs; m++) {
             for (int i = 0; i < nBasis; i++) {
                 for (int j = 0; j < nBasis; j++) {
-                    RHS_loc[nBasis * m + i] -= M[i][j] * a1[m] * W[m * nBasis + j] + Mo[i][j] * a2[m] * Wo[m * nBasis + j] + Mo2[i][j] * a3[m] * Wo2[m * nBasis + j];
+                    RHS_loc[nBasis * m + i] -= M[i][j] * a1 * W[m * nBasis + j] + Mo[i][j] * a2 * Wo[m * nBasis + j] + Mo2[i][j] * a3 * Wo2[m * nBasis + j];
                 }
             }
         }
     }
 
     // Generovani radku globalni matice a vektoru prave strany
-    public void assembleJacobiMatrix(double[] a1, double[] a2, double[] a3, double[] dual) {
-
+    public void assembleJacobiMatrix(double dt, double dto) {
+        // coefs
+        double a1 = (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
+        double a2 = -(dt + dto) / (dt * dto);  // -2/dt;
+        double a3 = dt / (dto * (dt + dto));  // 1/(2*dt);
+        
         // vnitrni element - krivkovy i objemovy integral
         double[] V = new double[nBasis * nEqs];
         double[] Rw = new double[nBasis * nEqs];
@@ -95,7 +76,7 @@ public class ImplicitBDFElement extends TimeIntegrationElement {
             V[i] = 0;
             for (int k = 0; k < nFaces; k++) {
                 if (TT[k] > -1 && elems[TT[k]].insideComputeDomain) {
-                    double[][] Aaux = ((ImplicitBDFElement) elems[TT[k]].ti).ANeighs[elem.faceIndexReverse[k]].A;
+                    double[][] Aaux = ((Implicit) elems[TT[k]].ti).ANeighs[elem.faceIndexReverse[k]].A;
                     for (int j = 0; j < RwNeighH[k].length; j++) {
                         Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
                     }
@@ -109,43 +90,9 @@ public class ImplicitBDFElement extends TimeIntegrationElement {
         for (int m = 0; m < nEqs; m++) {
             for (int i = 0; i < nBasis; i++) {
                 for (int j = 0; j < nBasis; j++) {
-                    ADiag[nBasis * m + i][nBasis * m + j] += (a1[m] + dual[m]) * M[i][j];
+                    ADiag[nBasis * m + i][nBasis * m + j] += a1 * M[i][j];
                 }
             }
         }
-    }
-
-
-    public void updateW(double[] x) {
-        int[] gi_U = elem.gi_U;
-        double[] W = elem.W;
-        for (int i = 0; i < nEqs * nBasis; i++) {
-            W[i] += x[gi_U[i]];
-        }
-    }
-
-    public void updateRHS(double[] x) {
-        int[] gi_U = elem.gi_U;
-        int n = nEqs * nBasis;
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                RHS_loc[i] = RHS_loc[i] - ADiag[j][i] * x[gi_U[j]];
-            }
-            for (int k = 0; k < nFaces; k++) {
-                if (TT[k] > -1) {
-                    for (int j = 0; j < nEqs * elems[TT[k]].nBasis; j++) {
-                        RHS_loc[i] = RHS_loc[i] - ANeighs[k].A[j][i] * x[elems[TT[k]].gi_U[j]];
-                    }
-                }
-            }
-        }
-    }
-
-    public double sqr() {
-        double nrm = 0;
-        for (int i = 0; i < nEqs * nBasis; i++) {
-            nrm = nrm + RHS_loc[i] * RHS_loc[i];
-        }
-        return nrm;
     }
 }

@@ -30,7 +30,6 @@ public class Parameters implements Serializable {
     public double cflLTS;
     public boolean varyCFL;
     public final int order;         // rad metody v prostoru
-    public int orderInTime; // rad metody v case
     public final int nThreads;      // pocet vlaken
     public final int newtonIters;   // pocet vnitrnich iteraci    
     public final double newtonIterTol;
@@ -52,13 +51,10 @@ public class Parameters implements Serializable {
     public double iterativeSolverTol;
 
     // single time / dual time
+    public String spatialMethod;
+    public String timeMethod;
     public String localSolverType;
     public String parallelSolverType;
-    public String timeIntegration;
-    public boolean isExplicit;
-    public String timeMethod;
-    public double[] coeffsPhys;
-    public double[] coeffsDual;
 
     // dynamics parameters
     public boolean movingMesh;
@@ -134,10 +130,22 @@ public class Parameters implements Serializable {
                 animation = false;
             }
 
+            if (props.containsKey("spatialDiscretizationMethod")) {
+                spatialMethod = props.getString("spatialDiscretizationMethod");
+            } else {
+                spatialMethod = "DGFEM";
+            }
+            
             if (props.containsKey("order")) {
                 order = props.getInt("order");
             } else {
-                order = Integer.MIN_VALUE;
+                order = 1;
+            }
+            
+            if (props.containsKey("timeDiscretizationMethod")) {
+                timeMethod = props.getString("timeDiscretizationMethod");
+            } else {
+                timeMethod = "BDF1";
             }
             
             volumeQuardatureOrder = order;
@@ -150,7 +158,6 @@ public class Parameters implements Serializable {
                 faceQuardatureOrder = props.getInt("faceQuardatureOrder");
             }
             
-            orderInTime = props.getInt("orderInTime");
             cfl = props.getDouble("CFL");
             if(cfl == -1){
                 varyCFL = true;
@@ -242,7 +249,6 @@ public class Parameters implements Serializable {
             }
 
             localSolverType = "localimplicit";
-            isExplicit = false;
             if (props.containsKey("localSolverType")) {
                 localSolverType = props.getString("localSolverType");
             }
@@ -250,22 +256,6 @@ public class Parameters implements Serializable {
             parallelSolverType = "ksp";
             if (props.containsKey("parallelSolverType")) {
                 parallelSolverType = props.getString("parallelSolverType");
-            }
-            
-            if (props.containsKey("timeMethod")) {                
-                timeMethod = props.getString("timeMethod");
-                if (timeMethod.equals("dualTime")) {
-                    coeffsPhys = props.getDoubleArray("coeffsPhys");
-                    coeffsDual = props.getDoubleArray("coeffsDual");
-                }
-            } else {
-                timeMethod = "singleTime";
-            }
-
-            if (props.containsKey("timeIntegration")) {                
-                timeIntegration = props.getString("timeIntegration");
-            } else {
-                timeIntegration = "implicit";
             }
             
             if (props.containsKey("curvedBoundary")) {

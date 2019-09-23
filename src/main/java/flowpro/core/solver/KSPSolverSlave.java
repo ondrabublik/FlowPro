@@ -9,7 +9,7 @@ import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.MeshMove;
 import flowpro.core.DistributedLinearSolver.ParallelGmresSlave;
-import flowpro.core.element.ImplicitBDFElement;
+import flowpro.core.element.Implicit;
 import flowpro.core.meshDeformation.*;
 import litempi.*;
 
@@ -121,7 +121,7 @@ public class KSPSolverSlave extends SlaveSolver{
 
     private void updateW(double x[]) {
         for (Element elem : elems) {
-            ((ImplicitBDFElement)elem.ti).updateW(x);
+            ((Implicit)elem.ti).updateW(x);
         }
     }
 
@@ -198,7 +198,7 @@ public class KSPSolverSlave extends SlaveSolver{
 
                     case Tag.ALE_NEW_MESH_POSITION:
                         ForcesAndDisplacements disp = (ForcesAndDisplacements) inMsg.getData();
-                        dfm.newMeshPositionAndVelocity(elems, par.orderInTime, disp.getDto(), disp.getDt(), disp.getMeshMove());
+                        dfm.newMeshPositionAndVelocity(elems, elems[0].ti.getOrder(), disp.getDto(), disp.getDt(), disp.getMeshMove());
                         if (isFirstIter) {
                             dfm.relaxFirstIteration(elems, disp.getDt());
                         }
@@ -407,12 +407,8 @@ public class KSPSolverSlave extends SlaveSolver{
         public Element[] elems;
         private final int nEqs;
         private final Parameters par;
-        private double[] a1;
-        private double[] a2;
-        private double[] a3;
-        private double[] dual;
-        private double[] coeffsPhys;
-        private double[] coeffsDual;
+        double dt, dt0;
+
 
         public JacobiAssembler(Element[] elems, Parameters par) {
             this.elems = elems;
@@ -422,55 +418,8 @@ public class KSPSolverSlave extends SlaveSolver{
 
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
         public void assemble(double dt, double dto) {  // , int newtonIter
-            if ("secondDerivative".equals(par.timeMethod)) { // second order derivative
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                for (int i = 0; i < nEqs; i++) {
-                    a1[i] = 2.0 / (dt * dt + dt * dto);
-                    a2[i] = -2.0 / (dt * dto);
-                    a3[i] = 2.0 / (dto * dto + dt * dto);
-                }
-            } else { // first order derivative
-                if ("dualTime".equals(par.timeMethod)) {
-                    coeffsPhys = par.coeffsPhys;
-                    coeffsDual = par.coeffsDual;
-                } else {
-                    coeffsPhys = new double[nEqs]; // user defined
-                    coeffsDual = new double[nEqs];
-                    for (int i = 0; i < nEqs; i++) {
-                        coeffsPhys[i] = 1;
-                        coeffsDual[i] = 0;
-                    }
-                }
-
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                switch (par.orderInTime) {
-                    case 1:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] / dt;
-                            a2[i] = -coeffsPhys[i] / dt;
-                            a3[i] = 0.0;
-                        }
-                        break;
-                    case 2:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
-                            a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
-                            a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
-                        }
-                        break;
-                    default:
-                        throw new RuntimeException("solver supports only first and second order in time");
-                }
-                for (int i = 0; i < nEqs; i++) {
-                    dual[i] = coeffsDual[i] / dt;
-                }
-            }
+            this.dt = dt;
+            this.dt0 = dt0;
 
             AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
 
@@ -502,7 +451,7 @@ public class KSPSolverSlave extends SlaveSolver{
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
-                        ((ImplicitBDFElement)elems[i].ti).assembleJacobiMatrix(a1, a2, a3, dual);
+                        ((Implicit)elems[i].ti).assembleJacobiMatrix(dt,dt0);
                     }
                 }
             }

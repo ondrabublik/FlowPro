@@ -9,7 +9,7 @@ import flowpro.api.Mat;
 import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.element.Element;
 import flowpro.core.Parameters;
-import flowpro.core.element.ImplicitBDFElement;
+import flowpro.core.element.Implicit;
 
 /**
  *
@@ -66,7 +66,7 @@ class BlockJacobiInversion extends Preconditioner {
         public void run() {
             for (int i = nStart; i < elems.length; i = i + nThreads) {
                 if (elems[i].insideComputeDomain) {
-                    diagonalInverse[i] = Mat.invert(((ImplicitBDFElement)elems[i].ti).ADiag);
+                    diagonalInverse[i] = Mat.invert(((Implicit)elems[i].ti).ADiag);
                 }
             }
         }

@@ -9,7 +9,7 @@ import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.core.LinearSolvers.LinearSolver;
-import flowpro.core.element.ImplicitBDFElement;
+import flowpro.core.element.Implicit;
 import flowpro.core.meshDeformation.*;
 
 import java.io.*;
@@ -187,7 +187,7 @@ public class LocalImplicitSolver extends MasterSolver {
                 if (par.movingMesh) {
                     dfm.calculateForces(elems, dyn.getMeshMove());
                     dyn.computeBodyMove(dt, state.t, s, dfm.getFluidForces());
-                    dfm.newMeshPositionAndVelocity(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
+                    dfm.newMeshPositionAndVelocity(elems, elems[0].ti.getOrder(), dt, dto, dyn.getMeshMove());
                     if (isFirstIter) {
                         dfm.relaxFirstIteration(elems,dt);
                     }
@@ -219,7 +219,7 @@ public class LocalImplicitSolver extends MasterSolver {
 
                 // ulozeni novych hodnot
                 for (int i = 0; i < nElems; i++) {
-                    ((ImplicitBDFElement)elems[i].ti).updateW(x);
+                    ((Implicit)elems[i].ti).updateW(x);
                 }
 
                 double iner_tol = 1e-4;  // zadat jako parametr !!!!!!!
@@ -379,12 +379,8 @@ public class LocalImplicitSolver extends MasterSolver {
         public Element[] elems;
         private final int nEqs;
         private final Parameters par;
-        private double[] a1;
-        private double[] a2;
-        private double[] a3;
-        private double[] dual;
-        private double[] coeffsPhys;
-        private double[] coeffsDual;
+        double dt, dt0;
+
 
         public JacobiAssembler(Element[] elems, Parameters par) {
             this.elems = elems;
@@ -394,55 +390,8 @@ public class LocalImplicitSolver extends MasterSolver {
 
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
         public void assemble(double dt, double dto) {  // , int newtonIter
-            if ("secondDerivative".equals(par.timeMethod)) { // second order derivative
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                for (int i = 0; i < nEqs; i++) {
-                    a1[i] = 2.0 / (dt * dt + dt * dto);
-                    a2[i] = -2.0 / (dt * dto);
-                    a3[i] = 2.0 / (dto * dto + dt * dto);
-                }
-            } else { // first order derivative
-                if ("dualTime".equals(par.timeMethod)) {
-                    coeffsPhys = par.coeffsPhys;
-                    coeffsDual = par.coeffsDual;
-                } else {
-                    coeffsPhys = new double[nEqs]; // user defined
-                    coeffsDual = new double[nEqs];
-                    for (int i = 0; i < nEqs; i++) {
-                        coeffsPhys[i] = 1;
-                        coeffsDual[i] = 0;
-                    }
-                }
-
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                switch (par.orderInTime) {
-                    case 1:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] / dt;
-                            a2[i] = -coeffsPhys[i] / dt;
-                            a3[i] = 0.0;
-                        }
-                        break;
-                    case 2:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
-                            a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
-                            a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
-                        }
-                        break;
-                    default:
-                        throw new RuntimeException("solver supports only first and second order in time");
-                }
-                for (int i = 0; i < nEqs; i++) {
-                    dual[i] = coeffsDual[i] / dt;
-                }
-            }
+            this.dt = dt;
+            this.dt0 = dt0;
 
             AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
 
@@ -473,7 +422,9 @@ public class LocalImplicitSolver extends MasterSolver {
             @Override
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
-                    ((ImplicitBDFElement)elems[i].ti).assembleJacobiMatrix(a1, a2, a3, dual);
+                    if (elems[i].insideComputeDomain) {
+                        ((Implicit)elems[i].ti).assembleJacobiMatrix(dt,dt0);
+                    }
                 }
             }
         }

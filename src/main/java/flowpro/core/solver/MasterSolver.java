@@ -34,6 +34,9 @@ abstract public class MasterSolver {
 
         try {
             if (par.parallelMode) {
+                if(!((meshes[0].getElems())[0].ti).isImplicit()){
+                    throw new UnsupportedOperationException(" parallel mode is supported only for implicit time integration methods ");
+                }
                 switch (par.parallelSolverType.toLowerCase()) {
                     case "schwartz":
                         return new SchwartzImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
@@ -42,12 +45,11 @@ abstract public class MasterSolver {
                         return new KSPSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 }
             } else {
-                switch (par.localSolverType.toLowerCase()) {
+                switch (((meshes[0].getElems())[0].ti).getLocalSolverType()) {
                     case "localimplicit":
                         return new LocalImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
 
                     case "localexplicit":
-                        par.isExplicit = true;
                         return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 }
             }

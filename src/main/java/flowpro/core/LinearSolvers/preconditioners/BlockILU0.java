@@ -9,7 +9,7 @@ import flowpro.api.Mat;
 import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.element.Element;
 import flowpro.core.Parameters;
-import flowpro.core.element.ImplicitBDFElement;
+import flowpro.core.element.Implicit;
 
 /**
  *
@@ -52,7 +52,7 @@ public class BlockILU0 extends Preconditioner {
             int ne = elem.nBasis * elem.getNEqs();
             ILU[i][s] = new double[ne][ne];
             double[][] AuxILU = ILU[i][s];
-            double[][] AuxA = ((ImplicitBDFElement)elem.ti).ADiag;
+            double[][] AuxA = ((Implicit)elem.ti).ADiag;
             for (int n = 0; n < ne; n++) {
                 System.arraycopy(AuxA[n], 0, AuxILU[n], 0, ne);
             }
@@ -64,7 +64,7 @@ public class BlockILU0 extends Preconditioner {
                     int me = elems[elem.TT[k]].nBasis * elems[elem.TT[k]].getNEqs();
                     ILU[i][s] = new double[ne][me];
                     AuxILU = ILU[i][s];
-                    AuxA = ((ImplicitBDFElement)elem.ti).ANeighs[k].A;
+                    AuxA = ((Implicit)elem.ti).ANeighs[k].A;
                     for (int n = 0; n < ne; n++) {
                         System.arraycopy(AuxA[n], 0, AuxILU[n], 0, me);
                     }

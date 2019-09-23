@@ -10,18 +10,28 @@ package flowpro.core.element;
  * @author obublik
  */
 public abstract class TimeIntegrationElement {
+
     boolean isImplicit;
     Element elem;
     int nEqs;
     int nBasis;
     int nFaces;
-    
-    TimeIntegrationElement(Element elem){
+
+    TimeIntegrationElement() {
+    }
+
+    void set(Element elem) {
         this.elem = elem;
         nEqs = elem.nEqs;
         nBasis = elem.nBasis;
         nFaces = elem.nFaces;
     }
-    
+
     abstract public void init();
+
+    abstract public int getOrder();
+
+    abstract public boolean isImplicit();
+    
+    abstract public String getLocalSolverType();
 }

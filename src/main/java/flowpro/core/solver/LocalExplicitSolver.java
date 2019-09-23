@@ -8,7 +8,7 @@ import static flowpro.core.FlowProMain.*;
 import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
-import flowpro.core.element.RK3Element;
+import flowpro.core.element.Explicit;
 import flowpro.core.meshDeformation.*;
 
 import java.io.*;
@@ -117,11 +117,6 @@ public class LocalExplicitSolver extends MasterSolver {
             LOG.error("Moving mesh not supported for local time stepping explicit method!");
         }
 
-        if (par.orderInTime == 1) {
-            LOG.info("Explicit first order time integration method is not suported! Setting time order to second order!");
-            par.orderInTime = 2;
-        }
-
         computeInvertMassMatrix();
         LocalTimeStepIterator ltsIter = new LocalTimeStepIterator(elems, par, state.t);
         StopWatch watch = new StopWatch();
@@ -155,12 +150,9 @@ public class LocalExplicitSolver extends MasterSolver {
             }
 
             // computation
-            ltsIter.iterate(1, dt);
-            ltsIter.iterate(11, dt);
-            ltsIter.iterate(2, dt);
-            ltsIter.iterate(21, dt);
-            ltsIter.iterate(3, dt);
-            ltsIter.iterate(31, dt);
+            for(int step = 0; step < ltsIter.steps; step++){
+                ltsIter.iterate(step, dt);
+            }
 
             state.residuum = calculateResiduumW(dt);
             state.executionTime = watch.getTime();
@@ -292,13 +284,13 @@ public class LocalExplicitSolver extends MasterSolver {
     class LocalTimeStepIterator {
 
         public Element[] elems;
-        private final int nEqs;
         private final Parameters par;
+        public int steps;
 
         LocalTimeStepIterator(Element[] elems, Parameters par, double t) {
             this.elems = elems;
             this.par = par;
-            nEqs = elems[0].getNEqs();
+            steps = ((Explicit)(elems[0].ti)).getNumberOfSteps();
         }
 
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
@@ -339,7 +331,7 @@ public class LocalExplicitSolver extends MasterSolver {
         public void run() {
             for (int i = id; i < elems.length; i += par.nThreads) {
                 if (elems[i].insideComputeDomain) {
-                    ((RK3Element) elems[i].ti).computeExplicitStep(step, dt);
+                    ((Explicit) elems[i].ti).computeExplicitStep(step, dt);
                 }
             }
         }

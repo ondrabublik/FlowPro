@@ -6,7 +6,7 @@
 package flowpro.core.LinearSolvers;
 
 import flowpro.core.element.Element;
-import flowpro.core.element.ImplicitBDFElement;
+import flowpro.core.element.Implicit;
 import java.util.Arrays;
 
 /**
@@ -143,7 +143,7 @@ public class SparseSubmatrix {
             if (inside[r]) {
                 Element elem = elems[r];
                 int n = elem.getNEqs() * elem.nBasis;
-                double[][] Ad = ((ImplicitBDFElement)elem.ti).ADiag;
+                double[][] Ad = ((Implicit)elem.ti).ADiag;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
                         H[indexMap[s]] = Ad[j][i];
@@ -153,7 +153,7 @@ public class SparseSubmatrix {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TT[k] > -1 && inside[elems[elem.TT[k]].index]) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        double[][] An = ((ImplicitBDFElement)elem.ti).ANeighs[k].A;
+                        double[][] An = ((Implicit)elem.ti).ANeighs[k].A;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 H[indexMap[s]] = An[j][i];

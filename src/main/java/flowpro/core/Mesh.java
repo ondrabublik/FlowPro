@@ -167,10 +167,9 @@ public class Mesh implements Serializable {
             if (elems[i].insideComputeDomain) {
                 elems[i].Int.initNeighbours(elems, elems[i]);   // init face integration rules
                 elems[i].computeGeometry();                     // compute geometrical relations
-                elems[i].constructMassMatrix();                 // compute mass matrix
+                elems[i].computeMassMatrixAndBasisWeights();                 // compute mass matrix
                 elems[i].initMethod();        // for damping
-                elems[i].createTimeIntegration();
-                elems[i].ti.init();
+                elems[i].createTimeIntegration(elems[i]);
 
                 // checking geometry
                 boolean isOK = elems[i].geometryCheck(false);

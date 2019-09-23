@@ -39,10 +39,10 @@ public abstract class Element implements Serializable {
     Equation eqn;
     // mesh elements
     Element[] elems;
-    
+
     // time integration
     public TimeIntegrationElement ti;
-    
+
     /* constants */
     public double c_IP;  // ???
     public double eps;  // ???
@@ -110,7 +110,7 @@ public abstract class Element implements Serializable {
 
     // matice globalnich indexu a globalni matice s pravou stranou
     public int[] gi_U;
-    
+
     double[] initW;
     public double[] W;     // hodnota W v n+1 te casove hladine
     public double[] Wo;    // hodnota v n te casove hladine
@@ -124,7 +124,7 @@ public abstract class Element implements Serializable {
 
     public Element(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
-        
+
         this.mesh = mesh;
         eqn = mesh.getEqn();
         dim = eqn.dim();
@@ -132,7 +132,7 @@ public abstract class Element implements Serializable {
         par = mesh.getPar();
         qRules = mesh.getQRules();
         elems = mesh.getElems();
-        
+
         this.index = index;
         this.TT = TT;
         this.TP = TP;
@@ -149,7 +149,6 @@ public abstract class Element implements Serializable {
         this.initW = initW;
         this.nVertices = vertices.length;
         this.elemType = elemType;
-        
 
         insideComputeDomain = true;
         gmresLoad = false;
@@ -169,38 +168,31 @@ public abstract class Element implements Serializable {
     }
 
     abstract public void initMethod();
-    
+
     abstract public void initCondition();
-    
-    abstract public void constructMassMatrix();
-    
+
+    abstract public void computeMassMatrixAndBasisWeights();
+
     abstract public void recalculateMassMatrix();
-    
+
     abstract public void residuum(double[] V, double[] K, double[][] KR);
-    
+
     abstract public void residuumWall(int k, double[] V, double[] K, double[] KR);
-    
+
     abstract public void limiter(boolean isFirstIter);
-    
-    
-    public void createTimeIntegration(){
-        switch(par.timeIntegration){
-            case "implicit":
-                ti = new ImplicitBDFElement(this);
-                break;
-            case "explicit":
-                ti = new RK3Element(this);
-                break;
-            default:
-                throw new UnsupportedOperationException("unknown time integration method " + par.timeIntegration);
-        }
-        
+
+    public void createTimeIntegration(Element elem) throws IOException {
+        ti = getTimeIntegrationElement(par.timeMethod, this);
+        ti.set(elem);
+        ti.init();
     }
-    
+
     public void initBasis() throws IOException {
         transform = elemType.getVolumeTransformation(vertices, fCurv, par);
         basis = elemType.getBasis(transform);
         nBasis = basis.nBasis;
+        Mo = new double[nBasis][nBasis];
+        Mo2 = new double[nBasis][nBasis];
     }
 
     public void initIntegration() throws IOException {
@@ -215,7 +207,7 @@ public abstract class Element implements Serializable {
         }
         return s;
     }
-    
+
     public void computeInvertMassMatrix() {
         // vypocitava inverzi diagonaly, ktera se pouzije pro predpodminovac
         double[][] invM = Mat.invert(M);
@@ -389,7 +381,6 @@ public abstract class Element implements Serializable {
         }
     }
 
-
     public void nextTimeLevelMassMatrixes() {
         for (int i = 0; i < nBasis; i++) {
             for (int j = 0; j < nBasis; j++) {
@@ -417,7 +408,6 @@ public abstract class Element implements Serializable {
     public int getNEqs() {
         return nEqs;
     }
-
 
     public boolean geometryCheck(boolean writeOut) {
         boolean isOK = true;
@@ -492,21 +482,20 @@ public abstract class Element implements Serializable {
 
     // for optimization toolbox, generate residuum(W)
     public void exportLocalR() {
-        if(ti.isImplicit){
+        if (ti.isImplicit) {
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
             double[][] RwN = new double[nFaces][];
             residuum(V, Rw, RwN);
-            System.arraycopy(Rw, 0, ((ImplicitBDFElement)ti).RHS_loc, 0, Rw.length);
-        } else{
+            System.arraycopy(Rw, 0, ((Implicit) ti).RHS_loc, 0, Rw.length);
+        } else {
             throw new UnsupportedOperationException("operation not supported for this time integration method");
         }
     }
 
-    
     // for optimization toolbox, generate only residuum derivation (dR/dW)
     public void exportLocalJacobiMatrix() {
-        if(ti.isImplicit){
+        if (ti.isImplicit) {
             // vnitrni element - krivkovy i objemovy integral
             double[] V = new double[nBasis * nEqs];
             double[] Rw = new double[nBasis * nEqs];
@@ -520,7 +509,7 @@ public abstract class Element implements Serializable {
             }
             // compute residuum
             residuum(V, Rw, RwNeigh);
-            double[][] ADiag = ((ImplicitBDFElement)ti).ADiag;
+            double[][] ADiag = ((Implicit) ti).ADiag;
             double h = par.h;
             for (int i = 0; i < nBasis * nEqs; i++) {
                 for (int j = 0; j < Rw.length; j++) {
@@ -531,7 +520,7 @@ public abstract class Element implements Serializable {
                 V[i] = 0;
                 for (int k = 0; k < nFaces; k++) {
                     if (TT[k] > -1) {
-                        double[][] Aaux = ((ImplicitBDFElement)elems[TT[k]].ti).ANeighs[faceIndexReverse[k]].A;
+                        double[][] Aaux = ((Implicit) elems[TT[k]].ti).ANeighs[faceIndexReverse[k]].A;
                         for (int j = 0; j < RwNeighH[k].length; j++) {
                             Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
                         }
@@ -688,6 +677,22 @@ public abstract class Element implements Serializable {
                     f[r] += Jac * weight * aux[r];
                 }
             }
+        }
+    }
+
+    public TimeIntegrationElement getTimeIntegrationElement(String methodClassName, Element elem) throws IOException {
+
+        String className = "flowpro.core.element." + methodClassName;
+
+        try {
+            Class<TimeIntegrationElement> tiClass = (Class<TimeIntegrationElement>) Class.forName("flowpro.core.element." + methodClassName);
+            TimeIntegrationElement tiElem = (TimeIntegrationElement) tiClass.newInstance();
+            tiElem.set(elem);
+            return tiElem;
+        } catch (ClassNotFoundException ex) {
+            throw new IOException("class \"" + className + "\" not found", ex);
+        } catch (InstantiationException | IllegalAccessException | SecurityException | IllegalArgumentException ex) {
+            throw new IOException("error while loading class \"" + className + "\": " + ex, ex);
         }
     }
 }

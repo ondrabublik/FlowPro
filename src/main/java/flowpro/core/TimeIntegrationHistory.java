@@ -9,15 +9,14 @@ package flowpro.core;
  *
  * @author obublik
  */
-public class TimeIntegration {
+public class TimeIntegrationHistory {
     String method;
     int order;
     double[][] MWHistory;
     double[][] RHSHistory;
     double[] timeHistory;
     
-    TimeIntegration(Parameters par){
+    TimeIntegrationHistory(Parameters par){
         this.method = par.timeMethod;
-        this.order = par.orderInTime;
     }
 }

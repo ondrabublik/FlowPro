@@ -9,7 +9,7 @@ import flowpro.api.Mat;
 import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.element.Element;
 import flowpro.core.Parameters;
-import flowpro.core.element.ImplicitBDFElement;
+import flowpro.core.element.Implicit;
 
 /**
  *
@@ -75,7 +75,7 @@ class blockJacobi extends Preconditioner {
             for (int i = nStart; i < nt; i = i + nThreads) {
                 Element elem = elems[i];
                 if (elem.insideComputeDomain) {
-                    double[][] Adiag = ((ImplicitBDFElement)elem.ti).ADiag;
+                    double[][] Adiag = ((Implicit)elem.ti).ADiag;
                     int[] glob = elem.gi_U;
                     double[] bp = new double[glob.length];
                     for (int j = 0; j < glob.length; j++) {

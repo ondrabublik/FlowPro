@@ -701,7 +701,7 @@ public class DGFEM extends Element {
         return shock / rhoLmax / sumS / Math.pow(elemSize, par.order / 2.0);
     }
     
-    public void constructMassMatrix() { // funkce pro generovani matic
+    public void computeMassMatrixAndBasisWeights() { // funkce pro generovani matic
         // integracni vzorec pro vypocet matice hmotnosti musi mit prislusny rad, zkontrolovat!!!!!!!!!!   
 
         double[][] base = Int.basisVolume;
@@ -723,8 +723,6 @@ public class DGFEM extends Element {
         }
 
         // initialization of mass matrixes
-        Mo = new double[nBasis][nBasis];
-        Mo2 = new double[nBasis][nBasis];
         for (int i = 0; i < nBasis; i++) {
             for (int j = 0; j < nBasis; j++) {
                 Mo[i][j] = M[i][j];
