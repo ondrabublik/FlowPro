@@ -17,49 +17,35 @@ import java.util.Arrays;
  *
  * @author obublik
  */
-public class DGFEM extends Element {
-    
-    public DGFEM(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
+public class FVM extends Element {
+
+    public FVM(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
         super(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
     }
-    
+
     public void initMethod() {
         computeOrderTruncationMatrix();
     }
-    
+
     public void initCondition() {
         // fill the solution vector with initial condition
-        W = new double[nBasis * nEqs];
-        Wo = new double[nBasis * nEqs];
-        Wo2 = new double[nBasis * nEqs];
-        if (initW.length == nBasis * nEqs) {
-            System.arraycopy(initW, 0, W, 0, nBasis * nEqs);
-            System.arraycopy(initW, 0, Wo, 0, nBasis * nEqs);
-            System.arraycopy(initW, 0, Wo2, 0, nBasis * nEqs);
+        W = new double[nEqs];
+        Wo = new double[nEqs];
+        Wo2 = new double[nEqs];
+        if (initW.length == nEqs) {
+            System.arraycopy(initW, 0, W, 0, nEqs);
+            System.arraycopy(initW, 0, Wo, 0, nEqs);
+            System.arraycopy(initW, 0, Wo2, 0, nEqs);
         } else {
-            switch (basis.basisType) {
-                case "lagrange":
-                    for (int i = 0; i < nBasis; i++) {
-                        for (int j = 0; j < nEqs; j++) {
-                            W[j * nBasis + i] = initW[j];
-                            Wo[j * nBasis + i] = initW[j];
-                            Wo2[j * nBasis + i] = initW[j];
-                        }
-                    }
-                    break;
-                case "orthogonal":
-                case "taylor":
-                    for (int j = 0; j < nEqs; j++) {
-                        W[j * nBasis] = initW[j];
-                        Wo[j * nBasis] = initW[j];
-                        Wo2[j * nBasis] = initW[j];
-                    }
-                    break;
+            for (int j = 0; j < nEqs; j++) {
+                W[j] = initW[j];
+                Wo[j] = initW[j];
+                Wo2[j] = initW[j];
             }
         }
     }
-    
+
     // tato funkce vypocitava reziduum__________________________________________
     public void residuum(double[] V, double[] K, double[][] KR) {
 
@@ -68,101 +54,23 @@ public class DGFEM extends Element {
             residuumWall(k, V, K, KR[k]);
         }
 
-        if (elemType.order > 1) { // volume integral only for DGFEM
-            double[] nor = new double[dim];
-            double[][] f = null;
-            double[][] fv = null;
-            double[] product = null;
+        if (eqn.isSourcePresent()) {
+            // interpolation of mesh velocity
+            double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[0]);
 
-            for (int p = 0; p < Int.nIntVolume; p++) {
-                double[] base = Int.basisVolume[p];
-                double[][] dBase = Int.dXbasisVolume[p];
-                double Jac = Int.JacobianVolume[p];
-                double weight = Int.weightsVolume[p];
+            double[] WInt = new double[nEqs];
+            for (int j = 0; j < nEqs; j++) {
+                WInt[j] = W[j] + V[j];
 
-                // interpolation of mesh velocity, and other data
-                double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
-
-                double[] WInt = new double[nEqs];
-                double[] dWInt = new double[dim * nEqs];
-                for (int m = 0; m < nEqs; m++) {
-                    for (int j = 0; j < nBasis; j++) {
-                        WInt[m] += (W[m * nBasis + j] + V[m * nBasis + j]) * base[j];
-                        for (int d = 0; d < dim; d++) {
-                            dWInt[nEqs * d + m] += (W[m * nBasis + j] + V[m * nBasis + j]) * dBase[j][d];
-                        }
-                    }
-                }
-                // convection
-                if (eqn.isConvective()) {
-                    f = new double[dim][];
-                    for (int d = 0; d < dim; d++) {
-                        nor[d] = 1;
-                        f[d] = eqn.convectiveFlux(WInt, nor, elemData);
-                        nor[d] = 0;
-                    }
-                }
-                // diffusion
-                if (eqn.isDiffusive()) {
-                    fv = new double[dim][];
-                    for (int d = 0; d < dim; d++) {
-                        nor[d] = 1;
-                        fv[d] = eqn.diffusiveFlux(WInt, dWInt, nor, elemData);
-                        nor[d] = 0;
-                    }
-                }
-                // production
-                if (eqn.isSourcePresent()) {
-                    product = eqn.sourceTerm(WInt, dWInt, elemData);
-                }
-
-                for (int m = 0; m < nEqs; m++) {
-                    for (int j = 0; j < nBasis; j++) {
-                        if (eqn.isConvective()) {
-                            double fsum = 0;
-                            double dWsum = 0;
-                            for (int d = 0; d < dim; d++) {
-                                fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
-                                dWsum += dWInt[nEqs * d + m] * dBase[j][d];
-                            }
-                            K[nBasis * m + j] += Jac * weight * fsum - (eps + par.dampConst + dampInner[m]) * Jac * weight * dWsum;
-                        }
-                        if (eqn.isDiffusive()) {
-                            double fvsum = 0;
-                            for (int d = 0; d < dim; d++) {
-                                fvsum += fv[d][m] * dBase[j][d];
-                            }
-                            K[nBasis * m + j] -= Jac * weight * fvsum;
-                        }
-                        if (eqn.isSourcePresent()) {
-                            K[nBasis * m + j] += Jac * weight * product[m] * base[j];
-                        }
-                    }
-                }
             }
-        } else// production term for FVM
-        {
-            if (eqn.isSourcePresent()) {
-                double[] Jac = Int.JacobianVolume;
-                double[] weights = Int.weightsVolume;
+            double[] dWInt = volumeDerivative(V, u, elemData);
 
-                // interpolation of mesh velocity
-                double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[0]);
+            // production
+            double[] product = eqn.sourceTerm(WInt, dWInt, elemData);
 
-                double[] WInt = new double[nEqs];
-                for (int j = 0; j < nEqs; j++) {
-                    WInt[j] = W[j] + V[j];
-
-                }
-                double[] dWInt = volumeDerivative(V, u, elemData);
-
-                // production
-                double[] product = eqn.sourceTerm(WInt, dWInt, elemData);
-
-                for (int m = 0; m < nEqs; m++) {
-                    if (eqn.isSourcePresent()) {
-                        K[m] += Jac[0] * weights[0] * product[m];
-                    }
+            for (int m = 0; m < nEqs; m++) {
+                if (eqn.isSourcePresent()) {
+                    K[m] += area * product[m];
                 }
             }
         }
@@ -177,184 +85,104 @@ public class DGFEM extends Element {
         double[] fvn = null;
         int[] edgeIndex = Int.faces[k].faceIndexes;
 
-        for (int p = 0; p < Int.faces[k].nIntEdge; p++) { // edge integral
-            double[] innerInterpolant = Int.faces[k].interpolantFace[p];
-            double[] baseLeft = Int.faces[k].basisFaceLeft[p];
-            double[][] dBaseLeft = Int.faces[k].dXbasisFaceLeft[p];
-            double Jac = Int.faces[k].JacobianFace[p];
-            double weight = Int.faces[k].weightsFace[p];
-            double[] baseRight = null;
-            double[][] dBaseRight = null;
-            if (TT[k] > -1) {
-                baseRight = Int.faces[k].basisFaceRight[p];
-                dBaseRight = Int.faces[k].dXbasisFaceRight[p];
-            }
+        double[] innerInterpolant = Int.faces[k].interpolantFace[0];
 
-            double dL = 0;
+        // interpolation of mesh velocity
+        double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
+
+        double[] WL = new double[nEqs];
+        double[] WR = new double[nEqs];
+        double[] dWR = new double[dim * nEqs];
+
+        // values from boundary inlet (WL, dWL)
+        double[] dWL = volumeDerivative(V, u, elemData);
+        double sigmaL = FVMlimiter(dWL, par.FVMlimiter);
+        for (int m = 0; m < nEqs; m++) {
+            double dW = 0;
             for (int d = 0; d < dim; d++) {
-                if (TT[k] > -1) {
-                    if (elems[TT[k]].insideComputeDomain) {
-                        dL += (Xs[d] - elems[TT[k]].Xs[d]) * n[k][p][d];
-                    } else {
-                        dL += 2 * (Xs[d] - Xes[k][d]) * n[k][p][d];
-                    }
-                } else {
-                    dL += (Xs[d] - Xes[k][d]) * n[k][p][d];
-                }
+                dW = dW + (Int.faces[k].coordinatesFace[0][d] - Xs[d]) * dWL[nEqs * d + m];
             }
-            dL = Math.abs(dL);
+            WL[m] = W[m] + V[m] + sigmaL * dW;
+        }
 
-            // interpolation of mesh velocity
-            double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
-
-            double[] WL = new double[nEqs];
-            double[] WR = new double[nEqs];
-            double[] dWL = new double[dim * nEqs];
-            double[] dWR = new double[dim * nEqs];
-
-            // values from boundary inlet (WL, dWL)
-            if (elemType.order > 1) { // Discontinuous Galerkin Method
-                for (int m = 0; m < nEqs; m++) {
-                    for (int j = 0; j < nBasis; j++) {
-                        WL[m] += (W[m * nBasis + j] + V[m * nBasis + j]) * baseLeft[j];
-                        for (int d = 0; d < dim; d++) {
-                            dWL[nEqs * d + m] += (W[m * nBasis + j] + V[m * nBasis + j]) * dBaseLeft[j][d];
-                        }
-                    }
-                }
-            } else { // Finite volume method
-                dWL = volumeDerivative(V, u, elemData);
-                double sigmaL = FVMlimiter(dWL, par.FVMlimiter);
-                for (int m = 0; m < nEqs; m++) {
-                    double dW = 0;
-                    for (int d = 0; d < dim; d++) {
-                        dW = dW + (Int.faces[k].coordinatesFace[p][d] - Xs[d]) * dWL[nEqs * d + m];
-                    }
-                    WL[m] = W[m] + V[m] + sigmaL * dW;
-                }
-            }
-
-            // values from boundary outlet (WR, dWR)
-            if (TT[k] > -1) {
-                if (elems[TT[k]].elemType.order > 1) { // Discontinuous Galerkin Method
-                    double[] WRp = elems[TT[k]].W;
-                    for (int m = 0; m < nEqs; m++) {
-                        int nRBasis = elems[TT[k]].nBasis;
-                        for (int j = 0; j < nRBasis; j++) {
-                            WR[m] += WRp[m * nRBasis + j] * baseRight[j];
-                            for (int d = 0; d < dim; d++) {
-                                dWR[nEqs * d + m] += WRp[m * nRBasis + j] * dBaseRight[j][d];
-                            }
-                        }
-                    }
-                } else { // Finite Volume Method
-                    if (elems[TT[k]].insideComputeDomain) {
-                        dWR = ((DGFEM)elems[TT[k]]).volumeDerivative(null, u, elemData);
-                    } else {
-                        System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
-                    }
-                    if (elems[TT[k]].insideComputeDomain) {
-                        double[] WRp = elems[TT[k]].W;
-                        double sigmaR = ((DGFEM)elems[TT[k]]).FVMlimiter(dWR, par.FVMlimiter);
-                        for (int j = 0; j < nEqs; j++) {
-                            double dW = 0;
-                            for (int d = 0; d < dim; d++) {
-                                dW = dW + (Int.faces[k].coordinatesFace[p][d] - elems[TT[k]].Xs[d]) * dWR[nEqs * d + j];
-                            }
-                            WR[j] = WRp[j] + sigmaR * dW;
-                        }
-                    } else {
-                        System.arraycopy(elems[TT[k]].W, 0, WR, 0, nEqs);
-                    }
-                }
+        // values from boundary outlet (WR, dWR)
+        if (TT[k] > -1) {
+            if (elems[TT[k]].insideComputeDomain) {
+                dWR = ((FVM) elems[TT[k]]).volumeDerivative(null, u, elemData);
             } else {
-                WR = eqn.boundaryValue(WL, n[k][p], TT[k], elemData);
                 System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
             }
-
-            // inviscid flux in integration point
-            double vn = 0;
-            double[] Wale = new double[nEqs];
-            if (eqn.isConvective()) {
-                for (int d = 0; d < dim; d++) {
-                    vn = vn + u[d] * n[k][p][d];
-                }
-                if (TT[k] > -1) {
-                    for (int j = 0; j < nEqs; j++) {
-                        Wale[j] = (WL[j] + WR[j]) / 2;
-                    }
-                } else {
-                    System.arraycopy(WR, 0, Wale, 0, nEqs);
-                }
-                fn = eqn.numericalConvectiveFlux(WL, WR, n[k][p], TT[k], elemData);	// nevazky tok
-            }
-
-            // viscid flux in integration point
-            // DDG
-            if (eqn.isDiffusive()) {
-                // DDG
-                double beta0 = par.beta0;
-                if (par.order == 1) {
-                    beta0 = 0;
-                }
-                double[] Wc = new double[nEqs];
-                double[] dWc = new double[nEqs * dim];
-                for (int m = 0; m < nEqs; m++) {
-                    if (TT[k] > -1) {
-                        Wc[m] = (WL[m] + WR[m]) / 2;
-                    } else {
-                        Wc[m] = WR[m];
-                    }
+            if (elems[TT[k]].insideComputeDomain) {
+                double[] WRp = elems[TT[k]].W;
+                double sigmaR = ((DGFEM) elems[TT[k]]).FVMlimiter(dWR, par.FVMlimiter);
+                for (int j = 0; j < nEqs; j++) {
+                    double dW = 0;
                     for (int d = 0; d < dim; d++) {
-                        dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
+                        dW = dW + (Int.faces[k].coordinatesFace[0][d] - elems[TT[k]].Xs[d]) * dWR[nEqs * d + j];
                     }
+                    WR[j] = WRp[j] + sigmaR * dW;
                 }
-                fvn = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][p], TT[k], elemData);
+            } else {
+                System.arraycopy(elems[TT[k]].W, 0, WR, 0, nEqs);
             }
 
+        } else {
+            WR = eqn.boundaryValue(WL, n[k][0], TT[k], elemData);
+            System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
+        }
+
+        // inviscid flux in integration point
+        double vn = 0;
+        double[] Wale = new double[nEqs];
+        if (eqn.isConvective()) {
+            for (int d = 0; d < dim; d++) {
+                vn = vn + u[d] * n[k][0][d];
+            }
+            if (TT[k] > -1) {
+                for (int j = 0; j < nEqs; j++) {
+                    Wale[j] = (WL[j] + WR[j]) / 2;
+                }
+            } else {
+                System.arraycopy(WR, 0, Wale, 0, nEqs);
+            }
+            fn = eqn.numericalConvectiveFlux(WL, WR, n[k][0], TT[k], elemData);	// nevazky tok
+        }
+
+        // viscid flux in integration point
+        if (eqn.isDiffusive()) {
+            double[] Wc = new double[nEqs];
+            double[] dWc = new double[nEqs * dim];
             for (int m = 0; m < nEqs; m++) {
-                double dWsum = 0;
                 if (TT[k] > -1) {
-                    for (int d = 0; d < dim; d++) {
-                        dWsum += (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 * n[k][p][d];
-                    }
+                    Wc[m] = (WL[m] + WR[m]) / 2;
+                } else {
+                    Wc[m] = WR[m];
                 }
-                for (int j = 0; j < nBasis; j++) {
-                    double jwb = Jac * weight * baseLeft[j];
-                    if (eqn.isConvective()) {
-                        K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
-                        if (TT[k] > -1) {
-                            K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * jwb * dWsum;
-                        }
-                    }
-                    if (eqn.isDiffusive()) {
-                        K[nBasis * m + j] += jwb * fvn[m];
-                        if (TT[k] > -1) {
-                            K[nBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
-                        } else if (eqn.isIPFace(TT[k])) {
-                            K[nBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
-                        }
-                    }
+                for (int d = 0; d < dim; d++) {
+                    dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2;
                 }
-                if (KR != null) {
-                    int nRBasis = elems[TT[k]].nBasis;
-                    for (int j = 0; j < nRBasis; j++) {
-                        double jwb = Jac * weight * baseRight[j];
-                        if (eqn.isConvective()) {
-                            KR[nRBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
-                            KR[nRBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + par.dampConst) * jwb * dWsum;
-                        }
-                        if (eqn.isDiffusive()) {
-                            KR[nRBasis * m + j] += jwb * fvn[m];
-                            KR[nRBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
-                        }
-                    }
+            }
+            fvn = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][0], TT[k], elemData);
+        }
+
+        for (int m = 0; m < nEqs; m++) {
+            if (eqn.isConvective()) {
+                K[m] -= S[k] * (fn[m] - vn * Wale[m]);
+            }
+            if (eqn.isDiffusive()) {
+                K[m] += S[k] * fvn[m];
+            }
+            if (KR != null) {
+                if (eqn.isConvective()) {
+                    KR[m] -= S[k] * (fn[m] - vn * Wale[m]);
+                }
+                if (eqn.isDiffusive()) {
+                    KR[m] += S[k] * fvn[m];
                 }
             }
         }
     }
-    
-    
+
     double[] volumeDerivative(double[] V, double[] u, ElementData elemData) {
         double[] dW = new double[dim * nEqs];
         double[] WL = new double[nEqs];
@@ -504,7 +332,7 @@ public class DGFEM extends Element {
     double venkatakrishnan(double y) {
         return (y * y + 2 * y) / (y * y + y + 2);
     }
-    
+
     // Aplikace limiteru
     public void limiter(boolean isFirstIter) {
         eps = 0;
@@ -548,7 +376,7 @@ public class DGFEM extends Element {
             }
         }
     }
-    
+
     //__________________________________________________________________________
     public double shock_senzor(double kap) {
         double Se = 0;
@@ -692,7 +520,7 @@ public class DGFEM extends Element {
         }
         return shock / rhoLmax / sumS / Math.pow(elemSize, par.order / 2.0);
     }
-    
+
     public void computeMassMatrixAndBasisWeights() { // funkce pro generovani matic
         // integracni vzorec pro vypocet matice hmotnosti musi mit prislusny rad, zkontrolovat!!!!!!!!!!   
 
@@ -741,7 +569,7 @@ public class DGFEM extends Element {
             }
         }
     }
-    
+
     public void computeOrderTruncationMatrix() { // truncation to linear order matrix
         if (elemType.order > 2) {
             double[][] base = Int.basisVolume;

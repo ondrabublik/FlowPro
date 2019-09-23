@@ -53,7 +53,6 @@ public class Parameters implements Serializable {
     // single time / dual time
     public String spatialMethod;
     public String timeMethod;
-    public String localSolverType;
     public String parallelSolverType;
 
     // dynamics parameters
@@ -246,11 +245,6 @@ public class Parameters implements Serializable {
                 iterativeSolverTol = props.getDouble("iterativeSolverTol");
             } else {
                 iterativeSolverTol = 1e-2;
-            }
-
-            localSolverType = "localimplicit";
-            if (props.containsKey("localSolverType")) {
-                localSolverType = props.getString("localSolverType");
             }
             
             parallelSolverType = "ksp";

@@ -19,7 +19,7 @@ public class RK3 extends Explicit {
     double[] W, W1, W2, Wo, Wn;
     double[][] iM;
 
-    RK3(Element elem) {
+    RK3() {
         super(); 
     }
 

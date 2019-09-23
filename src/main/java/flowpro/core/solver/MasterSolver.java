@@ -54,7 +54,7 @@ abstract public class MasterSolver {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Unknown solver: " + par.localSolverType);
+            System.out.println("Unknown solver: " + ((meshes[0].getElems())[0].ti).getLocalSolverType());
         }
 
         return null;

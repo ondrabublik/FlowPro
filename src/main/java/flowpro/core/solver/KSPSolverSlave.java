@@ -407,7 +407,7 @@ public class KSPSolverSlave extends SlaveSolver{
         public Element[] elems;
         private final int nEqs;
         private final Parameters par;
-        double dt, dt0;
+        double dt, dto;
 
 
         public JacobiAssembler(Element[] elems, Parameters par) {
@@ -419,7 +419,7 @@ public class KSPSolverSlave extends SlaveSolver{
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
         public void assemble(double dt, double dto) {  // , int newtonIter
             this.dt = dt;
-            this.dt0 = dt0;
+            this.dto = dto;
 
             AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
 
@@ -451,7 +451,7 @@ public class KSPSolverSlave extends SlaveSolver{
             public void run() {
                 for (int i = id; i < elems.length; i += par.nThreads) {
                     if (elems[i].insideComputeDomain) {
-                        ((Implicit)elems[i].ti).assembleJacobiMatrix(dt,dt0);
+                        ((Implicit)elems[i].ti).assembleJacobiMatrix(dt,dto);
                     }
                 }
             }

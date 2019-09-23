@@ -165,6 +165,14 @@ public abstract class Element implements Serializable {
         // damping
         dampInner = new double[nEqs];
         innerIndicatorOld = new double[nEqs];
+        
+        vertices0 = new double[nVertices][dim];
+        for (int d = 0; d < dim; d++) {
+            for (int i = 0; i < nVertices; i++) {
+                vertices0[i][d] = vertices[i][d];
+                U[i][d] = Uinit[i][d];
+            }
+        }
     }
 
     abstract public void initMethod();
