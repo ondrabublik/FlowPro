@@ -5,6 +5,7 @@
  */
 package flowpro.core.element;
 
+import flowpro.api.FlowProProperties;
 import flowpro.api.Mat;
 import java.util.Arrays;
 
@@ -23,7 +24,7 @@ public class RK3 extends Explicit {
         super(); 
     }
 
-    public void init() {
+    public void init(FlowProProperties props) {
         V = new double[nBasis * nEqs];
         Rw = new double[nBasis * nEqs];
         RwN = new double[nFaces][];

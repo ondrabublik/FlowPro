@@ -14,6 +14,7 @@ import java.net.URL;
 public class Parameters implements Serializable {
 
     public static final String NETWORK_PARAM_FILE = "network/parameters.txt";
+    public FlowProProperties props;
 
     public final double h = 1e-8;
 //    public static final double R_eps = 1e-2;  // tolerance pro hodnotu hustoty
@@ -27,16 +28,13 @@ public class Parameters implements Serializable {
     public final boolean curvedBoundary;
 
     public double cfl;        // max CFL cislo
-    public double cflLTS;
     public boolean varyCFL;
     public final int order;         // rad metody v prostoru
+    public final int timeOrder;         // rad metody v case
     public final int nThreads;      // pocet vlaken
     public final int newtonIters;   // pocet vnitrnich iteraci    
     public final double newtonIterTol;
-    public final double penalty;    // interior penalty constant
-    public final double beta0;  // direct discontinuous constant 
     public final double meshScale; // mesh scale
-    public boolean useJacobiMatrix;
     
     // transformation object
     public DomainTransformationObject domainTransformationObject;
@@ -59,16 +57,7 @@ public class Parameters implements Serializable {
     public boolean movingMesh;
     public String movementType;
     public double bodyLength; // length of body in z direction
-    
-    // artificial damping
-    public final double dampTol;   // tolerance pro pridavnou viskozitu
-    public final double dampInnerTol; // tolerance pro pridavnou viskozitu uvnitr
-    public final double[] dampInnerCoef; // koeficienty pro pridavnou viskozitu uvnitr
-    public final double dampConst; // konstantni pridavna viskozita 
 
-    // Finite volume method limiter
-    public final String FVMlimiter;
-    
     // dynamics model
     public String dynamicsModel;
     public String meshDeformationType;
@@ -93,7 +82,7 @@ public class Parameters implements Serializable {
     public Parameters(String parameterFilePath, boolean parallelMode, URL[] jarURLList) throws IOException {
         try {
             this.parallelMode = parallelMode;
-            FlowProProperties props = new FlowProProperties();
+            props = new FlowProProperties();
             props.load(new FileInputStream(parameterFilePath));
 
             continueComputation = props.getBoolean("continueComputation");
@@ -129,8 +118,8 @@ public class Parameters implements Serializable {
                 animation = false;
             }
 
-            if (props.containsKey("spatialDiscretizationMethod")) {
-                spatialMethod = props.getString("spatialDiscretizationMethod");
+            if (props.containsKey("spatialMethod")) {
+                spatialMethod = props.getString("spatialMethod");
             } else {
                 spatialMethod = "DGFEM";
             }
@@ -141,8 +130,14 @@ public class Parameters implements Serializable {
                 order = 1;
             }
             
-            if (props.containsKey("timeDiscretizationMethod")) {
-                timeMethod = props.getString("timeDiscretizationMethod");
+            if (props.containsKey("timeOrder")) {
+                timeOrder = props.getInt("timeOrder");
+            } else {
+                timeOrder = 1;
+            }
+            
+            if (props.containsKey("timeMethod")) {
+                timeMethod = props.getString("timeMethod");
             } else {
                 timeMethod = "BDF1";
             }
@@ -163,12 +158,6 @@ public class Parameters implements Serializable {
                 cfl = 1;
             }
             
-            if (props.containsKey("CFLlts")) {
-                cflLTS = props.getDouble("CFLlts");
-            } else {
-                cflLTS = 0.5;
-            }
-            
             nThreads = props.getInt("threads");
             newtonIters = props.getInt("newtonIters");
             
@@ -176,30 +165,6 @@ public class Parameters implements Serializable {
                 newtonIterTol = props.getDouble("newtonIterTol");
             } else {
                 newtonIterTol = 1e-4;
-            }
-            
-            if (props.containsKey("penalty")) {
-                penalty = props.getDouble("penalty");
-            } else {
-                penalty = 0;
-            }
-            
-            if (props.containsKey("beta0")) {
-                beta0 = props.getDouble("beta0");
-            } else {
-                beta0 = 2;
-            }
-
-            if (props.containsKey("FVMlimiter")) {
-                FVMlimiter = props.getString("FVMlimiter");
-            } else {
-                FVMlimiter = "none";
-            }
-            
-            if (props.containsKey("useJacobiMatrix")) {
-                useJacobiMatrix = props.getBoolean("useJacobiMatrix");
-            } else {
-                useJacobiMatrix = false;
             }
             
             // domain transformation object
@@ -212,22 +177,6 @@ public class Parameters implements Serializable {
             movingMesh = false;
             if (props.containsKey("movingMesh")) {
                 movingMesh = props.getBoolean("movingMesh");
-            }
-
-            // damping
-            dampTol = props.getDouble("dampTol");
-            dampConst = props.getDouble("dampConst");
-
-            // iterative solver setting
-            if (props.containsKey("dampInnerTol")) {
-                dampInnerTol = props.getDouble("dampInnerTol");
-            } else {
-                dampInnerTol = 0;
-            }
-            if (props.containsKey("dampInnerCoef")) {
-                dampInnerCoef = props.getDoubleArray("dampInnerCoef");
-            } else {
-                dampInnerCoef = null;
             }
             
             // iterative solver setting

@@ -31,7 +31,7 @@ public abstract class Implicit extends TimeIntegrationElement {
         return "localimplicit";
     }
     
-    public void init(){
+    public void initImplicit(){
         isImplicit = true;
         TT = elem.TT;
         ADiag = new double[nEqs * nBasis][nEqs * nBasis];

@@ -5,12 +5,10 @@
  */
 package flowpro.core.element;
 
-import flowpro.api.ElementData;
 import flowpro.api.FlowProProperties;
 import flowpro.api.Mat;
 import flowpro.core.Mesh;
 import flowpro.core.curvedBoundary.FaceCurvature;
-import flowpro.core.element.Implicit.Neighbour;
 import flowpro.core.elementType.ElementType;
 import java.io.IOException;
 import java.util.Arrays;
@@ -19,7 +17,7 @@ import java.util.Arrays;
  *
  * @author obublik
  */
-public class DGFEM extends Element {
+public class DGpure extends Element {
 
     public double penalty;    // interior penalty constant
     public double beta0;  // direct discontinuous constant 
@@ -30,16 +28,14 @@ public class DGFEM extends Element {
     public double[] dampInnerCoef; // koeficienty pro pridavnou viskozitu uvnitr
     public double dampConst; // konstantni pridavna viskozita 
     
-    public String FVMlimiter;
-
-    public DGFEM(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
+    public DGpure(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
         super(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
     }
 
     public void initMethod(FlowProProperties props) throws IOException {
         computeOrderTruncationMatrix();
-
+        
         // damping
         dampTol = props.getDouble("dampTol");
         dampConst = props.getDouble("dampConst");
@@ -66,12 +62,6 @@ public class DGFEM extends Element {
             beta0 = props.getDouble("beta0");
         } else {
             beta0 = 2;
-        }
-        
-        if (props.containsKey("FVMlimiter")) {
-            FVMlimiter = props.getString("FVMlimiter");
-        } else {
-            FVMlimiter = "none";
         }
     }
 
@@ -187,31 +177,6 @@ public class DGFEM extends Element {
                     }
                 }
             }
-        } else// production term for FVM
-        {
-            if (eqn.isSourcePresent()) {
-                double[] Jac = Int.JacobianVolume;
-                double[] weights = Int.weightsVolume;
-
-                // interpolation of mesh velocity
-                double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[0]);
-
-                double[] WInt = new double[nEqs];
-                for (int j = 0; j < nEqs; j++) {
-                    WInt[j] = W[j] + V[j];
-
-                }
-                double[] dWInt = volumeDerivative(V, u, elemData);
-
-                // production
-                double[] product = eqn.sourceTerm(WInt, dWInt, elemData);
-
-                for (int m = 0; m < nEqs; m++) {
-                    if (eqn.isSourcePresent()) {
-                        K[m] += Jac[0] * weights[0] * product[m];
-                    }
-                }
-            }
         }
     }
 
@@ -260,58 +225,25 @@ public class DGFEM extends Element {
             double[] dWR = new double[dim * nEqs];
 
             // values from boundary inlet (WL, dWL)
-            if (elemType.order > 1) { // Discontinuous Galerkin Method
-                for (int m = 0; m < nEqs; m++) {
-                    for (int j = 0; j < nBasis; j++) {
-                        WL[m] += (W[m * nBasis + j] + V[m * nBasis + j]) * baseLeft[j];
-                        for (int d = 0; d < dim; d++) {
-                            dWL[nEqs * d + m] += (W[m * nBasis + j] + V[m * nBasis + j]) * dBaseLeft[j][d];
-                        }
-                    }
-                }
-            } else { // Finite volume method
-                dWL = volumeDerivative(V, u, elemData);
-                double sigmaL = FVMlimiter(dWL, FVMlimiter);
-                for (int m = 0; m < nEqs; m++) {
-                    double dW = 0;
+            for (int m = 0; m < nEqs; m++) {
+                for (int j = 0; j < nBasis; j++) {
+                    WL[m] += (W[m * nBasis + j] + V[m * nBasis + j]) * baseLeft[j];
                     for (int d = 0; d < dim; d++) {
-                        dW = dW + (Int.faces[k].coordinatesFace[p][d] - Xs[d]) * dWL[nEqs * d + m];
+                        dWL[nEqs * d + m] += (W[m * nBasis + j] + V[m * nBasis + j]) * dBaseLeft[j][d];
                     }
-                    WL[m] = W[m] + V[m] + sigmaL * dW;
                 }
             }
 
             // values from boundary outlet (WR, dWR)
             if (TT[k] > -1) {
-                if (elems[TT[k]].elemType.order > 1) { // Discontinuous Galerkin Method
-                    double[] WRp = elems[TT[k]].W;
-                    for (int m = 0; m < nEqs; m++) {
-                        int nRBasis = elems[TT[k]].nBasis;
-                        for (int j = 0; j < nRBasis; j++) {
-                            WR[m] += WRp[m * nRBasis + j] * baseRight[j];
-                            for (int d = 0; d < dim; d++) {
-                                dWR[nEqs * d + m] += WRp[m * nRBasis + j] * dBaseRight[j][d];
-                            }
+                double[] WRp = elems[TT[k]].W;
+                for (int m = 0; m < nEqs; m++) {
+                    int nRBasis = elems[TT[k]].nBasis;
+                    for (int j = 0; j < nRBasis; j++) {
+                        WR[m] += WRp[m * nRBasis + j] * baseRight[j];
+                        for (int d = 0; d < dim; d++) {
+                            dWR[nEqs * d + m] += WRp[m * nRBasis + j] * dBaseRight[j][d];
                         }
-                    }
-                } else { // Finite Volume Method
-                    if (elems[TT[k]].insideComputeDomain) {
-                        dWR = ((DGFEM) elems[TT[k]]).volumeDerivative(null, u, elemData);
-                    } else {
-                        System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
-                    }
-                    if (elems[TT[k]].insideComputeDomain) {
-                        double[] WRp = elems[TT[k]].W;
-                        double sigmaR = ((DGFEM) elems[TT[k]]).FVMlimiter(dWR, FVMlimiter);
-                        for (int j = 0; j < nEqs; j++) {
-                            double dW = 0;
-                            for (int d = 0; d < dim; d++) {
-                                dW = dW + (Int.faces[k].coordinatesFace[p][d] - elems[TT[k]].Xs[d]) * dWR[nEqs * d + j];
-                            }
-                            WR[j] = WRp[j] + sigmaR * dW;
-                        }
-                    } else {
-                        System.arraycopy(elems[TT[k]].W, 0, WR, 0, nEqs);
                     }
                 }
             } else {
@@ -398,156 +330,6 @@ public class DGFEM extends Element {
                 }
             }
         }
-    }
-
-    double[] volumeDerivative(double[] V, double[] u, ElementData elemData) {
-        double[] dW = new double[dim * nEqs];
-        double[] WL = new double[nEqs];
-        double[] WWall;
-        if (V != null) {
-            for (int j = 0; j < nEqs; j++) {
-                WL[j] = W[j] + V[j];
-            }
-        } else {
-            System.arraycopy(W, 0, WL, 0, nEqs);
-
-        }
-        for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
-            double[] WR = new double[nEqs];
-            if (TT[k] > -1) {
-                if (elems[TT[k]].elemType.order > 1) { // DGFEM neigbhour
-                    if (elems[TT[k]].insideComputeDomain) {
-                        WR = elems[TT[k]].calculateAvgW();
-                    } else {
-                        System.arraycopy(WL, 0, WR, 0, nEqs);
-                    }
-                } else { // FVM neigbhour
-                    WR = elems[TT[k]].W;
-                }
-                WWall = Mat.times(Mat.plusVec(WR, WL), 0.5);
-            } else {
-                WWall = eqn.boundaryValue(WL, n[k][0], TT[k], elemData);
-            }
-
-            for (int j = 0; j < nEqs; j++) {
-                for (int d = 0; d < dim; d++) {
-                    dW[nEqs * d + j] += S[k] * WWall[j] * n[k][0][d] / area;
-                }
-            }
-        }
-
-        return dW;
-    }
-
-    double FVMlimiter(double[] dW, String limiterType) {
-        double sigma = 0;
-        double[] Wmin;
-        double[] Wmax;
-        switch (limiterType) {
-            case "noLimiter":
-                sigma = 1;
-                break;
-            case "barth":
-                Wmin = new double[nEqs];
-                Wmax = new double[nEqs];
-                for (int j = 0; j < nEqs; j++) {
-                    Wmin[j] = 1e7;
-                    Wmax[j] = -1e7;
-                }
-                for (int k = 0; k < nFaces; k++) {
-                    if (TT[k] > -1) {
-                        if (elems[TT[k]].insideComputeDomain) {
-                            double[] WR = elems[TT[k]].calculateAvgW();
-                            for (int j = 0; j < nEqs; j++) {
-                                if (WR[j] > Wmax[j]) {
-                                    Wmax[j] = WR[j];
-                                }
-                                if (WR[j] < Wmin[j]) {
-                                    Wmin[j] = WR[j];
-                                }
-                            }
-                        } else {
-                            return 0;
-                        }
-                    }
-                }
-                sigma = 2;
-                for (int k = 0; k < nFaces; k++) {
-                    for (int j = 0; j < nEqs; j++) {
-                        double a = 1;
-                        double deltaW = 0;
-                        for (int d = 0; d < dim; d++) {
-                            deltaW = deltaW + (Xes[k][d] - Xs[d]) * dW[nEqs * d + j];
-                        }
-                        double WL = W[j] + deltaW;
-                        if (WL > W[j]) {
-                            a = (Wmax[j] - W[j]) / (WL - W[j]);
-                        } else if (WL < W[j]) {
-                            a = (Wmin[j] - W[j]) / (WL - W[j]);
-                        }
-                        if (a < 0) {
-                            return 0;
-                        }
-                        if (a < sigma) {
-                            sigma = a;
-                        }
-                    }
-                }
-                break;
-
-            case "venka": // Venkatakrishnan
-                Wmin = new double[nEqs];
-                Wmax = new double[nEqs];
-                for (int j = 0; j < nEqs; j++) {
-                    Wmin[j] = 1e7;
-                    Wmax[j] = -1e7;
-                }
-                for (int k = 0; k < nFaces; k++) {
-                    if (TT[k] > -1) {
-                        if (elems[TT[k]].insideComputeDomain) {
-                            double[] WR = elems[TT[k]].calculateAvgW();
-                            for (int j = 0; j < nEqs; j++) {
-                                if (WR[j] > Wmax[j]) {
-                                    Wmax[j] = WR[j];
-                                }
-                                if (WR[j] < Wmin[j]) {
-                                    Wmin[j] = WR[j];
-                                }
-                            }
-                        } else {
-                            return 0;
-                        }
-                    }
-                }
-                sigma = 1;
-                for (int k = 0; k < nFaces; k++) {
-                    for (int j = 0; j < nEqs; j++) {
-                        double a = 1;
-                        double deltaW = 0;
-                        for (int d = 0; d < dim; d++) {
-                            deltaW = deltaW + (Xes[k][d] - Xs[d]) * dW[nEqs * d + j];
-                        }
-                        double WL = W[j] + deltaW;
-                        if (WL > W[j]) {
-                            a = venkatakrishnan((Wmax[j] - W[j]) / (WL - W[j]));
-                        } else if (WL < W[j]) {
-                            a = venkatakrishnan((Wmin[j] - W[j]) / (WL - W[j]));
-                        }
-                        if (a < 0) {
-                            return 0;
-                        }
-                        if (a < sigma) {
-                            sigma = a;
-                        }
-                    }
-                }
-                break;
-        }
-        return sigma;
-    }
-
-    double venkatakrishnan(double y) {
-        return (y * y + 2 * y) / (y * y + y + 2);
     }
 
     // Aplikace limiteru
@@ -833,7 +615,7 @@ public class DGFEM extends Element {
         return false;
     }
     
-    public void residuumJacobi(double[][] ADiag, Neighbour[] Sous){}
+    public void residuumJacobi(double[][] ADiag, Implicit.Neighbour[] Sous){}
     
-    public void residuumWallJacobi(int k, double[][] ADiag, Neighbour Sous){}
+    public void residuumWallJacobi(int k, double[][] ADiag, Implicit.Neighbour Sous){}
 }

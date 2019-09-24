@@ -7,6 +7,7 @@ package flowpro.core.element;
 
 import flowpro.api.ElementData;
 import flowpro.api.Equation;
+import flowpro.api.FlowProProperties;
 import flowpro.api.Functional;
 import flowpro.api.Mat;
 import flowpro.core.Integration;
@@ -14,6 +15,7 @@ import flowpro.core.Mesh;
 import flowpro.core.Parameters;
 import flowpro.core.basis.Basis;
 import flowpro.core.curvedBoundary.FaceCurvature;
+import flowpro.core.element.Implicit.Neighbour;
 import flowpro.core.elementType.ElementType;
 import flowpro.core.quadrature.QuadratureCentral;
 import flowpro.core.transformation.Transformation;
@@ -175,7 +177,7 @@ public abstract class Element implements Serializable {
         }
     }
 
-    abstract public void initMethod();
+    abstract public void initMethod(FlowProProperties props) throws IOException;
 
     abstract public void initCondition();
 
@@ -186,13 +188,19 @@ public abstract class Element implements Serializable {
     abstract public void residuum(double[] V, double[] K, double[][] KR);
 
     abstract public void residuumWall(int k, double[] V, double[] K, double[] KR);
+    
+    abstract public void residuumJacobi(double[][] ADiag, Neighbour[] Sous);
+    
+    abstract public void residuumWallJacobi(int k, double[][] ADiag, Neighbour Sous);
 
     abstract public void limiter(boolean isFirstIter);
+    
+    abstract public boolean isJacobiMatrixAssembly();
 
     public void createTimeIntegration(Element elem) throws IOException {
-        ti = getTimeIntegrationElement(par.timeMethod, this);
+        ti = getTimeIntegrationElement(par.timeMethod, par.timeOrder, this);
         ti.set(elem);
-        ti.init();
+        ti.init(par.props);
     }
 
     public void initBasis() throws IOException {
@@ -688,12 +696,12 @@ public abstract class Element implements Serializable {
         }
     }
 
-    public TimeIntegrationElement getTimeIntegrationElement(String methodClassName, Element elem) throws IOException {
+    public TimeIntegrationElement getTimeIntegrationElement(String methodClassName, int timeOrder, Element elem) throws IOException {
 
-        String className = "flowpro.core.element." + methodClassName;
+        String className = "flowpro.core.element." + methodClassName + String.valueOf(timeOrder);
 
         try {
-            Class<TimeIntegrationElement> tiClass = (Class<TimeIntegrationElement>) Class.forName("flowpro.core.element." + methodClassName);
+            Class<TimeIntegrationElement> tiClass = (Class<TimeIntegrationElement>) Class.forName(className);
             TimeIntegrationElement tiElem = (TimeIntegrationElement) tiClass.newInstance();
             tiElem.set(elem);
             return tiElem;

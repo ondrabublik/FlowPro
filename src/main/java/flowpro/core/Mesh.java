@@ -168,7 +168,7 @@ public class Mesh implements Serializable {
                 elems[i].Int.initNeighbours(elems, elems[i]);   // init face integration rules
                 elems[i].computeGeometry();                     // compute geometrical relations
                 elems[i].computeMassMatrixAndBasisWeights();                 // compute mass matrix
-                elems[i].initMethod();        // for damping
+                elems[i].initMethod(par.props);        // for damping
                 elems[i].createTimeIntegration(elems[i]);
 
                 // checking geometry
@@ -189,6 +189,7 @@ public class Mesh implements Serializable {
         }
         dofs = dofs0;
         
+        System.out.println();
         System.out.println("Degrese of freedom: " + dofs);
         // initial condition on each of elements
         for (Element elem : elems) {

@@ -12,24 +12,24 @@ import flowpro.api.Mat;
  *
  * @author obublik
  */
-public class BDF1 extends Implicit {
+public class BDFIncompressible1 extends Implicit {
+    double[] a1, a2;
     
-    boolean useJacobiMatrixForAssembly;
-
-    BDF1() {
+    BDFIncompressible1(){
         super();
     }
 
-    public int getOrder() {
+    public int getOrder(){
         return 1;
     }
-
-    public void init(FlowProProperties props) {
+    
+    public void init(FlowProProperties props){
         super.initImplicit();
-        useJacobiMatrixForAssembly = elem.isJacobiMatrixAssembly();
+        a1 = new double[nEqs];
+        a2 = new double[nEqs];
     }
-
-    void assembleRHS(double[] Rw, double a1, double a2) {
+    
+    void assembleRHS(double[] Rw, double[] a1, double[] a2) {
         double[][] M = elem.M;
         double[][] Mo = elem.Mo;
         double[] W = elem.W;
@@ -39,7 +39,7 @@ public class BDF1 extends Implicit {
         for (int m = 0; m < nEqs; m++) {
             for (int i = 0; i < nBasis; i++) {
                 for (int j = 0; j < nBasis; j++) {
-                    RHS_loc[nBasis * m + i] -= M[i][j] * a1 * W[m * nBasis + j] + Mo[i][j] * a2 * Wo[m * nBasis + j];
+                    RHS_loc[nBasis * m + i] -= M[i][j] * a1[m] * W[m * nBasis + j] + Mo[i][j] * a2[m] * Wo[m * nBasis + j];
                 }
             }
         }
@@ -48,9 +48,11 @@ public class BDF1 extends Implicit {
     // Generovani radku globalni matice a vektoru prave strany
     public void assembleJacobiMatrix(double dt, double dto) {
         // coefs
-        double a1 = 1 / dt;
-        double a2 = -1 / dt;
-
+        for(int m = 1; m < nEqs; m++){
+            a1[m] = 1 / dt;
+            a2[m] = -1 / dt;
+        }
+        
         // vnitrni element - krivkovy i objemovy integral
         double[] V = new double[nBasis * nEqs];
         double[] Rw = new double[nBasis * nEqs];
@@ -67,35 +69,34 @@ public class BDF1 extends Implicit {
         // assemble rhs
         assembleRHS(Rw, a1, a2);
 
-        if (useJacobiMatrixForAssembly) { // fast assemble when jacobian of equations is known
-            elem.residuumJacobi(ADiag, ANeighs);
-        } else { // slow assemble when jacobian of equations is unknown
-            double h = elem.par.h;
-            for (int i = 0; i < nBasis * nEqs; i++) {
-                for (int j = 0; j < Rw.length; j++) {
-                    ADiag[i][j] = -Rw[j];
-                }
-                V[i] = h;
-                elem.residuum(V, ADiag[i], RwNeighH);
-                V[i] = 0;
-                for (int k = 0; k < nFaces; k++) {
-                    if (TT[k] > -1 && elems[TT[k]].insideComputeDomain) {
-                        double[][] Aaux = ((Implicit) elems[TT[k]].ti).ANeighs[elem.faceIndexReverse[k]].A;
-                        for (int j = 0; j < RwNeighH[k].length; j++) {
-                            Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
-                        }
+//        if (elem.par.useJacobiMatrix && elem.eqn.isEquationsJacobian()) { // fast assemble when jacobian of equations is known
+//            residuumWithJacobian(ADiag, ANeighs);
+//        } else { // slow assemble when jacobian of equations is unknown
+        double h = elem.par.h;
+        for (int i = 0; i < nBasis * nEqs; i++) {
+            for (int j = 0; j < Rw.length; j++) {
+                ADiag[i][j] = -Rw[j];
+            }
+            V[i] = h;
+            elem.residuum(V, ADiag[i], RwNeighH);
+            V[i] = 0;
+            for (int k = 0; k < nFaces; k++) {
+                if (TT[k] > -1 && elems[TT[k]].insideComputeDomain) {
+                    double[][] Aaux = ((Implicit) elems[TT[k]].ti).ANeighs[elem.faceIndexReverse[k]].A;
+                    for (int j = 0; j < RwNeighH[k].length; j++) {
+                        Aaux[i][j] = (RwNeighH[k][j] - RwNeigh[k][j]) / h;
                     }
                 }
             }
-            Mat.divide(ADiag, -h);
         }
+        Mat.divide(ADiag, -h);
 
         // pricteni matice hmotnosti
         double[][] M = elem.M;
         for (int m = 0; m < nEqs; m++) {
             for (int i = 0; i < nBasis; i++) {
                 for (int j = 0; j < nBasis; j++) {
-                    ADiag[nBasis * m + i][nBasis * m + j] += a1 * M[i][j];
+                    ADiag[nBasis * m + i][nBasis * m + j] += a1[m] * M[i][j];
                 }
             }
         }

@@ -5,6 +5,8 @@
  */
 package flowpro.core.element;
 
+import flowpro.api.FlowProProperties;
+
 /**
  *
  * @author obublik
@@ -27,7 +29,7 @@ public abstract class TimeIntegrationElement {
         nFaces = elem.nFaces;
     }
 
-    abstract public void init();
+    abstract public void init(FlowProProperties props);
 
     abstract public int getOrder();
 
