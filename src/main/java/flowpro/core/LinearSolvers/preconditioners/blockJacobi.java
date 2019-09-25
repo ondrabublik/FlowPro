@@ -76,7 +76,7 @@ class blockJacobi extends Preconditioner {
                 Element elem = elems[i];
                 if (elem.insideComputeDomain) {
                     double[][] Adiag = ((Implicit)elem.ti).ADiag;
-                    int[] glob = elem.gi_U;
+                    int[] glob = elem.gIndex;
                     double[] bp = new double[glob.length];
                     for (int j = 0; j < glob.length; j++) {
                         bp[j] = b[glob[j]];

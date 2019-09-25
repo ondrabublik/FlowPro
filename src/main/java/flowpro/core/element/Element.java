@@ -91,6 +91,7 @@ public abstract class Element implements Serializable {
     public ElementType elemType;
 
     //private double k_el; // kvalita elementu
+    public int maxMethodSpatialOrder = 100;
     public double[] Is; // integral bazove funkce
     public double[][] M;	 // matice hmotnosti
     double[][] iM; // inverze matice hmotnosti (pouze pro implicitni metodu)
@@ -111,7 +112,7 @@ public abstract class Element implements Serializable {
     double[] optimFunDer;
 
     // matice globalnich indexu a globalni matice s pravou stranou
-    public int[] gi_U;
+    public int[] gIndex;
 
     double[] initW;
     public double[] W;     // hodnota W v n+1 te casove hladine
@@ -201,7 +202,7 @@ public abstract class Element implements Serializable {
     
     abstract public boolean isJacobiMatrixAssembly();
 
-    public void createTimeIntegration(Element elem) throws IOException {
+    public void createTimeIntegrationElementObject(Element elem) throws IOException {
         ti = getTimeIntegrationElement(par.timeMethod, par.timeOrder, this);
         ti.set(elem);
         ti.init(par.props);
@@ -221,10 +222,10 @@ public abstract class Element implements Serializable {
         Int = new Integration(elemType, dim, basis, transform, TT, TEshift, shift, qRules);
     }
 
-    public int nastav_globalni_index_U(int s) {
-        gi_U = new int[nEqs * nBasis];
+    public int setGlobalIndex(int s) {
+        gIndex = new int[nEqs * nBasis];
         for (int i = 0; i < nBasis * nEqs; i++) {
-            gi_U[i] = s;
+            gIndex[i] = s;
             s = s + 1;
         }
         return s;
@@ -314,7 +315,7 @@ public abstract class Element implements Serializable {
 
     public void updateW(double[] x) {
         for (int i = 0; i < nEqs * nBasis; i++) {
-            W[i] += x[gi_U[i]];
+            W[i] += x[gIndex[i]];
         }
     }
     
@@ -326,7 +327,6 @@ public abstract class Element implements Serializable {
                 rez = rez + Math.abs(W[m * nBasis + j] - Wo[m * nBasis + j]) / dt;
             }
         }
-
         return rez;
     }
 
@@ -343,7 +343,7 @@ public abstract class Element implements Serializable {
 
     //__________________________________________________________________________
     public double delta_t(double CFL) { //vypocet maximalniho casoveho kroku
-        double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
+        interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
         double lam = eqn.maxEigenvalue(calculateAvgW(), elemData);
         double dt = CFL * elemSize / lam;
 
@@ -575,7 +575,7 @@ public abstract class Element implements Serializable {
             double weight = Int.weightsVolume[p];
 
             // interpolation of mesh velocity
-            double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
+            interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
 
             double[] WInt = new double[nEqs];
             double[] dWInt = new double[dim * nEqs];
@@ -609,7 +609,7 @@ public abstract class Element implements Serializable {
             double weight = Int.faces[k].weightsFace[p];
 
             // interpolation of mesh velocity
-            double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
+            interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
 
             double[] WL = new double[nEqs];
             double[] dWL = new double[dim * nEqs];
@@ -646,7 +646,7 @@ public abstract class Element implements Serializable {
             double weight = Int.weightsVolume[p];
 
             // interpolation of mesh velocity
-            double[] u = interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
+            interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
 
             double[] WInt = new double[nEqs];
             double[] dWInt = new double[dim * nEqs];
@@ -680,7 +680,7 @@ public abstract class Element implements Serializable {
             double weight = Int.faces[k].weightsFace[p];
 
             // interpolation of mesh velocity
-            double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
+            interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
 
             double[] WL = new double[nEqs];
             double[] dWL = new double[dim * nEqs];

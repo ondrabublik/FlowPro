@@ -41,7 +41,7 @@ public abstract class Deformation implements Serializable {
 
     abstract public void calculateForces(Element[] elems, MeshMove[] mshMov);
 
-    public void recalculateMesh(Element[] elems, int order) { // dodelat paralelni verzi
+    public void recalculateMesh(Element[] elems) { // dodelat paralelni verzi
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
                 elem.transform.computeTransform(elem.vertices);

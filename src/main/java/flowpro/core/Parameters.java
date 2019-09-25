@@ -29,7 +29,7 @@ public class Parameters implements Serializable {
 
     public double cfl;        // max CFL cislo
     public boolean varyCFL;
-    public final int order;         // rad metody v prostoru
+    public int order;         // rad metody v prostoru
     public final int timeOrder;         // rad metody v case
     public final int nThreads;      // pocet vlaken
     public final int newtonIters;   // pocet vnitrnich iteraci    
@@ -121,7 +121,7 @@ public class Parameters implements Serializable {
             if (props.containsKey("spatialMethod")) {
                 spatialMethod = props.getString("spatialMethod");
             } else {
-                spatialMethod = "DGFEM";
+                spatialMethod = "DG";
             }
             
             if (props.containsKey("order")) {
@@ -139,7 +139,7 @@ public class Parameters implements Serializable {
             if (props.containsKey("timeMethod")) {
                 timeMethod = props.getString("timeMethod");
             } else {
-                timeMethod = "BDF1";
+                timeMethod = "BDF";
             }
             
             volumeQuardatureOrder = order;

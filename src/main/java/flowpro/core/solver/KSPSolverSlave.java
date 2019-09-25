@@ -195,7 +195,7 @@ public class KSPSolverSlave extends SlaveSolver {
                         if (isFirstIter) {
                             dfm.relaxFirstIteration(elems, disp.getDt());
                         }
-                        dfm.recalculateMesh(elems, par.order);
+                        dfm.recalculateMesh(elems);
                         outMsg = new MPIMessage(Tag.MESH_POSITION_UPDATED);
                         break;
 
@@ -249,7 +249,7 @@ public class KSPSolverSlave extends SlaveSolver {
                             for (int m = 0; m < mesh.nEqs; m++) {
                                 for (int p = 0; p < elems[j].nBasis; p++) {
                                     int ind = elems[j].nBasis * m + p;
-                                    yElem[ind] = x[elems[j].gi_U[ind]];
+                                    yElem[ind] = x[elems[j].gIndex[ind]];
                                 }
                             }
                             dataSend[i] = new LiteElement(j, yElem);
@@ -264,7 +264,7 @@ public class KSPSolverSlave extends SlaveSolver {
                             for (int m = 0; m < mesh.nEqs; m++) {
                                 for (int p = 0; p < elems[j].nBasis; p++) {
                                     int ind = elems[j].nBasis * m + p;
-                                    x[elems[j].gi_U[ind]] = dataReceive1.y[ind];
+                                    x[elems[j].gIndex[ind]] = dataReceive1.y[ind];
                                 }
                             }
                         }

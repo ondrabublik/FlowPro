@@ -24,7 +24,7 @@ public class FVM extends Element {
     public String FVMlimiter;
 
     public FVM(){
-        
+        maxMethodSpatialOrder = 1;
     }
     
     public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
@@ -207,17 +207,8 @@ public class FVM extends Element {
 
         }
         for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
-            double[] WR = new double[nEqs];
             if (TT[k] > -1) {
-                if (elems[TT[k]].elemType.order > 1) { // DGFEM neigbhour
-                    if (elems[TT[k]].insideComputeDomain) {
-                        WR = elems[TT[k]].calculateAvgW();
-                    } else {
-                        System.arraycopy(WL, 0, WR, 0, nEqs);
-                    }
-                } else { // FVM neigbhour
-                    WR = elems[TT[k]].W;
-                }
+                double[] WR = elems[TT[k]].W;
                 WWall = Mat.times(Mat.plusVec(WR, WL), 0.5);
             } else {
                 WWall = eqn.boundaryValue(WL, n[k][0], TT[k], elemData);

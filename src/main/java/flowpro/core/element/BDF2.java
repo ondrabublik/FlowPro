@@ -13,7 +13,7 @@ import flowpro.api.Mat;
  * @author obublik
  */
 public class BDF2 extends Implicit {
-    
+
     boolean useJacobiMatrixForAssembly;
 
     BDF2() {
@@ -95,14 +95,14 @@ public class BDF2 extends Implicit {
                 }
             }
             Mat.divide(ADiag, -h);
+        }
 
-            // pricteni matice hmotnosti
-            double[][] M = elem.M;
-            for (int m = 0; m < nEqs; m++) {
-                for (int i = 0; i < nBasis; i++) {
-                    for (int j = 0; j < nBasis; j++) {
-                        ADiag[nBasis * m + i][nBasis * m + j] += a1 * M[i][j];
-                    }
+        // pricteni matice hmotnosti
+        double[][] M = elem.M;
+        for (int m = 0; m < nEqs; m++) {
+            for (int i = 0; i < nBasis; i++) {
+                for (int j = 0; j < nBasis; j++) {
+                    ADiag[nBasis * m + i][nBasis * m + j] += a1 * M[i][j];
                 }
             }
         }

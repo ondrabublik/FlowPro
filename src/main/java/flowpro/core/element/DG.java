@@ -19,7 +19,7 @@ import java.util.Arrays;
  *
  * @author obublik
  */
-public class DGFEM extends Element {
+public class DG extends Element {
 
     public double penalty;    // interior penalty constant
     public double beta0;  // direct discontinuous constant 
@@ -32,7 +32,7 @@ public class DGFEM extends Element {
     
     public String FVMlimiter;
 
-    public DGFEM(){
+    public DG(){
         
     }
     
@@ -119,7 +119,7 @@ public class DGFEM extends Element {
             residuumWall(k, V, K, KR[k]);
         }
 
-        if (elemType.order > 1) { // volume integral only for DGFEM
+        if (elemType.order > 1) { // volume integral only for DG
             double[] nor = new double[dim];
             double[][] f = null;
             double[][] fv = null;
@@ -300,13 +300,13 @@ public class DGFEM extends Element {
                     }
                 } else { // Finite Volume Method
                     if (elems[TT[k]].insideComputeDomain) {
-                        dWR = ((DGFEM) elems[TT[k]]).volumeDerivative(null, u, elemData);
+                        dWR = ((DG) elems[TT[k]]).volumeDerivative(null, u, elemData);
                     } else {
                         System.arraycopy(dWL, 0, dWR, 0, dim * nEqs);
                     }
                     if (elems[TT[k]].insideComputeDomain) {
                         double[] WRp = elems[TT[k]].W;
-                        double sigmaR = ((DGFEM) elems[TT[k]]).FVMlimiter(dWR, FVMlimiter);
+                        double sigmaR = ((DG) elems[TT[k]]).FVMlimiter(dWR, FVMlimiter);
                         for (int j = 0; j < nEqs; j++) {
                             double dW = 0;
                             for (int d = 0; d < dim; d++) {
@@ -419,7 +419,7 @@ public class DGFEM extends Element {
         for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
             double[] WR = new double[nEqs];
             if (TT[k] > -1) {
-                if (elems[TT[k]].elemType.order > 1) { // DGFEM neigbhour
+                if (elems[TT[k]].elemType.order > 1) { // DG neigbhour
                     if (elems[TT[k]].insideComputeDomain) {
                         WR = elems[TT[k]].calculateAvgW();
                     } else {

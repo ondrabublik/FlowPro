@@ -75,7 +75,7 @@ class Jacobi extends Preconditioner {
                 Element elem = elems[i];
                 if (elem.insideComputeDomain) {
                     double[][] Adiag = ((Implicit)elem.ti).ADiag;
-                    int[] glob = elem.gi_U;
+                    int[] glob = elem.gIndex;
                     for (int j = 0; j < glob.length; j++) {
                         x[glob[j]] = 1 / Adiag[j][j] * b[glob[j]];
                     }

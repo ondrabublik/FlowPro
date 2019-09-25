@@ -52,7 +52,7 @@ public abstract class Implicit extends TimeIntegrationElement {
     }
 
     public void updateRHS(double[] x) {
-        int[] gi_U = elem.gi_U;
+        int[] gi_U = elem.gIndex;
         int n = nEqs * nBasis;
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -61,7 +61,7 @@ public abstract class Implicit extends TimeIntegrationElement {
             for (int k = 0; k < nFaces; k++) {
                 if (TT[k] > -1) {
                     for (int j = 0; j < nEqs * elems[TT[k]].nBasis; j++) {
-                        RHS_loc[i] = RHS_loc[i] - ANeighs[k].A[j][i] * x[elems[TT[k]].gi_U[j]];
+                        RHS_loc[i] = RHS_loc[i] - ANeighs[k].A[j][i] * x[elems[TT[k]].gIndex[j]];
                     }
                 }
             }

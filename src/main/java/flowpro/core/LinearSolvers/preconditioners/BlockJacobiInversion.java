@@ -107,7 +107,7 @@ class BlockJacobiInversion extends Preconditioner {
             for (int i = nStart; i < elems.length; i = i + nThreads) {
                 Element elem = elems[i];
                 if (elem.insideComputeDomain) {
-                    int[] glob = elem.gi_U;
+                    int[] glob = elem.gIndex;
                     double[][] M = diagonalInverse[i];
                     for (int j = 0; j < glob.length; j++) {
                         x[glob[j]] = 0;

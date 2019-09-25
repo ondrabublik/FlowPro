@@ -80,7 +80,7 @@ public class SparseMatrixCRS {
             int n = elem.getNEqs() * elem.nBasis;
             for (int k = 0; k < n; k++) {
                 for (int q = 0; q < nBlockRow; q++) {
-                    int[] glob = elems[indexes[q]].gi_U;
+                    int[] glob = elems[indexes[q]].gIndex;
                     for (int j = 0; j < glob.length; j++) { // row cycle
                         JA[sj] = glob[j];
                         sj++;

@@ -98,7 +98,7 @@ public class ParallelGmresSlave {
 
                 // update b
                 for (Element elem : metisElems) {
-                    int[] ind = elem.gi_U;
+                    int[] ind = elem.gIndex;
                     for (int i = 0; i < ind.length; i++) {
                         b[ind[i]] = ((Implicit)elem.ti).RHS_loc[i];
                     }
@@ -163,7 +163,7 @@ public class ParallelGmresSlave {
                 int s = 0;
                 if (index == -1) {
                     for (Element elem : saveElems) {
-                        int[] gind = elem.gi_U;
+                        int[] gind = elem.gIndex;
                         double[] yElem = new double[gind.length];
                         for (int i = 0; i < gind.length; i++) {
                             yElem[i] = x[gind[i]];
@@ -173,7 +173,7 @@ public class ParallelGmresSlave {
                     }
                 } else {
                     for (Element elem : saveElems) {
-                        int[] ind = elem.gi_U;
+                        int[] ind = elem.gIndex;
                         double[] yElem = new double[ind.length];
                         for (int i = 0; i < ind.length; i++) {
                             yElem[i] = V[index][ind[i]];
@@ -188,7 +188,7 @@ public class ParallelGmresSlave {
             case ParallelTags.LOAD_X:
                 LiteElement[] dataReceive = (LiteElement[]) msg.getData();
                 for (LiteElement dataRec : dataReceive) {
-                    int[] gind = elems[dataRec.index].gi_U;
+                    int[] gind = elems[dataRec.index].gIndex;
                     for (int i = 0; i < gind.length; i++) {
                         x[gind[i]] = dataRec.y[i];
                     }
@@ -199,7 +199,7 @@ public class ParallelGmresSlave {
             case ParallelTags.LOAD_W:
                 dataReceive = (LiteElement[]) msg.getData();
                 for (LiteElement dataRec : dataReceive) {
-                    int[] ind = elems[dataRec.index].gi_U;
+                    int[] ind = elems[dataRec.index].gIndex;
                     for (int i = 0; i < ind.length; i++) {
                         V[index][ind[i]] = dataRec.y[i];
                     }

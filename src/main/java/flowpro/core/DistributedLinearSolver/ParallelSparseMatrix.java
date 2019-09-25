@@ -45,7 +45,7 @@ public class ParallelSparseMatrix {
         for (Element elem : elems) {
             if (elem.insideMetisDomain) {
                 int n = elem.getNEqs() * elem.nBasis;
-                int[] glob = elem.gi_U;
+                int[] glob = elem.gIndex;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
                         Icoo[s] = glob[i];
@@ -57,7 +57,7 @@ public class ParallelSparseMatrix {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TT[k] > -1) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        int[] globe = elems[elem.TT[k]].gi_U;
+                        int[] globe = elems[elem.TT[k]].gIndex;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 Icoo[s] = glob[i];

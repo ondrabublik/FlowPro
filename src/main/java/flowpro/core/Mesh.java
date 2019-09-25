@@ -8,13 +8,18 @@ import flowpro.core.elementType.ElementType;
 import flowpro.api.SolutionMonitor;
 import flowpro.core.parallel.Domain.Subdomain;
 import flowpro.core.element.*;
+import flowpro.core.solver.MasterSolver;
 import java.io.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * implementace DGFEM
  */
 public class Mesh implements Serializable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(Mesh.class);
+    
     private final Equation eqn;
     private final Deformation dfm;
     public final int nEqs;        // number of equations
@@ -124,10 +129,20 @@ public class Mesh implements Serializable {
             }
 
             // create element type
-            ElementType elemType = ElementType.elementTypeFactory(elemsType[i], elemsOrder[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
             elems[i] = getSpatialMethod(par.spatialMethod);
+            
+            // seting maximal allowed spatial order for choosen method
+            int elemOrder = Math.min(elemsOrder[i],elems[i].maxMethodSpatialOrder);
+            int volumeQuardatureOrder = Math.min(par.volumeQuardatureOrder,elems[i].maxMethodSpatialOrder);
+            int faceQuardatureOrder = Math.min(par.faceQuardatureOrder,elems[i].maxMethodSpatialOrder);
+            par.order = Math.min(par.order,elems[i].maxMethodSpatialOrder);
+            
+            if(i == 0 && elemOrder != elemsOrder[i]){
+                LOG.warn("method does not support spatial order higher than " + elemOrder);
+            }
+            
+            ElementType elemType = ElementType.elementTypeFactory(elemsType[i], elemOrder, volumeQuardatureOrder, faceQuardatureOrder);
             elems[i].set(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], this, elemType);
-            //elems[i] = new DGFEM(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], this, elemType);
         }
 
         // seting elements position in domain (load and insideComputeDomain parts)
@@ -163,13 +178,13 @@ public class Mesh implements Serializable {
         int dofs0 = 0;
         int nBrokenElements = 0;
         for (int i = 0; i < nElems; i++) {
-            dofs0 = elems[i].nastav_globalni_index_U(dofs0);
+            dofs0 = elems[i].setGlobalIndex(dofs0);
             if (elems[i].insideComputeDomain) {
                 elems[i].Int.initNeighbours(elems, elems[i]);   // init face integration rules
                 elems[i].computeGeometry();                     // compute geometrical relations
                 elems[i].computeMassMatrixAndBasisWeights();                 // compute mass matrix
                 elems[i].initMethod(par.props);        // for damping
-                elems[i].createTimeIntegration(elems[i]);
+                elems[i].createTimeIntegrationElementObject(elems[i]);
 
                 // checking geometry
                 boolean isOK = elems[i].geometryCheck(false);
@@ -188,21 +203,19 @@ public class Mesh implements Serializable {
             }
         }
         dofs = dofs0;
-
+        
         System.out.println();
-        System.out.println("Degrese of freedom: " + dofs);
+        LOG.info("Degrese of freedom: " + dofs);
         // initial condition on each of elements
         for (Element elem : elems) {
             elem.initCondition();
         }
 
-        System.out.println();
         if (nBrokenElements > 0) {
-            System.out.println("Broken elements = " + nBrokenElements);
+            LOG.error("Broken elements = " + nBrokenElements);
         } else {
-            System.out.println("Broken elements = 0 ");
+            LOG.info("Broken elements = 0 ");
         }
-        System.out.println();
     }
 
     /**

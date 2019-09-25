@@ -181,7 +181,7 @@ public class LocalImplicitSolver extends MasterSolver {
                     if (isFirstIter) {
                         dfm.relaxFirstIteration(elems,dt);
                     }
-                    dfm.recalculateMesh(elems, par.order);
+                    dfm.recalculateMesh(elems);
                 }
 
                 long startTime = System.currentTimeMillis();

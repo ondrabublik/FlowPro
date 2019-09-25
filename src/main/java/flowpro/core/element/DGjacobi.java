@@ -16,9 +16,9 @@ import java.io.IOException;
  *
  * @author obublik
  */
-public class JacobiDGFEM extends DGFEM {
+public class DGjacobi extends DG {
     
-    public JacobiDGFEM(){
+    public DGjacobi(){
         
     }
     public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
@@ -36,7 +36,7 @@ public class JacobiDGFEM extends DGFEM {
             residuumWallJacobi(k, ADiag, Sous[k]);
         }
 
-        if (elemType.order > 1) { // volume integral only for DGFEM
+        if (elemType.order > 1) { // volume integral only for DG
             double[] nor = new double[dim];
             double[] a = null;
             double[] ad = null;
