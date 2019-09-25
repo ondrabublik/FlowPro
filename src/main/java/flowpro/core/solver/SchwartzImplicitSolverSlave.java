@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  * tento program resi Navierovy-Stokesovy rovnice na nestrukturovane siti pomoci
  * nespojite Galerkinovy metody
  */
-public class SchwartzImplicitSolverSlave extends SlaveSolver{
+public class SchwartzImplicitSolverSlave extends SlaveSolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(MasterSolver.class);
 
@@ -91,7 +91,6 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
                 }
             }
         }
-
         return dt;
     }
 
@@ -119,22 +118,17 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
         }
     }
 
-    /**
-     * b = b - Ax
-     *
-     * @param x
-     */
     private void updateRHS(double x[]) {
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
-                ((Implicit)elem.ti).updateRHS(x);
+                ((Implicit) elem.ti).updateRHS(x);
             }
         }
     }
 
     private void updateW(double x[]) {
         for (Element elem : elems) {
-            ((Implicit)elem.ti).updateW(x);
+            elem.updateW(x);
         }
     }
 
@@ -146,11 +140,6 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
         }
     }
 
-    /**
-     *
-     * @param dt
-     * @return L1norm(W - Wo)
-     */
     private double calculateResiduumW(double dt) {
         double resid = 0;
         for (Element elem : elems) {
@@ -213,7 +202,7 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver{
                         ForcesAndDisplacements disp = (ForcesAndDisplacements) inMsg.getData();
                         dfm.newMeshPositionAndVelocity(elems, elems[0].ti.getOrder(), disp.getDto(), disp.getDt(), disp.getMeshMove());
                         if (isFirstIter) {
-                            dfm.relaxFirstIteration(elems,disp.getDt());
+                            dfm.relaxFirstIteration(elems, disp.getDt());
                         }
                         dfm.recalculateMesh(elems, par.order);
                         outMsg = new MPIMessage(Tag.MESH_POSITION_UPDATED);

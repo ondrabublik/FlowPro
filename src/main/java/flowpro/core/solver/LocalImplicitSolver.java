@@ -9,7 +9,6 @@ import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.core.LinearSolvers.LinearSolver;
-import flowpro.core.element.Implicit;
 import flowpro.core.meshDeformation.*;
 
 import java.io.*;
@@ -84,15 +83,6 @@ public class LocalImplicitSolver extends MasterSolver {
         }
 
         return dt;
-    }
-
-    private double improveCFL(double cfl, double residuumRation) {
-        if (par.varyCFL) {
-            double beta = 1.2;
-            return Math.max(Math.min(cfl * residuumRation, beta * cfl), cfl / beta);
-        } else {
-            return cfl;
-        }
     }
 
     private void copyWo2W() {
@@ -219,7 +209,7 @@ public class LocalImplicitSolver extends MasterSolver {
 
                 // ulozeni novych hodnot
                 for (int i = 0; i < nElems; i++) {
-                    ((Implicit)elems[i].ti).updateW(x);
+                    elems[i].updateW(x);
                 }
 
                 double iner_tol = 1e-4;  // zadat jako parametr !!!!!!!

@@ -34,9 +34,6 @@ abstract public class MasterSolver {
 
         try {
             if (par.parallelMode) {
-                if(!((meshes[0].getElems())[0].ti).isImplicit()){
-                    throw new UnsupportedOperationException(" parallel mode is supported only for implicit time integration methods ");
-                }
                 switch (par.parallelSolverType.toLowerCase()) {
                     case "schwartz":
                         return new SchwartzImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);

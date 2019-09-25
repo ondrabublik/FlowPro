@@ -33,7 +33,7 @@ import java.util.Arrays;
 public abstract class Element implements Serializable {
 
     // mesh
-    private final Mesh mesh;
+    private Mesh mesh;
     // parameters
     Parameters par;
     // equations
@@ -50,14 +50,14 @@ public abstract class Element implements Serializable {
     public double eps;  // ???
 
     /* geometry */
-    public final int[] TT;     // indexes of neighbours
-    public final int[] TP;
-    public final int[] TEale;     // type of boundary for ALE
-    public final int[] TEshift;
+    public int[] TT;     // indexes of neighbours
+    public int[] TP;
+    public int[] TEale;     // type of boundary for ALE
+    public int[] TEshift;
     public double[][] shift;
     public FaceCurvature fCurv;
     public int nFaces;       // number of faces
-    public final int nVertices;       // number of vertices
+    public int nVertices;       // number of vertices
     public double[][] vertices;  // components of vertices [xi,yi,zi]
     public double[][] verticesOld;
     public double[][] verticesOld2;
@@ -79,15 +79,15 @@ public abstract class Element implements Serializable {
     public double[][] blendFun; // blending function used for calculation of new mesh position
 
     // mesh
-    public final int index;
+    public int index;
     public int[] faceIndexReverse;
 
-    public final int dim;
+    public int dim;
     public int nBasis; 	  // pocet bazovych funkci
     public Transformation transform;
     public Basis basis;
     public Integration Int;
-    QuadratureCentral qRules;
+    public QuadratureCentral qRules;
     public ElementType elemType;
 
     //private double k_el; // kvalita elementu
@@ -104,7 +104,7 @@ public abstract class Element implements Serializable {
 
     // parametery pro prenos do equations
     public double[] centreVolumeInterpolant;
-    public final ElementData elemData;
+    public ElementData elemData;
 
     // optimalisation
     public Functional optimalisationFunctional; // functional for optimalisation
@@ -124,7 +124,11 @@ public abstract class Element implements Serializable {
     // external field
     double[][] externalField;
 
-    public Element(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
+    public Element(){
+        
+    }
+    
+    public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
 
         this.mesh = mesh;
@@ -207,8 +211,10 @@ public abstract class Element implements Serializable {
         transform = elemType.getVolumeTransformation(vertices, fCurv, par);
         basis = elemType.getBasis(transform);
         nBasis = basis.nBasis;
+        M = new double[nBasis][nBasis];
         Mo = new double[nBasis][nBasis];
         Mo2 = new double[nBasis][nBasis];
+        Is = new double[nBasis];
     }
 
     public void initIntegration() throws IOException {
@@ -306,11 +312,12 @@ public abstract class Element implements Serializable {
         return u;
     }
 
-    /**
-     *
-     * @param dt
-     * @return L1norm(W - Wo)
-     */
+    public void updateW(double[] x) {
+        for (int i = 0; i < nEqs * nBasis; i++) {
+            W[i] += x[gi_U[i]];
+        }
+    }
+    
     public double calculateResiduumW(double dt
     ) {
         double rez = 0;

@@ -23,9 +23,13 @@ public class FVM extends Element {
     // Finite volume method limiter
     public String FVMlimiter;
 
-    public FVM(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
+    public FVM(){
+        
+    }
+    
+    public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
-        super(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
+        super.set(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
     }
 
     public void initMethod(FlowProProperties props) throws IOException {
@@ -121,7 +125,7 @@ public class FVM extends Element {
             }
             if (elems[TT[k]].insideComputeDomain) {
                 double[] WRp = elems[TT[k]].W;
-                double sigmaR = ((DGFEM) elems[TT[k]]).FVMlimiter(dWR, FVMlimiter);
+                double sigmaR = ((FVM) elems[TT[k]]).FVMlimiter(dWR, FVMlimiter);
                 for (int j = 0; j < nEqs; j++) {
                     double dW = 0;
                     for (int d = 0; d < dim; d++) {

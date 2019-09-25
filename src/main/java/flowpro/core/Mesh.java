@@ -6,7 +6,6 @@ import flowpro.api.Equation;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.elementType.ElementType;
 import flowpro.api.SolutionMonitor;
-import flowpro.core.element.DGFEM;
 import flowpro.core.parallel.Domain.Subdomain;
 import flowpro.core.element.*;
 import java.io.*;
@@ -37,7 +36,7 @@ public class Mesh implements Serializable {
 
     /**
      * Creates an instance of class Element for each element in the mesh and
- places them into an array (serves as Element factory). Method getElems()
+     * places them into an array (serves as Element factory). Method getElems()
      * returns the array of elements. This constructor is intended to be used
      * only in the parallel mode.
      *
@@ -126,8 +125,9 @@ public class Mesh implements Serializable {
 
             // create element type
             ElementType elemType = ElementType.elementTypeFactory(elemsType[i], elemsOrder[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
-
-            elems[i] = new DGFEM(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], this, elemType);
+            elems[i] = getSpatialMethod(par.spatialMethod);
+            elems[i].set(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], this, elemType);
+            //elems[i] = new DGFEM(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], this, elemType);
         }
 
         // seting elements position in domain (load and insideComputeDomain parts)
@@ -188,7 +188,7 @@ public class Mesh implements Serializable {
             }
         }
         dofs = dofs0;
-        
+
         System.out.println();
         System.out.println("Degrese of freedom: " + dofs);
         // initial condition on each of elements
@@ -224,7 +224,7 @@ public class Mesh implements Serializable {
     public Deformation getDfm() {
         return dfm;
     }
-    
+
     public QuadratureCentral getQRules() {
         return qRules;
     }
@@ -329,42 +329,19 @@ public class Mesh implements Serializable {
     public void updateTime(double dt) {
         t = t + dt;
     }
-    
-//    public Element getEquation(String parameterFilePath, URL[] jarURLList) throws IOException {
-//        FlowProProperties props = new FlowProProperties();
-//
-//        try {
-//            props.load(new FileInputStream(parameterFilePath));
-//        } catch (IOException ex) {
-//            throw new IOException("unable to load file " + parameterFilePath, ex);
-//        }
-//
-//        String simpleClassName;
-//        try {
-//            simpleClassName = props.getString("method");
-//        } catch (IOException ex) {
-//            throw new IOException("file " + parameterFilePath
-//                    + " has a wrong format: " + ex.getMessage(), ex);
-//        }
-//
-//        String className = "flowpro.user.element." + simpleClassName;
-//
-//        try {
-//            Class<Equation> eqnClass = (Class<Equation>) Class.forName(className,true, new URLClassLoader(jarURLList));
-//            Element elem = (Equation) eqnClass.newInstance();
-//
-//            try {
-//                elem.init(props);
-//                return elem;
-//            } catch (IOException ex) {
-//                throw new IOException("file " + parameterFilePath
-//                        + " has a wrong format: " + ex.getMessage());
-//            }
-//        } catch (ClassNotFoundException ex) {
-//            throw new IOException("class \"" + className + "\" not found, parameter \"model\" in file "
-//                    + parameterFilePath + " must have the same name as the class that defines the model", ex);
-//        } catch (InstantiationException | IllegalAccessException | SecurityException | IllegalArgumentException ex) {
-//            throw new IOException("error while loading class \"" + className + "\": " + ex, ex);
-//        }
-//    }
+
+    public Element getSpatialMethod(String methodClassName) throws IOException {
+
+        String className = "flowpro.core.element." + methodClassName;
+
+        try {
+            Class<Element> elemClass = (Class<Element>) Class.forName(className);
+            Element elem = (Element) elemClass.newInstance();
+            return elem;
+        } catch (ClassNotFoundException ex) {
+            throw new IOException("class \"" + className + "\" not found", ex);
+        } catch (InstantiationException | IllegalAccessException | SecurityException | IllegalArgumentException ex) {
+            throw new IOException("error while loading class \"" + className + "\": " + ex, ex);
+        }
+    }
 }

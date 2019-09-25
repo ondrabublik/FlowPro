@@ -28,9 +28,13 @@ public class DGpure extends Element {
     public double[] dampInnerCoef; // koeficienty pro pridavnou viskozitu uvnitr
     public double dampConst; // konstantni pridavna viskozita 
     
-    public DGpure(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
+    public DGpure(){
+        
+    }
+    
+    public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
-        super(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
+        super.set(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
     }
 
     public void initMethod(FlowProProperties props) throws IOException {
@@ -528,8 +532,6 @@ public class DGpure extends Element {
         double[] weights = Int.weightsVolume;
 
         // matice hmotnosti
-        M = new double[nBasis][nBasis];
-        Is = new double[nBasis];
         for (int i = 0; i < nBasis; i++) {
             for (int j = 0; j < nBasis; j++) {
                 for (int p = 0; p < Int.nIntVolume; p++) {

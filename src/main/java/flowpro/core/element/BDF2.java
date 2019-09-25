@@ -71,6 +71,10 @@ public class BDF2 extends Implicit {
         assembleRHS(Rw, a1, a2, a3);
 
         if (useJacobiMatrixForAssembly) { // fast assemble when jacobian of equations is known
+            ADiag = new double[nEqs * nBasis][nEqs * nBasis];
+            for (Neighbour neigh : ANeighs) {
+                neigh.nullMatrix();
+            }
             elem.residuumJacobi(ADiag, ANeighs);
         } else { // slow assemble when jacobian of equations is unknown
             double h = elem.par.h;

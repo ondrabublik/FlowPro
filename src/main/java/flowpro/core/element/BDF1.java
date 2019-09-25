@@ -13,7 +13,7 @@ import flowpro.api.Mat;
  * @author obublik
  */
 public class BDF1 extends Implicit {
-    
+
     boolean useJacobiMatrixForAssembly;
 
     BDF1() {
@@ -68,6 +68,10 @@ public class BDF1 extends Implicit {
         assembleRHS(Rw, a1, a2);
 
         if (useJacobiMatrixForAssembly) { // fast assemble when jacobian of equations is known
+            ADiag = new double[nEqs * nBasis][nEqs * nBasis];
+            for (Neighbour neigh : ANeighs) {
+                neigh.nullMatrix();
+            }
             elem.residuumJacobi(ADiag, ANeighs);
         } else { // slow assemble when jacobian of equations is unknown
             double h = elem.par.h;

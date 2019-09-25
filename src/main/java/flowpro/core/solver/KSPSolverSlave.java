@@ -9,7 +9,6 @@ import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.MeshMove;
 import flowpro.core.DistributedLinearSolver.ParallelGmresSlave;
-import flowpro.core.element.Implicit;
 import flowpro.core.meshDeformation.*;
 import litempi.*;
 
@@ -22,7 +21,7 @@ import org.slf4j.LoggerFactory;
  * tento program resi Navierovy-Stokesovy rovnice na nestrukturovane siti pomoci
  * nespojite Galerkinovy metody
  */
-public class KSPSolverSlave extends SlaveSolver{
+public class KSPSolverSlave extends SlaveSolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(MasterSolver.class);
 
@@ -91,7 +90,6 @@ public class KSPSolverSlave extends SlaveSolver{
                 }
             }
         }
-
         return dt;
     }
 
@@ -121,7 +119,7 @@ public class KSPSolverSlave extends SlaveSolver{
 
     private void updateW(double x[]) {
         for (Element elem : elems) {
-            ((Implicit)elem.ti).updateW(x);
+            elem.updateW(x);
         }
     }
 
@@ -133,11 +131,6 @@ public class KSPSolverSlave extends SlaveSolver{
         }
     }
 
-    /**
-     *
-     * @param dt
-     * @return L1norm(W - Wo)
-     */
     private double calculateResiduumW(double dt) {
         double resid = 0;
         for (Element elem : elems) {
@@ -221,7 +214,7 @@ public class KSPSolverSlave extends SlaveSolver{
                             dto = dt;
                             dt = (double) inMsg.getData();
                         }
-                        
+
                         // set equation object state
                         eqn.setState(mesh.t + dt, dt);
 
