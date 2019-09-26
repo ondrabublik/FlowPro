@@ -20,8 +20,13 @@ import java.util.Arrays;
  * @author obublik
  */
 public class DG extends Element {
-
+    /**
+     * interior penalty
+     */
     public double penalty;    // interior penalty constant
+    /**
+     * constant of DDG method
+     */
     public double beta0;  // direct discontinuous constant 
 
     // artificial damping
