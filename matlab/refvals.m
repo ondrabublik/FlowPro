@@ -1,4 +1,5 @@
 function [p, rho, v, t, l] = refvals(geometry, simulation)
+% refvals   Return reference values for the simulation.
 
 if nargin == 0
     [geomPath, simulPath] = getPath;

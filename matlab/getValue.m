@@ -1,17 +1,19 @@
 function val = getValue(propName)
 % getValue   Return the value of a specified parameter in parameters.txt.
+%   getValue(propName) returns a value of the property propName.
 
-[meshPath, simulPath, outputPath] = getPath;
+[~, simulPath, ~] = getPath;
 fileName = [simulPath,'parameters.txt'];
 
 % Read txt into cell A
+val = '';
 try
     fid = fopen(fileName,'r');
     tline = fgetl(fid);
     while ischar(tline)
         str = strsplit(tline,'=');
         if(strcmp(str{1},propName))
-            val = looseComment(str{2});
+            val = strtrim(looseComment(str{2}));
             break;
         end
         tline = fgetl(fid);
