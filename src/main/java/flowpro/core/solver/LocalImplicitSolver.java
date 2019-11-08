@@ -294,12 +294,12 @@ public class LocalImplicitSolver extends MasterSolver {
                 Mat.save(sol.vertices, simulationPath + "PXY.txt");
                 Mat.save(sol.meshVelocity, simulationPath + "UXY.txt");
             }
-            File[] content = new File(simulationPath + "output").listFiles();
-            if (content != null) {
-                for (File file : content) {
-                    file.delete();
-                }
-            }
+//            File[] content = new File(simulationPath + "output").listFiles();
+//            if (content != null) {
+//                for (File file : content) {
+//                    file.delete();
+//                }
+//            }
 
             lock.notify();
         }
