@@ -134,7 +134,7 @@ switch action
                             v = (bodies{i}.y(I+1)-bodies{i}.y(I))./(t(I+1)-t(I));
                             plot(t(I),v,'color',col(i));
                             hold on
-                        end;
+                        end
                         ylabel('v [m/s]','fontsize',14);
 
                     case 3

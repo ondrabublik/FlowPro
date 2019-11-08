@@ -203,12 +203,12 @@ public class LocalExplicitSolver extends MasterSolver {
             if (par.movingMesh) {
                 Mat.save(sol.vertices, simulationPath + "PXY.txt");
             }
-            File[] content = new File(simulationPath + "output").listFiles();
-            if (content != null) {
-                for (File file : content) {
-                    file.delete();
-                }
-            }
+//            File[] content = new File(simulationPath + "output").listFiles();
+//            if (content != null) {
+//                for (File file : content) {
+//                    file.delete();
+//                }
+//            }
 
             lock.notify();
         }

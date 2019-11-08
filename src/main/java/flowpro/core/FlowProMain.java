@@ -95,7 +95,7 @@ public class FlowProMain {
         System.out.println("F      LLLLL   OOOO     W     W    P       R    R   OOOO ");
         System.out.println();
         System.out.println("---------------------------------------------------------");
-        System.out.println("Welcome to the CFD opensource software FlowPro!          ");
+        System.out.println("Welcome to the opensource CFD software FlowPro!          ");
         System.out.println("---------------------------------------------------------");
         System.out.println();
 

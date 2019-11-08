@@ -352,11 +352,11 @@ public class KSPSolverSlave extends SlaveSolver {
             FileWriter fw;
             fw = new FileWriter(simulationPath + "residuum.txt", true);
             BufferedWriter bw = new BufferedWriter(fw);
-            PrintWriter out = new PrintWriter(bw);
-            out.println(Double.toString(residuum) + " " + Double.toString(t) + " " + Double.toString(CPU));
-            out.close();
-        } catch (Exception e) {
-            //exception handling left as an exercise for the reader
+            try (PrintWriter out = new PrintWriter(bw)) {
+                out.println(Double.toString(residuum) + " " + Double.toString(t) + " " + Double.toString(CPU));
+            }
+        } catch (IOException ex) {
+            LOG.warn("error occured while writing to a file: " + ex.getMessage());
         }
     }
 }
