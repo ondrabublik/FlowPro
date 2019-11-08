@@ -15,6 +15,13 @@ public class MPISlave {
 
     public MPISlave(String IP, int port) throws MPIException {
         try {
+            // if(String.isEmpty(IP)){
+            //    sockets[id] = listener.accept();
+            // } else {
+            //    socket = new Socket();
+            //    socket.connect(new InetSocketAddress(IP, port), 1000);
+            // {
+            //
             socket = new Socket();
             socket.connect(new InetSocketAddress(IP, port), 1000);
             socket.setTcpNoDelay(true);

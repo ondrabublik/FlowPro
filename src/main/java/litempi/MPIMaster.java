@@ -35,6 +35,12 @@ public class MPIMaster {
 
         try (ServerSocket listener = new ServerSocket(masterPort)) {
             for (int id = 0; id < nSlaves; id++) {
+                // if(IPList != null) {
+                //    socket[id] = new Socket();
+                //    socket[id].connect(new InetSocketAddress(IPList[id], masterPort), 1000);
+                // } else {
+                //    sockets[id] = listener.accept();
+                // {
                 sockets[id] = listener.accept();
                 sockets[id].setTcpNoDelay(true);
                 sockets[id].setKeepAlive(true);
