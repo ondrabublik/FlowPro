@@ -42,17 +42,16 @@ abstract public class MasterSolver {
                         return new KSPSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 }
             } else {
-                switch (par.localSolverType.toLowerCase()) {
+                switch (((meshes[0].getElems())[0].ti).getLocalSolverType()) {
                     case "localimplicit":
                         return new LocalImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
 
                     case "localexplicit":
-                        par.isExplicit = true;
                         return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
                 }
             }
         } catch (Exception e) {
-            System.out.println("Unknown solver: " + par.localSolverType);
+            System.out.println("Unknown solver: " + ((meshes[0].getElems())[0].ti).getLocalSolverType());
         }
 
         return null;

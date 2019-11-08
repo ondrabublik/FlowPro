@@ -7,8 +7,9 @@ package flowpro.core.LinearSolvers.preconditioners;
 
 import flowpro.api.Mat;
 import flowpro.core.LinearSolvers.SparseMatrix;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.core.Parameters;
+import flowpro.core.element.Implicit;
 
 /**
  *
@@ -51,7 +52,7 @@ public class BlockILU0 extends Preconditioner {
             int ne = elem.nBasis * elem.getNEqs();
             ILU[i][s] = new double[ne][ne];
             double[][] AuxILU = ILU[i][s];
-            double[][] AuxA = elem.ADiag;
+            double[][] AuxA = ((Implicit)elem.ti).ADiag;
             for (int n = 0; n < ne; n++) {
                 System.arraycopy(AuxA[n], 0, AuxILU[n], 0, ne);
             }
@@ -63,7 +64,7 @@ public class BlockILU0 extends Preconditioner {
                     int me = elems[elem.TT[k]].nBasis * elems[elem.TT[k]].getNEqs();
                     ILU[i][s] = new double[ne][me];
                     AuxILU = ILU[i][s];
-                    AuxA = elem.ANeighs[k].A;
+                    AuxA = ((Implicit)elem.ti).ANeighs[k].A;
                     for (int n = 0; n < ne; n++) {
                         System.arraycopy(AuxA[n], 0, AuxILU[n], 0, me);
                     }
@@ -124,7 +125,7 @@ public class BlockILU0 extends Preconditioner {
         for (int i = 0; i < nElem; i++) {
             int[] row = indexes[i];
             double[] yp = y[i];
-            int[] gi = elems[i].gi_U;
+            int[] gi = elems[i].gIndex;
             for(int j = 0; j < gi.length; j++){
                 yp[j] = b[gi[j]];
             }
@@ -146,7 +147,7 @@ public class BlockILU0 extends Preconditioner {
             double[] sum = new double[y[i].length];
             for (int k = 0; k < row.length; k++) {
                 if (row[k] > i) {
-                    int[] gi = elems[row[k]].gi_U;
+                    int[] gi = elems[row[k]].gIndex;
                     double[][] U = ILU[i][k];
                     for (int s = 0; s < U.length; s++) {
                         for (int t = 0; t < U[0].length; t++) {
@@ -162,7 +163,7 @@ public class BlockILU0 extends Preconditioner {
                 sum[j] = yp[j] - sum[j];
             }
             sum = Mat.times(iUii, sum);
-            int[] gi = elems[i].gi_U;
+            int[] gi = elems[i].gIndex;
             for(int j = 0; j < gi.length; j++){
                 x[gi[j]] = sum[j];
             }

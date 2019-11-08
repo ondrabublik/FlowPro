@@ -202,7 +202,7 @@ public class FlowProMain {
             parallelMode = true;
         }
         Equation eqn = (new EquationFactory()).getEquation(simulationPath + PARAMETER_FILE_NAME, jarURLList);   // read physical parameters
-        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode, jarURLList); // read numerical parameters                    
+        Parameters par = new Parameters(simulationPath + PARAMETER_FILE_NAME, parallelMode, jarURLList); // read numerical parameters
 
         LOG.info("loading data...");
         // load matrices defining the mesh

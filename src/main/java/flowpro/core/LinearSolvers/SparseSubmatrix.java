@@ -5,7 +5,8 @@
  */
 package flowpro.core.LinearSolvers;
 
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
+import flowpro.core.element.Implicit;
 import java.util.Arrays;
 
 /**
@@ -44,7 +45,7 @@ public class SparseSubmatrix {
         si = 0;
         for (int i = 0; i < elems.length; i++) {
             if (inside[i]){
-                int[] gi = elems[i].gi_U;
+                int[] gi = elems[i].gIndex;
                 for(int j = 0; j < gi.length; j++){
                     globMap[s] = si;
                     globMapInv[si] = gi[j];
@@ -70,7 +71,7 @@ public class SparseSubmatrix {
             if (inside[r]) {
                 Element elem = elems[r];
                 int n = elem.getNEqs() * elem.nBasis;
-                int[] glob = elem.gi_U;
+                int[] glob = elem.gIndex;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
                         Icoo[s] = globMap[glob[i]];
@@ -82,7 +83,7 @@ public class SparseSubmatrix {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TT[k] > -1 && inside[elems[elem.TT[k]].index]) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        int[] globe = elems[elem.TT[k]].gi_U;
+                        int[] globe = elems[elem.TT[k]].gIndex;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 Icoo[s] = globMap[glob[i]];
@@ -142,7 +143,7 @@ public class SparseSubmatrix {
             if (inside[r]) {
                 Element elem = elems[r];
                 int n = elem.getNEqs() * elem.nBasis;
-                double[][] Ad = elem.ADiag;
+                double[][] Ad = ((Implicit)elem.ti).ADiag;
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
                         H[indexMap[s]] = Ad[j][i];
@@ -152,7 +153,7 @@ public class SparseSubmatrix {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TT[k] > -1 && inside[elems[elem.TT[k]].index]) {
                         int ne = elem.getNEqs() * elems[elem.TT[k]].nBasis;
-                        double[][] An = elem.ANeighs[k].A;
+                        double[][] An = ((Implicit)elem.ti).ANeighs[k].A;
                         for (int i = 0; i < n; i++) {
                             for (int j = 0; j < ne; j++) {
                                 H[indexMap[s]] = An[j][i];

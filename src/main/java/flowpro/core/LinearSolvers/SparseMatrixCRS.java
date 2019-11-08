@@ -5,7 +5,8 @@
  */
 package flowpro.core.LinearSolvers;
 
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
+import flowpro.core.element.Implicit;
 import java.util.Arrays;
 
 /**
@@ -48,12 +49,12 @@ public class SparseMatrixCRS {
 
             blocks[i] = new double[nBlockRow][][]; // alocation of row matrixes
             int[] indexes = new int[nBlockRow];
-            blocks[i][0] = elem.ADiag;
+            blocks[i][0] = ((Implicit)elem.ti).ADiag;
             indexes[0] = elem.index;
             nBlockRow = 1;
             for (int k = 0; k < elem.TT.length; k++) {
                 if (elem.TT[k] > -1) {
-                    blocks[i][nBlockRow] = elem.ANeighs[k].A;
+                    blocks[i][nBlockRow] = ((Implicit)elem.ti).ANeighs[k].A;
                     indexes[nBlockRow] = elems[elem.TT[k]].index;
                     nBlockRow++;
                 }
@@ -79,7 +80,7 @@ public class SparseMatrixCRS {
             int n = elem.getNEqs() * elem.nBasis;
             for (int k = 0; k < n; k++) {
                 for (int q = 0; q < nBlockRow; q++) {
-                    int[] glob = elems[indexes[q]].gi_U;
+                    int[] glob = elems[indexes[q]].gIndex;
                     for (int j = 0; j < glob.length; j++) { // row cycle
                         JA[sj] = glob[j];
                         sj++;
@@ -152,9 +153,10 @@ public class SparseMatrixCRS {
     public void updateB(double[] b) {
         int s = 0;
         for (Element elem : elems) {
+            double[] RHS_loc = ((Implicit)elem.ti).RHS_loc;
             int n = elem.getNEqs() * elem.nBasis;
             for (int i = 0; i < n; i++) {
-                b[s] = elem.RHS_loc[i];
+                b[s] = RHS_loc[i];
                 s++;
             }
         }

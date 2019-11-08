@@ -6,8 +6,9 @@
 package flowpro.core.LinearSolvers.preconditioners;
 
 import flowpro.core.LinearSolvers.SparseMatrix;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.core.Parameters;
+import flowpro.core.element.Implicit;
 
 /**
  *
@@ -73,8 +74,8 @@ class Jacobi extends Preconditioner {
             for (int i = nStart; i < nt; i = i + nThreads) {
                 Element elem = elems[i];
                 if (elem.insideComputeDomain) {
-                    double[][] Adiag = elem.ADiag;
-                    int[] glob = elem.gi_U;
+                    double[][] Adiag = ((Implicit)elem.ti).ADiag;
+                    int[] glob = elem.gIndex;
                     for (int j = 0; j < glob.length; j++) {
                         x[glob[j]] = 1 / Adiag[j][j] * b[glob[j]];
                     }

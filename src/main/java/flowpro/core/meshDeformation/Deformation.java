@@ -1,7 +1,7 @@
 package flowpro.core.meshDeformation;
 
 import flowpro.api.*;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.core.Parameters;
 import flowpro.core.elementType.*;
 import java.io.*;
@@ -41,7 +41,7 @@ public abstract class Deformation implements Serializable {
 
     abstract public void calculateForces(Element[] elems, MeshMove[] mshMov);
 
-    public void recalculateMesh(Element[] elems, int order) { // dodelat paralelni verzi
+    public void recalculateMesh(Element[] elems) { // dodelat paralelni verzi
         for (Element elem : elems) {
             if (elem.insideComputeDomain) {
                 elem.transform.computeTransform(elem.vertices);

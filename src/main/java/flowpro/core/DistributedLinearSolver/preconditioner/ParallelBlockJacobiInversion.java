@@ -7,8 +7,9 @@ package flowpro.core.DistributedLinearSolver.preconditioner;
 
 import flowpro.api.Mat;
 import flowpro.core.LinearSolvers.SparseMatrix;
-import flowpro.core.Mesh.Element;
 import flowpro.core.Parameters;
+import flowpro.core.element.Element;
+import flowpro.core.element.Implicit;
 
 /**
  *
@@ -60,7 +61,7 @@ public class ParallelBlockJacobiInversion extends ParallelPreconditioner{
         public void run() {
             for (int i = nStart; i < elems.length; i = i + nThreads) {
                 if (elems[i].insideMetisDomain) {
-                    diagonalInverse[i] = Mat.invert(elems[i].ADiag);
+                    diagonalInverse[i] = Mat.invert(((Implicit)elems[i].ti).ADiag);
                 }
             }
         }
@@ -100,7 +101,7 @@ public class ParallelBlockJacobiInversion extends ParallelPreconditioner{
             for (int i = nStart; i < elems.length; i = i + nThreads) {
                 Element elem = elems[i];
                 if (elem.insideMetisDomain) {
-                    int[] glob = elem.gi_U;
+                    int[] glob = elem.gIndex;
                     double[][] M = diagonalInverse[i];
                     for (int j = 0; j < glob.length; j++) {
                         x[glob[j]] = 0;

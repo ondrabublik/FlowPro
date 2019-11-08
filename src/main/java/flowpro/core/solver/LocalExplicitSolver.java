@@ -5,9 +5,10 @@ import flowpro.api.Mat;
 import flowpro.core.parallel.*;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
+import flowpro.core.element.Explicit;
 import flowpro.core.meshDeformation.*;
 
 import java.io.*;
@@ -116,11 +117,6 @@ public class LocalExplicitSolver extends MasterSolver {
             LOG.error("Moving mesh not supported for local time stepping explicit method!");
         }
 
-        if (par.orderInTime == 1) {
-            LOG.info("Explicit first order time integration method is not suported! Setting time order to second order!");
-            par.orderInTime = 2;
-        }
-
         computeInvertMassMatrix();
         LocalTimeStepIterator ltsIter = new LocalTimeStepIterator(elems, par, state.t);
         StopWatch watch = new StopWatch();
@@ -154,7 +150,9 @@ public class LocalExplicitSolver extends MasterSolver {
             }
 
             // computation
-            ltsIter.iterate(state.t + dt);
+            for(int step = 0; step < ltsIter.steps; step++){
+                ltsIter.iterate(step, dt);
+            }
 
             state.residuum = calculateResiduumW(dt);
             state.executionTime = watch.getTime();
@@ -286,49 +284,23 @@ public class LocalExplicitSolver extends MasterSolver {
     class LocalTimeStepIterator {
 
         public Element[] elems;
-        private final int nEqs;
         private final Parameters par;
+        public int steps;
 
         LocalTimeStepIterator(Element[] elems, Parameters par, double t) {
             this.elems = elems;
             this.par = par;
-            nEqs = elems[0].getNEqs();
-            for (Element elem : elems) {
-                elem.tLTS = t;
-                elem.tLTSold = t;
-                int nBasis = elem.nBasis;
-                elem.WLTS = new double[nBasis * nEqs];
-                System.arraycopy(elem.W, 0, elem.WLTS, 0, nBasis * nEqs);
-                switch (par.orderInTime) {
-                    case 2:
-                        elem.W1LTS = new double[nBasis * nEqs];
-                        elem.W1LTSo = new double[nBasis * nEqs];
-                        System.arraycopy(elem.W, 0, elem.W1LTS, 0, nBasis * nEqs);
-                        System.arraycopy(elem.W, 0, elem.W1LTSo, 0, nBasis * nEqs);
-                        break;
-                    case 3:
-                        elem.W1LTS = new double[nBasis * nEqs];
-                        elem.W1LTSo = new double[nBasis * nEqs];
-                        System.arraycopy(elem.W, 0, elem.W1LTS, 0, nBasis * nEqs);
-                        System.arraycopy(elem.W, 0, elem.W1LTSo, 0, nBasis * nEqs);
-
-                        elem.W2LTS = new double[nBasis * nEqs];
-                        elem.W2LTSo = new double[nBasis * nEqs];
-                        System.arraycopy(elem.W, 0, elem.W2LTS, 0, nBasis * nEqs);
-                        System.arraycopy(elem.W, 0, elem.W2LTSo, 0, nBasis * nEqs);
-                        break;
-                }
-            }
+            steps = ((Explicit)(elems[0].ti)).getNumberOfSteps();
         }
 
         // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
-        public void iterate(double tFinal) {  // , int newtonIter
+        public void iterate(int step, double dt) {  // , int newtonIter
 
             LocalTimeStepIteratorIteratorThread[] iteratorThrds = new LocalTimeStepIteratorIteratorThread[par.nThreads];
 
             // vlastni vypocet, parallelni beh
             for (int v = 0; v < iteratorThrds.length; v++) {
-                iteratorThrds[v] = new LocalTimeStepIteratorIteratorThread(v, tFinal);
+                iteratorThrds[v] = new LocalTimeStepIteratorIteratorThread(v, step, dt);
                 iteratorThrds[v].start();
             }
 
@@ -341,50 +313,25 @@ public class LocalExplicitSolver extends MasterSolver {
                 System.exit(1);
             }
         }
+    }
 
-        private class LocalTimeStepIteratorIteratorThread extends Thread {
+    private class LocalTimeStepIteratorIteratorThread extends Thread {
 
-            private final int id;
-            private final double tFinal;
+        private final int id;
+        private final int step;
+        private final double dt;
 
-            LocalTimeStepIteratorIteratorThread(int id, double tFinal) {
-                this.id = id;
-                this.tFinal = tFinal;
-            }
+        LocalTimeStepIteratorIteratorThread(int id, int step, double dt) {
+            this.id = id;
+            this.step = step;
+            this.dt = dt;
+        }
 
-            @Override
-            public void run() {
-                double CFLexp = par.cflLTS / par.order;
-                boolean LTSdone = false;
-                while (!LTSdone) {
-                    LTSdone = true;
-                    for (int i = id; i < elems.length; i += par.nThreads) {
-                        if (elems[i].insideComputeDomain && elems[i].tLTS < tFinal) {
-                            int s = 0;
-                            for (int j = 0; j < elems[i].nFaces; j++) {
-                                if (elems[i].TT[j] > -1) {
-                                    if (elems[elems[i].TT[j]].tLTS >= elems[i].tLTS) {
-                                        s++;
-                                    }
-                                } else {
-                                    s++;
-                                }
-                            }
-                            if (s == elems[i].nFaces) {
-                                double dtLoc = elems[i].delta_t(CFLexp);
-//                                if (elems[i].tLTS + dtLoc >= tFinal) {
-//                                    dtLoc = tFinal - elems[i].tLTS;
-//                                }
-                                elems[i].computeExplicitStep(dtLoc);
-                                elems[i].tLTSold = elems[i].tLTS;
-                                elems[i].tLTS += dtLoc;
-                            }
-                        }
-
-                        if (elems[i].insideComputeDomain && elems[i].tLTS < tFinal) {
-                            LTSdone = false;
-                        }
-                    }
+        @Override
+        public void run() {
+            for (int i = id; i < elems.length; i += par.nThreads) {
+                if (elems[i].insideComputeDomain) {
+                    ((Explicit) elems[i].ti).computeExplicitStep(step, dt);
                 }
             }
         }

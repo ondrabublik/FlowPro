@@ -4,7 +4,7 @@ package flowpro.core.meshDeformation;
 import flowpro.api.Equation;
 import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.core.Parameters;
 import java.io.*;
 

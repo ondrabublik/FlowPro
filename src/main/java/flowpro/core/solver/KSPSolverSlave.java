@@ -5,9 +5,8 @@ import flowpro.api.Mat;
 import flowpro.core.parallel.*;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
-import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
 import flowpro.core.DistributedLinearSolver.ParallelGmresSlave;
 import flowpro.core.meshDeformation.*;
@@ -22,7 +21,7 @@ import org.slf4j.LoggerFactory;
  * tento program resi Navierovy-Stokesovy rovnice na nestrukturovane siti pomoci
  * nespojite Galerkinovy metody
  */
-public class KSPSolverSlave extends SlaveSolver{
+public class KSPSolverSlave extends SlaveSolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(MasterSolver.class);
 
@@ -91,7 +90,6 @@ public class KSPSolverSlave extends SlaveSolver{
                 }
             }
         }
-
         return dt;
     }
 
@@ -133,11 +131,6 @@ public class KSPSolverSlave extends SlaveSolver{
         }
     }
 
-    /**
-     *
-     * @param dt
-     * @return L1norm(W - Wo)
-     */
     private double calculateResiduumW(double dt) {
         double resid = 0;
         for (Element elem : elems) {
@@ -198,11 +191,11 @@ public class KSPSolverSlave extends SlaveSolver{
 
                     case Tag.ALE_NEW_MESH_POSITION:
                         ForcesAndDisplacements disp = (ForcesAndDisplacements) inMsg.getData();
-                        dfm.newMeshPositionAndVelocity(elems, par.orderInTime, disp.getDto(), disp.getDt(), disp.getMeshMove());
+                        dfm.newMeshPositionAndVelocity(elems, elems[0].ti.getOrder(), disp.getDto(), disp.getDt(), disp.getMeshMove());
                         if (isFirstIter) {
                             dfm.relaxFirstIteration(elems, disp.getDt());
                         }
-                        dfm.recalculateMesh(elems, par.order);
+                        dfm.recalculateMesh(elems);
                         outMsg = new MPIMessage(Tag.MESH_POSITION_UPDATED);
                         break;
 
@@ -221,7 +214,7 @@ public class KSPSolverSlave extends SlaveSolver{
                             dto = dt;
                             dt = (double) inMsg.getData();
                         }
-                        
+
                         // set equation object state
                         eqn.setState(mesh.t + dt, dt);
 
@@ -256,7 +249,7 @@ public class KSPSolverSlave extends SlaveSolver{
                             for (int m = 0; m < mesh.nEqs; m++) {
                                 for (int p = 0; p < elems[j].nBasis; p++) {
                                     int ind = elems[j].nBasis * m + p;
-                                    yElem[ind] = x[elems[j].gi_U[ind]];
+                                    yElem[ind] = x[elems[j].gIndex[ind]];
                                 }
                             }
                             dataSend[i] = new LiteElement(j, yElem);
@@ -271,7 +264,7 @@ public class KSPSolverSlave extends SlaveSolver{
                             for (int m = 0; m < mesh.nEqs; m++) {
                                 for (int p = 0; p < elems[j].nBasis; p++) {
                                     int ind = elems[j].nBasis * m + p;
-                                    x[elems[j].gi_U[ind]] = dataReceive1.y[ind];
+                                    x[elems[j].gIndex[ind]] = dataReceive1.y[ind];
                                 }
                             }
                         }
@@ -314,158 +307,56 @@ public class KSPSolverSlave extends SlaveSolver{
         }
     }
 
-    public class CFLSetup {
-
-        double maxCFL;
-        boolean varyCFL;
-        double res = -1;
-        double dres = 0;
-        double alfa = 0.1;
-        int logResOld;
-
-        public CFLSetup(double maxCFL, boolean varyCFL) {
-            this.maxCFL = maxCFL;
-            this.varyCFL = varyCFL;
-        }
-
-        public double getCFL(double actualCFL, double residuum) {
-            if (varyCFL) {
-                if (res == -1) {
-                    res = residuum;
-                    logResOld = 1000;
-                } else {
-                    res = alfa * res + (1 - alfa) * residuum; // low pass filter
-                }
-                int logRes = (int) Math.log(res);
-                if (logRes < logResOld) {
-                    maxCFL *= 1.3;
-                } else {
-                    maxCFL *= 0.8;
-                }
-                logResOld = logRes;
-                actualCFL += maxCFL / 5;
-                if (actualCFL > maxCFL) {
-                    actualCFL = maxCFL;
-                }
-                return actualCFL;
-            } else {
-                actualCFL += maxCFL / 20;
-                if (actualCFL > maxCFL) {
-                    actualCFL = maxCFL;
-                }
-                return actualCFL;
+    public void saveData(Solution sol) throws IOException {
+        synchronized (lock) {
+            state.save();
+            eqn.saveReferenceValues(simulationPath + REF_VALUE_FILE_NAME);
+            Mat.save(sol.avgW, simulationPath + "W.txt");
+            Mat.save(sol.W, simulationPath + "We.txt");
+            Mat.save(mesh.getArtificialViscosity(), simulationPath + "artificialViscosity.txt");
+            if (par.movingMesh) {
+                Mat.save(sol.vertices, simulationPath + "PXY.txt");
             }
-        }
+            File[] content = new File(simulationPath + "output").listFiles();
+            if (content != null) {
+                for (File file : content) {
+                    file.delete();
+                }
+            }
 
-        double reduceCFL(double actualCFL) {
-            return actualCFL / 1.5;
+            lock.notify();
         }
+        LOG.info("results have been saved into " + simulationPath);
     }
 
-    public class JacobiAssembler {
-
-        public Element[] elems;
-        private final int nEqs;
-        private final Parameters par;
-        private double[] a1;
-        private double[] a2;
-        private double[] a3;
-        private double[] dual;
-        private double[] coeffsPhys;
-        private double[] coeffsDual;
-
-        public JacobiAssembler(Element[] elems, Parameters par) {
-            this.elems = elems;
-            this.par = par;
-            nEqs = elems[0].getNEqs();
+    public void saveAnimationData(Solution sol, int step) throws IOException {
+        File directory = new File(simulationPath + "animation");
+        if (!directory.exists()) {
+            directory.mkdir();
         }
-
-        // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
-        public void assemble(double dt, double dto) {  // , int newtonIter
-            if ("secondDerivative".equals(par.timeMethod)) { // second order derivative
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                for (int i = 0; i < nEqs; i++) {
-                    a1[i] = 2.0 / (dt * dt + dt * dto);
-                    a2[i] = -2.0 / (dt * dto);
-                    a3[i] = 2.0 / (dto * dto + dt * dto);
-                }
-            } else { // first order derivative
-                if ("dualTime".equals(par.timeMethod)) {
-                    coeffsPhys = par.coeffsPhys;
-                    coeffsDual = par.coeffsDual;
-                } else {
-                    coeffsPhys = new double[nEqs]; // user defined
-                    coeffsDual = new double[nEqs];
-                    for (int i = 0; i < nEqs; i++) {
-                        coeffsPhys[i] = 1;
-                        coeffsDual[i] = 0;
-                    }
-                }
-
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                switch (par.orderInTime) {
-                    case 1:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] / dt;
-                            a2[i] = -coeffsPhys[i] / dt;
-                            a3[i] = 0.0;
-                        }
-                        break;
-                    case 2:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
-                            a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
-                            a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
-                        }
-                        break;
-                    default:
-                        throw new RuntimeException("solver supports only first and second order in time");
-                }
-                for (int i = 0; i < nEqs; i++) {
-                    dual[i] = coeffsDual[i] / dt;
-                }
+        synchronized (lock) {
+            Mat.save(sol.avgW, simulationPath + "animation/W" + (10000000 + step) + ".txt");
+            if (par.order > 1) {
+                Mat.save(sol.W, simulationPath + "animation/We" + (10000000 + step) + ".txt");
             }
-
-            AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
-
-            // vlastni vypocet, parallelni beh
-            for (int v = 0; v < assemblers.length; v++) {
-                assemblers[v] = new AssemblerThread(v);
-                assemblers[v].start();
+            if (par.movingMesh) {
+                Mat.save(sol.vertices, simulationPath + "animation/vertices" + (10000000 + step) + ".txt");
             }
-
-            try {
-                for (AssemblerThread assembler : assemblers) {
-                    assembler.join();
-                }
-            } catch (java.lang.InterruptedException e) {
-                System.err.println(e);
-                System.exit(1);
-            }
+            lock.notify();
         }
+        LOG.info("results have been saved into " + simulationPath);
+    }
 
-        private class AssemblerThread extends Thread {
-
-            private final int id;
-
-            AssemblerThread(int id) {
-                this.id = id;
+    public void saveResiduum(double residuum, double t, double CPU) {
+        try {
+            FileWriter fw;
+            fw = new FileWriter(simulationPath + "residuum.txt", true);
+            BufferedWriter bw = new BufferedWriter(fw);
+            try (PrintWriter out = new PrintWriter(bw)) {
+                out.println(Double.toString(residuum) + " " + Double.toString(t) + " " + Double.toString(CPU));
             }
-
-            @Override
-            public void run() {
-                for (int i = id; i < elems.length; i += par.nThreads) {
-                    if (elems[i].insideComputeDomain) {
-                        elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
-                    }
-                }
-            }
+        } catch (IOException ex) {
+            LOG.warn("error occured while writing to a file: " + ex.getMessage());
         }
     }
 }

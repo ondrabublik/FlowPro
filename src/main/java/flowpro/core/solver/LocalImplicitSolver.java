@@ -5,7 +5,7 @@ import flowpro.api.Mat;
 import flowpro.core.parallel.*;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
-import flowpro.core.Mesh.Element;
+import flowpro.core.element.Element;
 import flowpro.api.Dynamics;
 import flowpro.api.FluidForces;
 import flowpro.core.LinearSolvers.LinearSolver;
@@ -83,15 +83,6 @@ public class LocalImplicitSolver extends MasterSolver {
         }
 
         return dt;
-    }
-
-    private double improveCFL(double cfl, double residuumRation) {
-        if (par.varyCFL) {
-            double beta = 1.2;
-            return Math.max(Math.min(cfl * residuumRation, beta * cfl), cfl / beta);
-        } else {
-            return cfl;
-        }
     }
 
     private void copyWo2W() {
@@ -186,11 +177,11 @@ public class LocalImplicitSolver extends MasterSolver {
                 if (par.movingMesh) {
                     dfm.calculateForces(elems, dyn.getMeshMove());
                     dyn.computeBodyMove(dt, state.t, s, dfm.getFluidForces());
-                    dfm.newMeshPositionAndVelocity(elems, par.orderInTime, dt, dto, dyn.getMeshMove());
+                    dfm.newMeshPositionAndVelocity(elems, elems[0].ti.getOrder(), dt, dto, dyn.getMeshMove());
                     if (isFirstIter) {
                         dfm.relaxFirstIteration(elems,dt);
                     }
-                    dfm.recalculateMesh(elems, par.order);
+                    dfm.recalculateMesh(elems);
                 }
 
                 long startTime = System.currentTimeMillis();
@@ -323,159 +314,6 @@ public class LocalImplicitSolver extends MasterSolver {
             lock.notify();
         }
         LOG.info("results have been saved into " + simulationPath);
-    }
-
-    public class CFLSetup {
-
-        double maxCFL;
-        boolean varyCFL;
-        double res = -1;
-        double dres = 0;
-        double alfa = 0.1;
-        int logResOld;
-
-        CFLSetup(double maxCFL, boolean varyCFL) {
-            this.maxCFL = maxCFL;
-            this.varyCFL = varyCFL;
-        }
-
-        double getCFL(double actualCFL, double residuum) {
-            if (varyCFL) {
-                if (res == -1) {
-                    res = residuum;
-                    logResOld = 1000;
-                } else {
-                    res = alfa * res + (1 - alfa) * residuum; // low pass filter
-                }
-                int logRes = (int) Math.log(res);
-                if (logRes < logResOld) {
-                    maxCFL *= 1.3;
-                } else {
-                    maxCFL *= 0.8;
-                }
-                logResOld = logRes;
-                actualCFL += maxCFL / 5;
-                if (actualCFL > maxCFL) {
-                    actualCFL = maxCFL;
-                }
-                return actualCFL;
-            } else {
-                actualCFL += maxCFL / 20;
-                if (actualCFL > maxCFL) {
-                    actualCFL = maxCFL;
-                }
-                return actualCFL;
-            }
-        }
-
-        double reduceCFL(double actualCFL) {
-            return actualCFL / 1.5;
-        }
-    }
-
-    public class JacobiAssembler {
-
-        public Element[] elems;
-        private final int nEqs;
-        private final Parameters par;
-        private double[] a1;
-        private double[] a2;
-        private double[] a3;
-        private double[] dual;
-        private double[] coeffsPhys;
-        private double[] coeffsDual;
-
-        public JacobiAssembler(Element[] elems, Parameters par) {
-            this.elems = elems;
-            this.par = par;
-            nEqs = elems[0].getNEqs();
-        }
-
-        // vytvoreni vlaken, paralelni sestaveni lokalnich matic a plneni globalni matice
-        public void assemble(double dt, double dto) {  // , int newtonIter
-            if ("secondDerivative".equals(par.timeMethod)) { // second order derivative
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                for (int i = 0; i < nEqs; i++) {
-                    a1[i] = 2.0 / (dt * dt + dt * dto);
-                    a2[i] = -2.0 / (dt * dto);
-                    a3[i] = 2.0 / (dto * dto + dt * dto);
-                }
-            } else { // first order derivative
-                if ("dualTime".equals(par.timeMethod)) {
-                    coeffsPhys = par.coeffsPhys;
-                    coeffsDual = par.coeffsDual;
-                } else {
-                    coeffsPhys = new double[nEqs]; // user defined
-                    coeffsDual = new double[nEqs];
-                    for (int i = 0; i < nEqs; i++) {
-                        coeffsPhys[i] = 1;
-                        coeffsDual[i] = 0;
-                    }
-                }
-
-                a1 = new double[nEqs];
-                a2 = new double[nEqs];
-                a3 = new double[nEqs];
-                dual = new double[nEqs];
-                switch (par.orderInTime) {
-                    case 1:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] / dt;
-                            a2[i] = -coeffsPhys[i] / dt;
-                            a3[i] = 0.0;
-                        }
-                        break;
-                    case 2:
-                        for (int i = 0; i < nEqs; i++) {
-                            a1[i] = coeffsPhys[i] * (2 * dt + dto) / (dt * (dt + dto));  // 3/(2*dt);
-                            a2[i] = -coeffsPhys[i] * (dt + dto) / (dt * dto);  // -2/dt;
-                            a3[i] = coeffsPhys[i] * dt / (dto * (dt + dto));  // 1/(2*dt);
-                        }
-                        break;
-                    default:
-                        throw new RuntimeException("solver supports only first and second order in time");
-                }
-                for (int i = 0; i < nEqs; i++) {
-                    dual[i] = coeffsDual[i] / dt;
-                }
-            }
-
-            AssemblerThread[] assemblers = new AssemblerThread[par.nThreads];
-
-            // vlastni vypocet, parallelni beh
-            for (int v = 0; v < assemblers.length; v++) {
-                assemblers[v] = new AssemblerThread(v);
-                assemblers[v].start();
-            }
-
-            try {
-                for (AssemblerThread assembler : assemblers) {
-                    assembler.join();
-                }
-            } catch (java.lang.InterruptedException e) {
-                System.err.println(e);
-                System.exit(1);
-            }
-        }
-
-        private class AssemblerThread extends Thread {
-
-            private final int id;
-
-            AssemblerThread(int id) {
-                this.id = id;
-            }
-
-            @Override
-            public void run() {
-                for (int i = id; i < elems.length; i += par.nThreads) {
-                    elems[i].assembleJacobiMatrix(a1, a2, a3, dual);
-                }
-            }
-        }
     }
 
     public void saveResiduum(double residuum, double t, double CPU) {

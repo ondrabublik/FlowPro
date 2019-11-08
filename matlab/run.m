@@ -8,8 +8,8 @@ if nargin == 0
     if isunix
         system('java -d64 -Xmx12g -jar FlowPro.jar master 0');
     else
-        %system('java -d64 -Xmx8g -Xss100m -jar FlowPro.jar local');
-        system('start run.bat');
+        system('java -d64 -Xmx8g -Xss100m -jar FlowPro.jar master 0');
+        %system('start run.bat');
     end
     cd(path)
 else    
@@ -28,7 +28,7 @@ else
     cd(getFlowProPath);
 
 %     system(['java -d64 -Xmx8g -jar FlowPro.jar master ',num2str(nDomains)]);
-    system(['start java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)]);
+    system(['java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)]);
 
     cd(path)
 end

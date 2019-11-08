@@ -36,7 +36,7 @@ public class ParallelGmresMaster {
         nThreads = par.nThreads;
         liteElems = new LiteElement[domain.nElems];
         this.m = m;
-
+        
         // initialize workspace
         H = new double[m + 1][m];
         cs = new double[m];

@@ -15,8 +15,10 @@ steps =       % computation is terminated after defined number of time steps is 
 
 %movingMesh = % true for ALE computation
 
-order =        % order of accuracy in space
-orderInTime =  % order of accuracy in time (1 or 2 is supported)
+spatialMethod =  % method
+order =          % order of accuracy in space
+timeMethod =     % method, order of accuracy in time
+timeOrder =      % order of accuracy in time
 CFL =
 threads =      % number of CPU threads that will be used for computation
 
