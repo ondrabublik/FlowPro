@@ -6,7 +6,6 @@ import flowpro.core.parallel.*;
 import flowpro.api.Equation;
 import static flowpro.core.FlowProMain.*;
 import flowpro.core.element.Element;
-import flowpro.api.Dynamics;
 import flowpro.api.MeshMove;
 import flowpro.core.DistributedLinearSolver.ParallelGmresSlave;
 import flowpro.core.meshDeformation.*;
@@ -28,7 +27,6 @@ public class KSPSolverSlave extends SlaveSolver {
 //    private final Object lock;
     // common parameters
     private final Deformation dfm;
-    private final Dynamics dyn;
     private final Equation eqn;
     private final Parameters par;
 
@@ -49,12 +47,12 @@ public class KSPSolverSlave extends SlaveSolver {
      * Constructor for slave.
      *
      * @param masterIP
-     * @param masterPort
+     * @param slavePort
      * @throws IOException
      * @throws MPIException
      */
-    public KSPSolverSlave(String masterIP, int masterPort) throws IOException, MPIException {
-        mpiSlave = new MPISlave(masterIP, masterPort);
+    public KSPSolverSlave(String masterIP, int slavePort) throws IOException, MPIException {
+        mpiSlave = new MPISlave(slavePort);
         MPIMessage msg = mpiSlave.receive();
 
         if (msg.tag != Tag.INIT_DATA) {
@@ -69,7 +67,6 @@ public class KSPSolverSlave extends SlaveSolver {
         par = mesh.getPar();
         eqn = mesh.getEqn();
         dfm = mesh.getDfm();
-        dyn = null;
         dofs = mesh.dofs;
         lock = null;
 
@@ -142,6 +139,7 @@ public class KSPSolverSlave extends SlaveSolver {
         return resid;
     }
 
+    @Override
     public void solve() throws IOException, MPIException {
         LOG.info("slave is running...");
         MPISlave mpi = mpiSlave;

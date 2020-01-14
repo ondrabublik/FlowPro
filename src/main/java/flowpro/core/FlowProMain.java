@@ -192,6 +192,7 @@ public class FlowProMain {
             LOG.error("input arguments have a wrong format: {}", ex.getMessage(), ex);
             System.exit(1);
         } catch (MPIException | IOException ex) {
+            ex.printStackTrace();
             LOG.error("{}", ex.getMessage());
         }
     }

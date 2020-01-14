@@ -1,10 +1,12 @@
 package litempi;
 
+import flowpro.core.parallel.IpAddressContainer;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
@@ -15,6 +17,8 @@ import org.slf4j.LoggerFactory;
 public class MPIMaster {
 
     private static final Logger LOG = LoggerFactory.getLogger(MPIMaster.class);
+    
+    public static final int TIME_OUT = 30000;
 
     public final int nSlaves;
     private Socket[] sockets;
@@ -24,7 +28,13 @@ public class MPIMaster {
     // waiting messages from each slaves
     private final Map<Integer, MPIMessage>[] waitingMsgs;
 
-    // navazani spojeni s pocitaci
+    /**
+     * Waits for slaves to connect (old master-server mode).
+     * 
+     * @param nSlaves
+     * @param masterPort
+     * @throws MPIException 
+     */
     public MPIMaster(int nSlaves, int masterPort) throws MPIException {
         this.nSlaves = nSlaves;
         sockets = new Socket[nSlaves];
@@ -35,12 +45,6 @@ public class MPIMaster {
 
         try (ServerSocket listener = new ServerSocket(masterPort)) {
             for (int id = 0; id < nSlaves; id++) {
-                // if(IPList != null) {
-                //    socket[id] = new Socket();
-                //    socket[id].connect(new InetSocketAddress(IPList[id], masterPort), 1000);
-                // } else {
-                //    sockets[id] = listener.accept();
-                // {
                 sockets[id] = listener.accept();
                 sockets[id].setTcpNoDelay(true);
                 sockets[id].setKeepAlive(true);
@@ -68,6 +72,69 @@ public class MPIMaster {
             waitingMsgs[i] = new HashMap<>();
         }
     }
+    
+    /**
+     * Connects to slaves (new master-slave mode).
+     * 
+     * @param nSlaves
+     * @param ipAddresses
+     * @param port
+     * @throws MPIException 
+     */
+    public MPIMaster(int nSlaves, IpAddressContainer ipAddresses, int port) throws MPIException {               
+        LOG.info("Lite MPI has started and is about to connect to slaves");
+
+        this.nSlaves = nSlaves;
+        
+        try {
+            int nAvailableSlaves = ipAddresses.size();
+            
+            if (nSlaves > nAvailableSlaves) {
+                throw new MPIException("IP list contains less PC's than required");
+            }
+            
+            sockets = new Socket[nSlaves];
+            outStreams = new ObjectOutputStream[nSlaves];
+            inStreams = new ObjectInputStream[nSlaves];
+            
+            for (int id = 0; id < nSlaves; id++) {
+                sockets[id] = new Socket();
+
+                LOG.debug("master is going to attempt to connect to {} on port {}", ipAddresses.getName(id), port);
+                sockets[id].connect(new InetSocketAddress(ipAddresses.getIp(id), port), TIME_OUT);
+                LOG.debug("master has just connected to {}", ipAddresses.getName(id));
+                sockets[id].setTcpNoDelay(true);
+                sockets[id].setKeepAlive(true);
+
+                String testString = sockets[id].getInetAddress().getHostAddress();
+
+                LOG.debug("sending test string \'{}\'", testString);
+                /* sending the test message */
+                outStreams[id] = new ObjectOutputStream(new BufferedOutputStream(sockets[id].getOutputStream()));
+                outStreams[id].writeUnshared(testString);
+                outStreams[id].flush();
+                outStreams[id].reset();
+
+                /* receiving echo of the test message */
+                inStreams[id] = new ObjectInputStream(new BufferedInputStream(sockets[id].getInputStream()));
+                String testStringEcho = (String) inStreams[id].readUnshared();                
+                LOG.debug("received echo of the test string \'{}\'", testStringEcho);
+                
+                if (!testString.equals(testStringEcho)) {
+                    throw new MPIException("test strings do not match (" + testString + " vs. " + testStringEcho + " )");
+                }
+                
+                LOG.info("{}/{} slave {} is ready", id + 1, nSlaves, ipAddresses.getName(id));
+            }
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new MPIException("error while connecting to slaves", ex);
+        }
+
+        waitingMsgs = new Map[nSlaves];
+        for (int i = 0; i < nSlaves; ++i) {
+            waitingMsgs[i] = new HashMap<>();
+        }
+    }
 
     public void send(MPIMessage msg, int id) throws MPIException {
         try {
@@ -76,7 +143,7 @@ public class MPIMaster {
             outStreams[id].flush();
 
         } catch (IOException ex) {
-            throw new MPIException("error while sending message to "
+            throw new MPIException("error occurred while sending message to "
                     + sockets[id].getInetAddress().getHostAddress(), ex);
         }
     }
@@ -91,13 +158,14 @@ public class MPIMaster {
             this.msg = msg;
         }
 
+        @Override
         public void run() {
             try {
                 outStreams[i].writeUnshared(msg);
                 outStreams[i].flush();
 
             } catch (IOException ex) {
-                System.out.println("error while sending message to "
+                System.out.println("error occurred while sending message to "
                         + sockets[i].getInetAddress().getHostAddress() + ex);
             }
         }
@@ -126,7 +194,7 @@ public class MPIMaster {
                 outStreams[i].flush();
 
             } catch (IOException ex) {
-                throw new MPIException("error while sending message to "
+                throw new MPIException("error occurred while sending message to "
                         + sockets[i].getInetAddress().getHostAddress(), ex);
             }
         }
@@ -164,7 +232,7 @@ public class MPIMaster {
 
             return msg;
         } catch (IOException | ClassNotFoundException ex) {
-            throw new MPIException("error while receiveing message form "
+            throw new MPIException("error occurred while receiveing message form "
                     + sockets[id].getInetAddress().getHostAddress(), ex);
         }
 
@@ -222,7 +290,7 @@ public class MPIMaster {
                 outStreams[i].flush();
                 outStreams[i].reset();
             } catch (IOException ex) {
-                throw new MPIException("error while sending message to "
+                throw new MPIException("error occurred while sending message to "
                         + sockets[i].getInetAddress().getHostAddress(), ex);
             }
         }
@@ -233,9 +301,9 @@ public class MPIMaster {
             for (Socket soc : sockets) {
                 soc.close();
             }
-            LOG.info("lite MPI has shut down");
+            LOG.info("Lite MPI has shut down");
         } catch (IOException ex) {
-            throw new MPIException("error while closing socket", ex);
+            throw new MPIException("error occurred while closing socket", ex);
         }
     }
 }

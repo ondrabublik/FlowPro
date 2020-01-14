@@ -1,8 +1,6 @@
 package flowpro.core.solver;
 
 import flowpro.core.*;
-import fetcher.FetcherServer;
-import fetcher.ZipFile;
 import flowpro.api.Mat;
 import flowpro.core.parallel.*;
 import flowpro.api.Equation;
@@ -123,8 +121,11 @@ public class KSPSolver extends MasterSolver {
     @Override
     public Solution solve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
-        runFetcher(nDoms, par.masterIP, par.masterPort, par.parallelSolverType);
-        MPIMaster mpi = new MPIMaster(nDoms, par.masterPort);
+ 
+
+        IpAddressContainer ipAddresses = new IpAddressContainer();
+        runFetcher(nDoms, ipAddresses, par);
+        MPIMaster mpi = new MPIMaster(nDoms, ipAddresses, par.masterPort);
         StopWatch watch = new StopWatch();
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
@@ -293,12 +294,11 @@ public class KSPSolver extends MasterSolver {
         }
     }
 
-    private void runFetcher(int nNodes, String masterIP, int masterPort, String solverType) throws IOException {
-        FetcherServer fetcher = new FetcherServer();
-        String args = "slave " + masterIP + " " + masterPort + " " + solverType;
+    private void runFetcher(int nNodes, IpAddressContainer ipAddresses, Parameters par) throws IOException {
+        String args = "slave " + par.masterIP + " " + par.masterPort + " " + par.parallelSolverType;              
         ZipFile zip = new ZipFile("FlowPro.zip", "FlowPro.jar", args);
-        fetcher.initFetcher(zip, nNodes);
-        fetcher.start();
+        Fetcher fetcher = new Fetcher(nNodes, ipAddresses, 5555);
+        fetcher.fetch(zip);
     }
 
     @Override
@@ -393,15 +393,16 @@ public class KSPSolver extends MasterSolver {
     }
 
     public void saveResiduum(double residuum, double t, double CPU) {
+        String residuumFile = "residuum.txt";
         try {
             FileWriter fw;
-            fw = new FileWriter(simulationPath + "residuum.txt", true);
+            fw = new FileWriter(simulationPath, true);
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter out = new PrintWriter(bw);
             out.println(Double.toString(residuum) + " " + Double.toString(t) + " " + Double.toString(CPU));
             out.close();
-        } catch (Exception e) {
-            //exception handling left as an exercise for the reader
+        } catch (IOException ex) {
+            LOG.warn("cannot write into file {}: {}", residuumFile, ex.getMessage());
         }
     }
 }
