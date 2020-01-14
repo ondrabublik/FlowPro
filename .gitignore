@@ -1,11 +1,11 @@
 build
+certificate/*
 matlab/pclist.txt
 matlab/flowProPath.txt
 modules
 network/*
 simulations/*
 tasks
-testkeystore.ks
 log*
 *.tmp
 *.jar

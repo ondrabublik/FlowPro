@@ -124,10 +124,13 @@ public class SchwartzImplicitSolver extends MasterSolver {
         }
     }
 
+    @Override
     public Solution solve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
-        runFetcher(nDoms, par.masterIP, par.masterPort, par.parallelSolverType);
-        MPIMaster mpi = new MPIMaster(nDoms, par.masterPort);
+        
+        IpAddressContainer ipAddresses = new IpAddressContainer(par.pcFilterFile, Parameters.PC_LIST_FILE);
+        runFetcher(nDoms, ipAddresses, par);
+        MPIMaster mpi = new MPIMaster(nDoms, ipAddresses, par.masterPort);
         StopWatch watch = new StopWatch();
         StopWatch transferWatch = new StopWatch();
         tempWatch.start();
@@ -330,12 +333,11 @@ public class SchwartzImplicitSolver extends MasterSolver {
         }
     }
 
-    private void runFetcher(int nNodes, String masterIP, int masterPort, String solverType) throws IOException {
-        FetcherServer fetcher = new FetcherServer();
-        String args = "slave " + masterIP + " " + masterPort + " " + solverType;
-        ZipFile zip = new ZipFile("FlowPro.zip", "FlowPro.jar", args);
-        fetcher.initFetcher(zip, nNodes);
-        fetcher.start();
+    private void runFetcher(int nNodes, IpAddressContainer ipAddresses, Parameters par) throws IOException {
+        String args = "slave " + par.masterIP + " " + par.masterPort + " " + par.parallelSolverType;              
+        flowpro.core.parallel.ZipFile zip = new flowpro.core.parallel.ZipFile("FlowPro.zip", "FlowPro.jar", args);
+        Fetcher fetcher = new Fetcher(nNodes, ipAddresses, par.fetcherPort, par.publicKeyFile);
+        fetcher.fetch(zip);
     }
 
     public void saveData(Solution sol) throws IOException {

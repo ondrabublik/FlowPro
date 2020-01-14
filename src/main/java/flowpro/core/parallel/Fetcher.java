@@ -20,17 +20,23 @@ public class Fetcher {
     
     public static final int TIME_OUT = 1000;
 
-    private final int fetcherPort = 5555;
+    private final int fetcherPort;
     private final int nSlaves;
-    
     private final IpAddressContainer ipAddresses;
+    private final String publicKeyFileName;
     
-    public Fetcher(int nSlaves, IpAddressContainer ipAddresses, int fetcherPort) throws IOException {
+    public Fetcher(int nSlaves, IpAddressContainer ipAddresses, int fetcherPort, String publicKeyFileName) throws IOException {
         this.nSlaves = nSlaves;
         this.ipAddresses = ipAddresses;
+        this.fetcherPort = fetcherPort;
+        this.publicKeyFileName = publicKeyFileName;
         
         if (nSlaves > ipAddresses.size()) {
             throw new IOException("IP list contains less PC's than required");
+        }
+        
+        if (publicKeyFileName == null) {
+            throw new IOException("public key was not specified");
         }
     }
     
@@ -41,18 +47,19 @@ public class Fetcher {
 //        System.out.println("PC list:");
 //        List<String> pcList = loadPCList("matlab/pclist.txt", names2IPMap);
 //        System.out.println(pcList.toString());
+
         String masterIP = "127.0.0.1";
         String masterPort = "9001";
         String parallelSolverType = "test";
         String arguments = "slave " + masterIP + " " + masterPort + " " + parallelSolverType;              
         ZipFile zip = new ZipFile("FlowPro.zip", "FlowPro.jar", arguments);
-        IpAddressContainer ipAddresses = new IpAddressContainer();
-        Fetcher fetcher = new Fetcher(1, ipAddresses, 5555);
+        IpAddressContainer ipAddresses = new IpAddressContainer("matlab/pclist.txt", "network/pcNames.txt");
+        Fetcher fetcher = new Fetcher(1, ipAddresses, 5555, "testkeystore.ks");
         fetcher.fetch(zip);
     }
     
     private SSLSocket[] establishConnections() {
-        System.setProperty("javax.net.ssl.trustStore", "testkeystore.ks");
+        System.setProperty("javax.net.ssl.trustStore", publicKeyFileName);
         SSLSocketFactory socketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket[] sockets = new SSLSocket[nSlaves];
         

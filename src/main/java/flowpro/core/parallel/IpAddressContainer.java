@@ -15,14 +15,11 @@ import org.apache.commons.validator.routines.InetAddressValidator;
  */
 public class IpAddressContainer {
     
-    public static final String names2IPMapFileName = "network/pcNames.txt";
-    public static final String slaveListFileName = "matlab/pclist.txt";
-    
     private Map<String, String> names2IpMap;
     private Map<String, String> ip2NamesMap;
     private final List<String> ipList;
     
-    public IpAddressContainer() throws IOException {          
+    public IpAddressContainer(String slaveListFileName, String names2IPMapFileName) throws IOException {         
         loadNames2IPMap(names2IPMapFileName);
         ipList = IpAddressContainer.loadPCList(slaveListFileName, names2IpMap);
     }

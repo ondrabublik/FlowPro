@@ -122,8 +122,7 @@ public class KSPSolver extends MasterSolver {
     public Solution solve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
  
-
-        IpAddressContainer ipAddresses = new IpAddressContainer();
+        IpAddressContainer ipAddresses = new IpAddressContainer(par.pcFilterFile, Parameters.PC_LIST_FILE);
         runFetcher(nDoms, ipAddresses, par);
         MPIMaster mpi = new MPIMaster(nDoms, ipAddresses, par.masterPort);
         StopWatch watch = new StopWatch();
@@ -237,7 +236,7 @@ public class KSPSolver extends MasterSolver {
                 }
                 state.residuum = resid/domain.nElems;
                 if (state.residuum == 0) {
-                    LOG.error(" computation error ");
+                    LOG.error("computation error");
                     break;
                 }
 
@@ -297,7 +296,7 @@ public class KSPSolver extends MasterSolver {
     private void runFetcher(int nNodes, IpAddressContainer ipAddresses, Parameters par) throws IOException {
         String args = "slave " + par.masterIP + " " + par.masterPort + " " + par.parallelSolverType;              
         ZipFile zip = new ZipFile("FlowPro.zip", "FlowPro.jar", args);
-        Fetcher fetcher = new Fetcher(nNodes, ipAddresses, 5555);
+        Fetcher fetcher = new Fetcher(nNodes, ipAddresses, par.fetcherPort, par.publicKeyFile);
         fetcher.fetch(zip);
     }
 

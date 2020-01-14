@@ -14,6 +14,8 @@ import java.net.URL;
 public class Parameters implements Serializable {
 
     public static final String NETWORK_PARAM_FILE = "network/parameters.txt";
+    public static final String PC_LIST_FILE = "network/pcNames.txt";
+    
     public FlowProProperties props;
 
     public final double h = 1e-8;
@@ -70,6 +72,8 @@ public class Parameters implements Serializable {
     public final String masterIP;
     public final int masterPort;
     public final int fetcherPort;
+    public final String pcFilterFile;
+    public final String publicKeyFile;
 
     // solution monitor
     public String solutionMonitor;
@@ -265,10 +269,14 @@ public class Parameters implements Serializable {
                 masterIP = netProps.getString("ip");
                 masterPort = netProps.getInt("port");
                 fetcherPort = netProps.getInt("fetcherPort");
+                pcFilterFile = netProps.getString("pcFilterFile");
+                publicKeyFile = netProps.getString("publicKeyFile");
             } else {
                 masterIP = null;
                 masterPort = -1;
                 fetcherPort = -1;
+                pcFilterFile = null;
+                publicKeyFile = null;
             }
         } catch (IOException ex) {
             throw new IOException("file " + NETWORK_PARAM_FILE
