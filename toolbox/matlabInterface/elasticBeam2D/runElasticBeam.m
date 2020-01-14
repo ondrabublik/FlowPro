@@ -1,6 +1,7 @@
 function runElasticBeam
 
 % start flowpro
+args testElasticBeam3
 run
 
 javaaddpath(pwd);
