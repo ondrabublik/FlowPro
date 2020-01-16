@@ -24,6 +24,7 @@ public class MPIMaster {
     private Socket[] sockets;
     private ObjectOutputStream[] outStreams;
     private ObjectInputStream[] inStreams;
+    private final IpAddressContainer ipAddresses;
 
     // waiting messages from each slaves
     private final Map<Integer, MPIMessage>[] waitingMsgs;
@@ -33,10 +34,12 @@ public class MPIMaster {
      * 
      * @param nSlaves
      * @param masterPort
+     * @param ipAddressContainer
      * @throws MPIException 
      */
-    public MPIMaster(int nSlaves, int masterPort) throws MPIException {
+    public MPIMaster(int nSlaves, int masterPort, IpAddressContainer ipAddressContainer) throws MPIException {
         this.nSlaves = nSlaves;
+        this.ipAddresses = ipAddressContainer;
         sockets = new Socket[nSlaves];
         outStreams = new ObjectOutputStream[nSlaves];
         inStreams = new ObjectInputStream[nSlaves];
@@ -85,6 +88,7 @@ public class MPIMaster {
         LOG.info("Lite MPI has started and is about to connect to slaves");
 
         this.nSlaves = nSlaves;
+        this.ipAddresses = ipAddresses;
         
         try {
             int nAvailableSlaves = ipAddresses.size();
@@ -107,7 +111,7 @@ public class MPIMaster {
                 sockets[id].setKeepAlive(true);
 
                 String testString = sockets[id].getInetAddress().getHostAddress();
-
+                
                 LOG.debug("sending test string \'{}\'", testString);
                 /* sending the test message */
                 outStreams[id] = new ObjectOutputStream(new BufferedOutputStream(sockets[id].getOutputStream()));
@@ -144,7 +148,7 @@ public class MPIMaster {
 
         } catch (IOException ex) {
             throw new MPIException("error occurred while sending message to "
-                    + sockets[id].getInetAddress().getHostAddress(), ex);
+                    + ipAddresses.getNameByIp(sockets[id].getInetAddress().getHostAddress()), ex);
         }
     }
 
@@ -165,8 +169,8 @@ public class MPIMaster {
                 outStreams[i].flush();
 
             } catch (IOException ex) {
-                System.out.println("error occurred while sending message to "
-                        + sockets[i].getInetAddress().getHostAddress() + ex);
+                LOG.error("error occurred while sending message to "
+                        + ipAddresses.getNameByIp(sockets[i].getInetAddress().getHostAddress()) + ex);
             }
         }
     }
@@ -181,8 +185,8 @@ public class MPIMaster {
             for (int i = 0; i < nSlaves; ++i) {
                 ts[i].join();
             }
-        } catch (java.lang.InterruptedException e) {
-            System.out.println(e);
+        } catch (java.lang.InterruptedException ex) {
+            LOG.error("parallel");
         }
     }
 
@@ -195,7 +199,7 @@ public class MPIMaster {
 
             } catch (IOException ex) {
                 throw new MPIException("error occurred while sending message to "
-                        + sockets[i].getInetAddress().getHostAddress(), ex);
+                        + ipAddresses.getNameByIp(sockets[i].getInetAddress().getHostAddress()), ex);
             }
         }
     }
@@ -227,13 +231,13 @@ public class MPIMaster {
             if (msg instanceof MPIExceptionMessage) {
                 MPIExceptionMessage exMsg = (MPIExceptionMessage) msg;
                 throw new MPIException("exception thrown by "
-                        + sockets[id].getInetAddress().getHostAddress(), exMsg.getException());
+                        + ipAddresses.getNameByIp(sockets[id].getInetAddress().getHostAddress()), exMsg.getException());
             }
 
             return msg;
         } catch (IOException | ClassNotFoundException ex) {
             throw new MPIException("error occurred while receiveing message form "
-                    + sockets[id].getInetAddress().getHostAddress(), ex);
+                    + ipAddresses.getNameByIp(sockets[id].getInetAddress().getHostAddress()), ex);
         }
 
     }
@@ -291,7 +295,7 @@ public class MPIMaster {
                 outStreams[i].reset();
             } catch (IOException ex) {
                 throw new MPIException("error occurred while sending message to "
-                        + sockets[i].getInetAddress().getHostAddress(), ex);
+                        + ipAddresses.getNameByIp(sockets[i].getInetAddress().getHostAddress()), ex);
             }
         }
     }

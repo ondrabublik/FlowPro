@@ -32,13 +32,17 @@ public class IpAddressContainer {
         return ipList.get(id);
     }
     
+    public void removeIp(int id) {
+        ipList.remove(id);
+    }
+    
     public String getName(int id) {
         String ip = ipList.get(id);
         return ip2NamesMap.getOrDefault(ip, ip);
     }
     
     public String getNameByIp(String ip) {
-        return names2IpMap.getOrDefault(ip, ip);
+        return ip2NamesMap.getOrDefault(ip, ip);
     }
     
     private void loadNames2IPMap(String pcNameFile) throws IOException {

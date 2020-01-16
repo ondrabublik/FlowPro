@@ -1,5 +1,6 @@
 package litempi;
 
+import flowpro.core.parallel.IpAddressContainer;
 import java.io.*;
 import java.net.*;
 import org.slf4j.Logger;
@@ -40,11 +41,11 @@ public class MPISlave {
     
     public MPISlave(int slavePort) throws MPIException {
         try (ServerSocket listener = new ServerSocket(slavePort)) {
-            LOG.info("slave is waiting for a master to connect on port {}", slavePort);            
+            LOG.info("listening on port {}", slavePort);            
             socket = listener.accept();
+            LOG.info("established connection with {}", socket.getInetAddress().getHostAddress());
             socket.setTcpNoDelay(true);                        
-            socket.setKeepAlive(true);
-            LOG.info("slave has made a connection with {}:{}", socket.getInetAddress().getHostAddress(), socket.getPort());
+            socket.setKeepAlive(true);            
 
             /* receive the test message */
             in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
@@ -58,7 +59,7 @@ public class MPISlave {
             out.reset();
 
         } catch (IOException | ClassNotFoundException ex) {
-            throw new MPIException("error occurred while establishing connection with master on port " + slavePort, ex);            
+            throw new MPIException("error occurred while establishing connection with the master" + slavePort, ex);            
         }
     }
 

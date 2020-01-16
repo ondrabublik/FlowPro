@@ -63,18 +63,19 @@ public class Fetcher {
         SSLSocketFactory socketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket[] sockets = new SSLSocket[nSlaves];
         
-        int id, ipIdx;
-        for (id = 0, ipIdx = 0; id < nSlaves && ipIdx < ipAddresses.size(); id++, ipIdx++) {
+        int id;
+        for (id = 0; id < nSlaves && id < ipAddresses.size(); id++) {
             try {                                         
             
                 SSLSocket socket = (SSLSocket) socketFactory.createSocket();
                 socket.setTcpNoDelay(true);                              
-                socket.connect(new InetSocketAddress(ipAddresses.getIp(ipIdx), fetcherPort), TIME_OUT);                
+                socket.connect(new InetSocketAddress(ipAddresses.getIp(id), fetcherPort), TIME_OUT);                
                 sockets[id] = socket;
 
-                LOG.debug("{}/{} just connected to {}", id+1, nSlaves, ipAddresses.getName(ipIdx));                           
+                LOG.info("{}/{} {} is ready", id+1, nSlaves, ipAddresses.getName(id));                           
             } catch (IOException ex) {
-                LOG.info("{} could not be reached: {}", ipAddresses.getName(ipIdx), ex.getMessage());
+                LOG.info("{} could not be reached: {}", ipAddresses.getName(id), ex.getMessage());                
+                ipAddresses.removeIp(id);
                 --id;
             }
         }
@@ -104,15 +105,14 @@ public class Fetcher {
     
     public void fetch(ZipFile zipFile) throws IOException {
         
-        SSLSocket[] sockets = establishConnections();
-        LOG.info("connection with {} slave(s) has been successfully established", nSlaves);        
+        SSLSocket[] sockets = establishConnections();       
         
         try {
             for (int id = 0; id < nSlaves; id++) {
                 try (DataOutputStream out = new DataOutputStream(sockets[id].getOutputStream())) {
                     out.write(1);
                     fetchFile(zipFile, out);
-                    LOG.info("{}/{} zip file has been sent to {}", id+1, nSlaves, ipAddresses.getName(id));
+                    LOG.debug("{}/{} zip file has been sent to {}", id+1, nSlaves, ipAddresses.getName(id));
                 }
             }
             LOG.info("zip file has been sent to {} slave(s)", nSlaves);
