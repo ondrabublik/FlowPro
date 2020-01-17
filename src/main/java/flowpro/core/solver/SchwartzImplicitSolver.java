@@ -438,8 +438,8 @@ public class SchwartzImplicitSolver extends MasterSolver {
             PrintWriter out = new PrintWriter(bw);
             out.println(Double.toString(residuum) + " " + Double.toString(t) + " " + Double.toString(CPU));
             out.close();
-        } catch (Exception e) {
-            //exception handling left as an exercise for the reader
+        } catch (IOException ex) {
+            LOG.warn("cannot write into file {}: {}", "residuum.txt", ex.getMessage());
         }
     }
 }
