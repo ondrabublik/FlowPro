@@ -140,13 +140,9 @@ public class FlowProMain {
                     String masterIP = args[1];
                     int masterPort = Integer.parseInt(args[2]);
                     String parallelSolverType = args[3];
-                    try {
-                        slave = SlaveSolver.factory(parallelSolverType, masterIP, masterPort);
-                        LOG.info("mesh was received and initialised");
-                        slave.solve();
-                    } catch (IOException | MPIException ex) {
-                        LOG.error("", ex);
-                    }
+                    slave = SlaveSolver.factory(parallelSolverType, masterIP, masterPort);
+                    LOG.info("mesh was received and initialised");
+                    slave.solve();
                     break;
 //                    proxyThread.join();
 
@@ -171,7 +167,6 @@ public class FlowProMain {
                     break;
 
                 case "getparameters": // get all solver parameters
-                    try {
                         dgfem = new FlowProMain();
                         System.out.println();
                         System.out.println("FlowPro parameters:");
@@ -180,9 +175,6 @@ public class FlowProMain {
                         for (Field field : fields) {
                             System.out.println(field.getName() + ": " + field.getGenericType());
                         }
-                    } catch (Exception ex) {
-                        LOG.error(ex.getMessage());
-                    }
                     break;
 
                 default:
@@ -743,17 +735,15 @@ public class FlowProMain {
 
     public static URL[] getJarURLList(String s) throws IOException {
         URL[] u = null;
-        try {
-            File currentDir = new File(s); // current directory
-            ArrayList<URL> URLs = new ArrayList();
-            System.out.print("Found libraries: ");
-            addDirectoryContents(currentDir, URLs);
-            System.out.println();
-            u = new URL[URLs.size()];
-            URLs.toArray(u);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+
+        File currentDir = new File(s); // current directory
+        ArrayList<URL> URLs = new ArrayList();
+        System.out.print("Found libraries: ");
+        addDirectoryContents(currentDir, URLs);
+        System.out.println();
+        u = new URL[URLs.size()];
+        URLs.toArray(u);
+
         return u;
     }
 
