@@ -17,7 +17,7 @@ abstract public class SlaveSolver {
     abstract public void solve() throws MPIException, IOException;
     
     public static SlaveSolver factory(String parallelSolverType, String masterIP, int masterPort) throws IOException, MPIException {
-        switch (parallelSolverType.toLowerCase()) {                
+        switch (parallelSolverType.toLowerCase()) {
             case "schwartz":
                 return new SchwartzImplicitSolverSlave(masterIP, masterPort);
             case "ksp":

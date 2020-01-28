@@ -392,16 +392,15 @@ public class KSPSolver extends MasterSolver {
     }
 
     public void saveResiduum(double residuum, double t, double CPU) {
-        String residuumFile = "residuum.txt";
         try {
             FileWriter fw;
-            fw = new FileWriter(simulationPath, true);
+            fw = new FileWriter(simulationPath + "residuum.txt", true);
             BufferedWriter bw = new BufferedWriter(fw);
             PrintWriter out = new PrintWriter(bw);
             out.println(Double.toString(residuum) + " " + Double.toString(t) + " " + Double.toString(CPU));
             out.close();
         } catch (IOException ex) {
-            LOG.warn("cannot write into file {}: {}", residuumFile, ex.getMessage());
+            LOG.warn("cannot write into file {}: {}", "residuum.txt", ex.getMessage());
         }
     }
 }

@@ -28,7 +28,7 @@ new File("${projectDir}/modules").eachFileRecurse {file->
     if (file.isFile() && file.name.endsWith("jar")) {
         def File projectDir = new File("${projectDir}")
         def relPath = projectDir.toPath().relativize(file.getParentFile().toPath())
-        modules2manifest += relPath.toString().toLowerCase() + "/" + file.name + " "
+        modules2manifest += relPath.toString().toLowerCase().replaceAll("\\\\", "/") + "/" + file.name + " "
     }
 }
 
