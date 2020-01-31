@@ -124,7 +124,7 @@ public class KSPSolver extends MasterSolver {
  
         IpAddressContainer ipAddresses = new IpAddressContainer(par.pcFilterFile, Parameters.PC_LIST_FILE);
         runFetcher(nDoms, ipAddresses, par);
-        MPIMaster mpi = new MPIMaster(nDoms, ipAddresses, par.masterPort);
+        MPIMaster mpi = new MPIMaster(ipAddresses, par.slavePort);
         StopWatch watch = new StopWatch();
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
@@ -293,11 +293,18 @@ public class KSPSolver extends MasterSolver {
         }
     }
 
-    private void runFetcher(int nNodes, IpAddressContainer ipAddresses, Parameters par) throws IOException {
-        String args = "slave " + par.masterIP + " " + par.masterPort + " " + par.parallelSolverType;              
-        ZipFile zip = new ZipFile("FlowPro.zip", "FlowPro.jar", args);
-        Fetcher fetcher = new Fetcher(nNodes, ipAddresses, par.fetcherPort, par.publicKeyFile);
-        fetcher.fetch(zip);
+    private void runFetcher(int nSlaves, IpAddressContainer ipAddresses, Parameters par) throws IOException {
+        int maxSlavesPerNode = ipAddresses.maxSlavesPerNode();
+        String[] argArr = new String[maxSlavesPerNode];
+        for (int i = 0; i < maxSlavesPerNode; i++) {
+            argArr[i] = "slave " + (par.slavePort + i) + " " + par.parallelSolverType;
+        }              
+                  
+        AppInfo appInfo = new AppInfo("FlowPro.jar", argArr);
+        
+        File zippedApp = new File("FlowPro.zip");
+        Fetcher fetcher = new Fetcher(nSlaves, ipAddresses, par.fetcherPort, par.publicKeyFile);
+        fetcher.fetch(zippedApp, appInfo);
     }
 
     @Override

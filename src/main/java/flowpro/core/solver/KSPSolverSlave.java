@@ -46,12 +46,11 @@ public class KSPSolverSlave extends SlaveSolver {
     /**
      * Constructor for slave.
      *
-     * @param masterIP
      * @param slavePort
      * @throws IOException
      * @throws MPIException
      */
-    public KSPSolverSlave(String masterIP, int slavePort) throws IOException, MPIException {
+    public KSPSolverSlave(int slavePort) throws IOException, MPIException {
         mpiSlave = new MPISlave(slavePort);
         MPIMessage msg = mpiSlave.receive();
 

@@ -49,13 +49,12 @@ public class SchwartzImplicitSolverSlave extends SlaveSolver {
     /**
      * Constructor for slave.
      *
-     * @param masterIP
-     * @param masterPort
+     * @param slavePort
      * @throws IOException
      * @throws MPIException
      */
-    public SchwartzImplicitSolverSlave(String masterIP, int masterPort) throws IOException, MPIException {
-        mpiSlave = new MPISlave(masterIP, masterPort);
+    public SchwartzImplicitSolverSlave(int slavePort) throws IOException, MPIException {
+        mpiSlave = new MPISlave(slavePort);
         MPIMessage msg = mpiSlave.receive();
 
         if (msg.tag != Tag.INIT_DATA) {

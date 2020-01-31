@@ -79,24 +79,18 @@ public class MPIMaster {
     /**
      * Connects to slaves (new master-slave mode).
      * 
-     * @param nSlaves
      * @param ipAddresses
-     * @param port
+     * @param startPort
      * @throws MPIException 
      */
-    public MPIMaster(int nSlaves, IpAddressContainer ipAddresses, int port) throws MPIException {               
+    public MPIMaster(IpAddressContainer ipAddresses, int startPort) throws MPIException {               
         LOG.info("Lite MPI has started and is about to connect to slaves");
-
-        this.nSlaves = nSlaves;
+        
         this.ipAddresses = ipAddresses;
+        InetSocketAddress[] inetAddresses = ipAddresses.getInetAddresses(startPort);
+        this.nSlaves = inetAddresses.length;
         
         try {
-            int nAvailableSlaves = ipAddresses.size();
-            
-            if (nSlaves > nAvailableSlaves) {
-                throw new MPIException("IP list contains less PC's than required");
-            }
-            
             sockets = new Socket[nSlaves];
             outStreams = new ObjectOutputStream[nSlaves];
             inStreams = new ObjectInputStream[nSlaves];
@@ -104,9 +98,10 @@ public class MPIMaster {
             for (int id = 0; id < nSlaves; id++) {
                 sockets[id] = new Socket();
 
-                LOG.debug("master is going to attempt to connect to {} on port {}", ipAddresses.getName(id), port);
-                sockets[id].connect(new InetSocketAddress(ipAddresses.getIp(id), port), TIME_OUT);
-                LOG.debug("master has just connected to {}", ipAddresses.getName(id));
+                InetSocketAddress addr = inetAddresses[id];
+                LOG.debug("master is going to attempt to connect to {} on port {}", addr.getAddress(), addr.getPort());
+                sockets[id].connect(new InetSocketAddress(addr.getAddress(), addr.getPort()), TIME_OUT);
+                LOG.debug("master has just connected to {}", addr.getAddress());
                 sockets[id].setTcpNoDelay(true);
                 sockets[id].setKeepAlive(true);
 
@@ -128,10 +123,10 @@ public class MPIMaster {
                     throw new MPIException("test strings do not match (" + testString + " vs. " + testStringEcho + " )");
                 }
                 
-                LOG.info("{}/{} slave {} is ready", id + 1, nSlaves, ipAddresses.getName(id));
+                LOG.info("{}/{} slave {} is ready", id + 1, nSlaves, addr.getAddress());
             }
         } catch (IOException | ClassNotFoundException ex) {
-            throw new MPIException("error while connecting to slaves", ex);
+            throw new MPIException("error while connecting to slaves " + ex.getMessage(), ex);
         }
 
         waitingMsgs = new Map[nSlaves];

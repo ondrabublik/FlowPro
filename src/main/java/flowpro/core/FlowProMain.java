@@ -134,13 +134,12 @@ public class FlowProMain {
                     break;
 
                 case "slave":
-                    if (args.length < 4) {
+                    if (args.length < 3) {
                         throw new IllegalArgumentException("missing arguments after slave");
                     }
-                    String masterIP = args[1];
-                    int masterPort = Integer.parseInt(args[2]);
-                    String parallelSolverType = args[3];
-                    slave = SlaveSolver.factory(parallelSolverType, masterIP, masterPort);
+                    int slavePort = Integer.parseInt(args[1]);
+                    String parallelSolverType = args[2];
+                    slave = SlaveSolver.factory(parallelSolverType, slavePort);
                     LOG.info("mesh was received and initialised");
                     slave.solve();
                     break;

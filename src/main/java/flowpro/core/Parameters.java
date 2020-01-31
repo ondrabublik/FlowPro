@@ -69,8 +69,7 @@ public class Parameters implements Serializable {
     public final int overlap;
     public final int schwarzIters;
     public final double schwarzTol;
-    public final String masterIP;
-    public final int masterPort;
+    public final int slavePort;
     public final int fetcherPort;
     public final String pcFilterFile;
     public final String publicKeyFile;
@@ -266,14 +265,12 @@ public class Parameters implements Serializable {
             if (parallelMode) {
                 FlowProProperties netProps = new FlowProProperties();
                 netProps.load(new FileInputStream(NETWORK_PARAM_FILE));
-                masterIP = netProps.getString("ip");
-                masterPort = netProps.getInt("port");
+                slavePort = netProps.getInt("port");
                 fetcherPort = netProps.getInt("fetcherPort");
                 pcFilterFile = netProps.getString("pcFilterFile");
                 publicKeyFile = netProps.getString("publicKeyFile");
             } else {
-                masterIP = null;
-                masterPort = -1;
+                slavePort = -1;
                 fetcherPort = -1;
                 pcFilterFile = null;
                 publicKeyFile = null;

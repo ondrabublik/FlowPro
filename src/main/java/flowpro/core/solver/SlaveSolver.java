@@ -16,12 +16,12 @@ abstract public class SlaveSolver {
 
     abstract public void solve() throws MPIException, IOException;
     
-    public static SlaveSolver factory(String parallelSolverType, String masterIP, int masterPort) throws IOException, MPIException {
+    public static SlaveSolver factory(String parallelSolverType, int slavePort) throws IOException, MPIException {
         switch (parallelSolverType.toLowerCase()) {
             case "schwartz":
-                return new SchwartzImplicitSolverSlave(masterIP, masterPort);
+                return new SchwartzImplicitSolverSlave(slavePort);
             case "ksp":
-                return new KSPSolverSlave(masterIP, masterPort);
+                return new KSPSolverSlave(slavePort);
             default:
                 throw new IOException("unknown slave solver " + parallelSolverType);
         }
