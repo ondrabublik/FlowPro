@@ -38,6 +38,7 @@ public class KSPSolver extends MasterSolver {
     private final Domain domain;
     private final Object lock;
     private final String simulationPath;
+    private final MPIMaster mpi;
 
     // slave and loner parameters
     private final Mesh mesh;
@@ -46,6 +47,7 @@ public class KSPSolver extends MasterSolver {
     /**
      * Constructor for master and local.
      *
+     * @param mpi
      * @param simulationPath
      * @param meshes
      * @param dyn
@@ -55,8 +57,9 @@ public class KSPSolver extends MasterSolver {
      * @param domain
      * @param lock
      */
-    public KSPSolver(String simulationPath, Mesh[] meshes, Dynamics dyn,
+    public KSPSolver(MPIMaster mpi, String simulationPath, Mesh[] meshes, Dynamics dyn,
             Equation eqn, Parameters par, State state, Domain domain, Object lock) {
+        this.mpi = mpi;
         this.simulationPath = simulationPath;
         this.meshes = meshes;
         this.dyn = dyn;
@@ -122,9 +125,6 @@ public class KSPSolver extends MasterSolver {
     public Solution solve() throws MPIException, IOException {
         int nDoms = domain.nDoms;
  
-        IpAddressContainer ipAddresses = new IpAddressContainer(par.pcFilterFile, Parameters.PC_LIST_FILE);
-        runFetcher(nDoms, ipAddresses, par);
-        MPIMaster mpi = new MPIMaster(ipAddresses, par.slavePort);
         StopWatch watch = new StopWatch();
         double dto = 1;
         CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
@@ -291,20 +291,6 @@ public class KSPSolver extends MasterSolver {
             t += dt;
             System.out.println(step + "-th iteration t = " + t);
         }
-    }
-
-    private void runFetcher(int nSlaves, IpAddressContainer ipAddresses, Parameters par) throws IOException {
-        int maxSlavesPerNode = ipAddresses.maxSlavesPerNode();
-        String[] argArr = new String[maxSlavesPerNode];
-        for (int i = 0; i < maxSlavesPerNode; i++) {
-            argArr[i] = "slave " + (par.slavePort + i) + " " + par.parallelSolverType;
-        }              
-                  
-        AppInfo appInfo = new AppInfo("FlowPro.jar", argArr);
-        
-        File zippedApp = new File("FlowPro.zip");
-        Fetcher fetcher = new Fetcher(nSlaves, ipAddresses, par.fetcherPort, par.publicKeyFile);
-        fetcher.fetch(zippedApp, appInfo);
     }
 
     @Override
