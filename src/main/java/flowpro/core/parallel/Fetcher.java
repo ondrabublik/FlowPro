@@ -9,8 +9,10 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,12 +28,15 @@ public class Fetcher {
 
     private final int fetcherPort;
     private final int nSlaves;
-    private final IpAddressContainer ipAddresses;
+    private final Map<String, String> ip2NodeNameMap;
     private final String publicKeyFileName;
+    private SSLSocket[] sockets;
+    private List<MutablePair<String, Integer>> reachedNodes;
     
-    public Fetcher(int nSlaves, IpAddressContainer ipAddresses, int fetcherPort, String publicKeyFileName) throws IOException {
+    public Fetcher(int nSlaves, Map<String, String> ip2NodeNameMap,
+            int fetcherPort, String publicKeyFileName) throws IOException {
         this.nSlaves = nSlaves;
-        this.ipAddresses = ipAddresses;
+        this.ip2NodeNameMap = ip2NodeNameMap;
         this.fetcherPort = fetcherPort;
         this.publicKeyFileName = publicKeyFileName;        
         
@@ -58,28 +63,34 @@ public class Fetcher {
 //        fetcher.fetch(zip);
 //    }
     
-    private SSLSocket[] establishConnections() {
+    public List<MutablePair<String, Integer>> establishConnections(List<MutablePair<String, Integer>> nodeList) {
         System.setProperty("javax.net.ssl.trustStore", publicKeyFileName);
         SSLSocketFactory socketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        List<SSLSocket> sockets = new ArrayList<>();
-//        SSLSocket[] sockets = new SSLSocket[nSlaves];
+        List<SSLSocket> socketList = new ArrayList<>();
+        reachedNodes = new ArrayList<>();
         
         int id = 0;
         int nReachedSlaves = 0;
-        while (nReachedSlaves < nSlaves && id < ipAddresses.size()) {
+        while (nReachedSlaves < nSlaves && id < nodeList.size()) {
+            String ip = nodeList.get(id).getKey();
             try {                                         
-            
                 SSLSocket socket = (SSLSocket) socketFactory.createSocket();
-                socket.setTcpNoDelay(true);                              
-                socket.connect(new InetSocketAddress(ipAddresses.getIp(id), fetcherPort), TIME_OUT);                
-                sockets.add(socket);
-                nReachedSlaves += ipAddresses.getNumberOfSlaves(id);
+                socket.setTcpNoDelay(true);                        
+                socket.connect(new InetSocketAddress(ip, fetcherPort), TIME_OUT);
+                socketList.add(socket);
                 
-                LOG.info("{}/{} {} is ready", id+1, nSlaves, ipAddresses.getName(id));
+                MutablePair<String, Integer> node = nodeList.get(id);
+                
+                nReachedSlaves += node.getValue();
+                
+                int nLocalSlaves = Math.min(node.getValue() - (nReachedSlaves - nSlaves), node.getValue());
+                reachedNodes.add(new MutablePair<>(node.getKey(), nLocalSlaves));
+                
+                LOG.info("{}. node {} with {} slave(s) is ready", id+1,
+                        ip2NodeNameMap.getOrDefault(ip, ip), reachedNodes.get(id).getValue());
                 id++;
             } catch (IOException ex) {
-                LOG.info("{} could not be reached: {}", ipAddresses.getName(id), ex.getMessage());                
-                ipAddresses.removeIp(id);
+                LOG.info("{} could not be reached: {}", ip2NodeNameMap.getOrDefault(ip, ip), ex.getMessage());                
             }
         }
         
@@ -87,7 +98,9 @@ public class Fetcher {
             throw new RuntimeException("not enough available slaves");            
         }
         
-        return sockets.toArray(new SSLSocket[0]);
+        sockets = socketList.toArray(new SSLSocket[0]);
+        
+        return reachedNodes;
     }
     
     private void fetchFile(File zipFile, OutputStream out) throws IOException {
@@ -101,22 +114,18 @@ public class Fetcher {
         }
     }
     
-    public void fetch(File zipFile, AppInfo appInfo) throws IOException {
-        
-        SSLSocket[] sockets = establishConnections();        
+    public void fetch(File zipFile, AppInfo appInfo) throws IOException {              
         
         try {
-            int slaveNum = nSlaves;
             for (int id = 0; id < sockets.length; id++) {
+                MutablePair<String, Integer> node = reachedNodes.get(id);
                 try (ObjectOutputStream out = new ObjectOutputStream(sockets[id].getOutputStream())) {
                     out.write(1);
-                    int nSlavesPerNode = ipAddresses.getNumberOfSlaves(id);
-                    appInfo.nSlaves = Math.min(nSlavesPerNode, slaveNum);
-                    slaveNum -= nSlavesPerNode;
+                    appInfo.nSlaves = node.getValue();
                     out.writeUnshared(appInfo);
                     fetchFile(zipFile, out);
                     out.flush();
-                    LOG.debug("{}/{} zip file has been sent to {}", id+1, nSlaves, ipAddresses.getName(id));
+                    LOG.debug("{}/{} zip file has been sent to {}", id+1, nSlaves, node.getKey());
                 }
             }
             LOG.info("zip file has been sent to {} slave(s)", nSlaves);

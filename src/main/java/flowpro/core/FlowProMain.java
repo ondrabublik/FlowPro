@@ -188,7 +188,7 @@ public class FlowProMain {
         }
     }
 
-    private MasterSolver solverFactory(boolean optimalisation, int nDomains) throws IOException {
+    private MasterSolver solverFactory(boolean optimalisation, int nDomains) throws IOException, MPIException {
         boolean parallelMode = false;
         if (nDomains > 0) {
             parallelMode = true;

@@ -1,6 +1,6 @@
 package litempi;
 
-import flowpro.core.parallel.IpAddressContainer;
+import flowpro.core.parallel.IpAddressReader;
 import java.io.*;
 import java.net.*;
 import org.slf4j.Logger;

@@ -1,6 +1,5 @@
 package litempi;
 
-import flowpro.core.parallel.IpAddressContainer;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -24,22 +23,23 @@ public class MPIMaster {
     private Socket[] sockets;
     private ObjectOutputStream[] outStreams;
     private ObjectInputStream[] inStreams;
-    private final IpAddressContainer ipAddresses;
 
     // waiting messages from each slaves
     private final Map<Integer, MPIMessage>[] waitingMsgs;
+    private final Map<String, String> ip2nodeNameMap;
 
     /**
      * Waits for slaves to connect (old master-server mode).
      * 
      * @param nSlaves
      * @param masterPort
-     * @param ipAddressContainer
+     * @param ip2nodeNameMap
      * @throws MPIException 
      */
-    public MPIMaster(int nSlaves, int masterPort, IpAddressContainer ipAddressContainer) throws MPIException {
+    public MPIMaster(int nSlaves, int masterPort, Map<String, String> ip2nodeNameMap) throws MPIException {
         this.nSlaves = nSlaves;
-        this.ipAddresses = ipAddressContainer;
+        this.ip2nodeNameMap = ip2nodeNameMap;
+        
         sockets = new Socket[nSlaves];
         outStreams = new ObjectOutputStream[nSlaves];
         inStreams = new ObjectInputStream[nSlaves];
@@ -79,16 +79,16 @@ public class MPIMaster {
     /**
      * Connects to slaves (new master-slave mode).
      * 
-     * @param ipAddresses
+     * @param inetAddresses
      * @param startPort
+     * @param ip2nodeNameMap
      * @throws MPIException 
      */
-    public MPIMaster(IpAddressContainer ipAddresses, int startPort) throws MPIException {               
+    public MPIMaster(InetSocketAddress[] inetAddresses, int startPort, Map<String, String> ip2nodeNameMap) throws MPIException {               
         LOG.info("Lite MPI has started and is about to connect to slaves");
         
-        this.ipAddresses = ipAddresses;
-        InetSocketAddress[] inetAddresses = ipAddresses.getInetAddresses(startPort);
         this.nSlaves = inetAddresses.length;
+        this.ip2nodeNameMap = ip2nodeNameMap;
         
         try {
             sockets = new Socket[nSlaves];
@@ -99,9 +99,10 @@ public class MPIMaster {
                 sockets[id] = new Socket();
 
                 InetSocketAddress addr = inetAddresses[id];
-                LOG.debug("master is going to attempt to connect to {} on port {}", addr.getAddress(), addr.getPort());
+                String ip = addr.getAddress().getHostAddress();
+                LOG.debug("master is going to attempt to connect to {} on port {}", ip2nodeNameMap.getOrDefault(ip, ip), addr.getPort());
                 sockets[id].connect(new InetSocketAddress(addr.getAddress(), addr.getPort()), TIME_OUT);
-                LOG.debug("master has just connected to {}", addr.getAddress());
+                LOG.debug("master has just connected to {}", ip2nodeNameMap.getOrDefault(ip, ip));
                 sockets[id].setTcpNoDelay(true);
                 sockets[id].setKeepAlive(true);
 
@@ -123,7 +124,7 @@ public class MPIMaster {
                     throw new MPIException("test strings do not match (" + testString + " vs. " + testStringEcho + " )");
                 }
                 
-                LOG.info("{}/{} slave {} is ready", id + 1, nSlaves, addr.getAddress());
+                LOG.info("{}/{} slave {}:{} is ready", id + 1, nSlaves, ip2nodeNameMap.getOrDefault(ip, ip), addr.getPort());
             }
         } catch (IOException | ClassNotFoundException ex) {
             throw new MPIException("error while connecting to slaves " + ex.getMessage(), ex);
@@ -132,7 +133,7 @@ public class MPIMaster {
         waitingMsgs = new Map[nSlaves];
         for (int i = 0; i < nSlaves; ++i) {
             waitingMsgs[i] = new HashMap<>();
-        }
+        }        
     }
 
     public void send(MPIMessage msg, int id) throws MPIException {
@@ -142,8 +143,9 @@ public class MPIMaster {
             outStreams[id].flush();
 
         } catch (IOException ex) {
+            String ip = sockets[id].getInetAddress().getHostAddress();
             throw new MPIException("error occurred while sending message to "
-                    + ipAddresses.getNameByIp(sockets[id].getInetAddress().getHostAddress()), ex);
+                    + ip2nodeNameMap.getOrDefault(ip, ip), ex);
         }
     }
 
@@ -164,8 +166,9 @@ public class MPIMaster {
                 outStreams[i].flush();
 
             } catch (IOException ex) {
+                String ip = sockets[i].getInetAddress().getHostAddress();
                 LOG.error("error occurred while sending message to "
-                        + ipAddresses.getNameByIp(sockets[i].getInetAddress().getHostAddress()) + ex);
+                        + ip2nodeNameMap.getOrDefault(ip, ip) + ex);
             }
         }
     }
@@ -193,8 +196,9 @@ public class MPIMaster {
                 outStreams[i].flush();
 
             } catch (IOException ex) {
+                String ip = sockets[i].getInetAddress().getHostAddress();
                 throw new MPIException("error occurred while sending message to "
-                        + ipAddresses.getNameByIp(sockets[i].getInetAddress().getHostAddress()), ex);
+                        + ip2nodeNameMap.getOrDefault(ip, ip), ex);
             }
         }
     }
@@ -225,14 +229,16 @@ public class MPIMaster {
 
             if (msg instanceof MPIExceptionMessage) {
                 MPIExceptionMessage exMsg = (MPIExceptionMessage) msg;
+                String ip = sockets[id].getInetAddress().getHostAddress();
                 throw new MPIException("exception thrown by "
-                        + ipAddresses.getNameByIp(sockets[id].getInetAddress().getHostAddress()), exMsg.getException());
+                        + ip2nodeNameMap.getOrDefault(ip, ip), exMsg.getException());
             }
 
             return msg;
         } catch (IOException | ClassNotFoundException ex) {
+            String ip = sockets[id].getInetAddress().getHostAddress();
             throw new MPIException("error occurred while receiveing message form "
-                    + ipAddresses.getNameByIp(sockets[id].getInetAddress().getHostAddress()), ex);
+                    + ip2nodeNameMap.getOrDefault(ip, ip), ex);
         }
 
     }
@@ -289,8 +295,9 @@ public class MPIMaster {
                 outStreams[i].flush();
                 outStreams[i].reset();
             } catch (IOException ex) {
+                String ip = sockets[i].getInetAddress().getHostAddress();
                 throw new MPIException("error occurred while sending message to "
-                        + ipAddresses.getNameByIp(sockets[i].getInetAddress().getHostAddress()), ex);
+                        + ip2nodeNameMap.getOrDefault(ip, ip), ex);
             }
         }
     }
