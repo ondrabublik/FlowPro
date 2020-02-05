@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.MutablePair;
-import org.apache.commons.validator.routines.InetAddressValidator;
 
 /**
  *
@@ -62,7 +61,6 @@ public class IpAddressReader {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(ipListFile))) {
             String line;
-            InetAddressValidator validator = InetAddressValidator.getInstance();
             for (int lineIdx = 0; (line = reader.readLine()) != null; lineIdx++) {
                 String[] words = line.trim().split("\\s+");
 
@@ -87,11 +85,8 @@ public class IpAddressReader {
                 if (names2IPMap.containsKey(pcName)) {
                     ip = names2IPMap.get(pcName);
 
-                } else if (validator.isValid(pcName)) {
-                    ip = pcName;
                 } else {
-                    throw new IOException("error while reading " + ipListFile
-                            + ": invalid IP address or unknown PC name \'" + pcName + "\'");
+                    ip = pcName;
                 }
                 ipList.add(new MutablePair(ip, nSlavesPerNode));
             }
