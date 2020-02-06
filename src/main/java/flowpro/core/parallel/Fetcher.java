@@ -69,26 +69,26 @@ public class Fetcher {
         List<SSLSocket> socketList = new ArrayList<>();
         reachedNodes = new ArrayList<>();
         
-        int id = 0;
+        int reachedNodesIdx = 0;
         int nReachedSlaves = 0;
-        while (nReachedSlaves < nSlaves && id < nodeList.size()) {
-            String ip = nodeList.get(id).getKey();
+        for (int i = 0; nReachedSlaves < nSlaves && i < nodeList.size(); i++) {
+            String ip = nodeList.get(i).getKey();
             try {                                         
                 SSLSocket socket = (SSLSocket) socketFactory.createSocket();
                 socket.setTcpNoDelay(true);                        
                 socket.connect(new InetSocketAddress(ip, fetcherPort), TIME_OUT);
                 socketList.add(socket);
                 
-                MutablePair<String, Integer> node = nodeList.get(id);
+                MutablePair<String, Integer> node = nodeList.get(i);
                 
                 nReachedSlaves += node.getValue();
                 
                 int nLocalSlaves = Math.min(node.getValue() - (nReachedSlaves - nSlaves), node.getValue());
                 reachedNodes.add(new MutablePair<>(node.getKey(), nLocalSlaves));
                 
-                LOG.info("{}. node {} with {} slave(s) is ready", id+1,
-                        ip2NodeNameMap.getOrDefault(ip, ip), reachedNodes.get(id).getValue());
-                id++;
+                LOG.info("{}. node {} with {} slave(s) is ready", reachedNodesIdx+1,
+                        ip2NodeNameMap.getOrDefault(ip, ip), reachedNodes.get(reachedNodesIdx).getValue());
+                reachedNodesIdx++;
             } catch (IOException ex) {
                 LOG.info("{} could not be reached: {}", ip2NodeNameMap.getOrDefault(ip, ip), ex.getMessage());                
             }
