@@ -122,6 +122,7 @@ public class Fetcher {
                 try (ObjectOutputStream out = new ObjectOutputStream(sockets[id].getOutputStream())) {
                     out.write(1);
                     appInfo.nSlaves = node.getValue();
+                    appInfo.appName += id;
                     out.writeUnshared(appInfo);
                     fetchFile(zipFile, out);
                     out.flush();

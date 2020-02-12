@@ -33,6 +33,8 @@ import org.apache.commons.lang3.tuple.MutablePair;
  * @author obublik
  */
 abstract public class MasterSolver {
+    
+    public static final String APP_NAME = "app";
 
     abstract public Solution solve() throws MPIException, IOException;
 
@@ -58,7 +60,7 @@ abstract public class MasterSolver {
             for (int i = 0; i < maxSlavesPerNode; i++) {
                 argArr[i] = "slave " + (par.slavePort + i) + " " + par.parallelSolverType;
             }
-            AppInfo appInfo = new AppInfo("FlowPro.jar", argArr);
+            AppInfo appInfo = new AppInfo("FlowPro.jar", argArr, "app_");
         
             File zippedApp = new File("FlowPro.zip");
             Fetcher fetcher = new Fetcher(nSlaves, ip2nodeNameMap, par.fetcherPort, par.publicKeyFile);
