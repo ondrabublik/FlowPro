@@ -5,9 +5,11 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -101,7 +103,20 @@ public class MPIMaster {
                 InetSocketAddress addr = inetAddresses[id];
                 String ip = addr.getAddress().getHostAddress();
                 LOG.debug("master is going to attempt to connect to {} on port {}", ip2nodeNameMap.getOrDefault(ip, ip), addr.getPort());
-                sockets[id].connect(new InetSocketAddress(addr.getAddress(), addr.getPort()), TIME_OUT);
+                
+                for (int i = 0; i < 10; i++) {
+                    try {                
+                        sockets[id].connect(new InetSocketAddress(addr.getAddress(), addr.getPort()), TIME_OUT);
+                        break;
+                    } catch (SocketException ex) {
+                        LOG.warn("socket exception has occured - master is going to try to connect againg in 1 second");
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException exc) {
+                            LOG.warn("thread was interrupted");
+                        }
+                    }
+                }
                 LOG.debug("master has just connected to {}", ip2nodeNameMap.getOrDefault(ip, ip));
                 sockets[id].setTcpNoDelay(true);
                 sockets[id].setKeepAlive(true);
@@ -127,7 +142,7 @@ public class MPIMaster {
                 LOG.info("{}/{} slave {}:{} is ready", id + 1, nSlaves, ip2nodeNameMap.getOrDefault(ip, ip), addr.getPort());
             }
         } catch (IOException | ClassNotFoundException ex) {
-            throw new MPIException("error while connecting to slaves " + ex.getMessage(), ex);
+            throw new MPIException("error while connecting to slaves: " + ex.getMessage(), ex);
         }
 
         waitingMsgs = new Map[nSlaves];
