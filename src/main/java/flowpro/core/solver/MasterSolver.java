@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import litempi.MPIException;
 import litempi.MPIMaster;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -50,8 +49,8 @@ abstract public class MasterSolver {
             Map<String, String> ip2nodeNameMap = ipAddressReader.getIp2NodeNameMap();
 
             Comparator<MutablePair<String, Integer>> comparator = (n1, n2) -> {
-                if (Objects.equals(n1.getValue(), n2.getValue())) return 0;
-                else if (Objects.equals(n1.getValue(), n2.getValue())) return 1;
+                if (n1.getValue() == n2.getValue()) return 0;
+                else if (n1.getValue() > n2.getValue()) return 1;
                 else return -1;
             };
             int maxSlavesPerNode = Collections.max(nodeList, comparator).getValue();
