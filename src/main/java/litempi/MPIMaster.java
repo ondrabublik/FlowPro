@@ -98,14 +98,13 @@ public class MPIMaster {
             inStreams = new ObjectInputStream[nSlaves];
             
             for (int id = 0; id < nSlaves; id++) {
-                sockets[id] = new Socket();
-
                 InetSocketAddress addr = inetAddresses[id];
                 String ip = addr.getAddress().getHostAddress();
                 LOG.debug("master is going to attempt to connect to {} on port {}", ip2nodeNameMap.getOrDefault(ip, ip), addr.getPort());
                 
-                for (int i = 0; i < 10; i++) {
-                    try {                
+                while (true) {
+                    try {
+                        sockets[id] = new Socket();
                         sockets[id].connect(new InetSocketAddress(addr.getAddress(), addr.getPort()), TIME_OUT);
                         break;
                     } catch (SocketException ex) {
