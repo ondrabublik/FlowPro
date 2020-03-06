@@ -15,7 +15,7 @@ public class Parameters implements Serializable {
 
     public static final String NETWORK_PARAM_FILE = "network/parameters.txt";
     public static final String PC_LIST_FILE = "network/pcNames.txt";
-    
+
     public FlowProProperties props;
 
     public final double h = 1e-8;
@@ -37,14 +37,14 @@ public class Parameters implements Serializable {
     public final int newtonIters;   // pocet vnitrnich iteraci    
     public final double newtonIterTol;
     public final double meshScale; // mesh scale
-    
+
     // transformation object
     public DomainTransformationObject domainTransformationObject;
-    
+
     // integration rules
     public int volumeQuardatureOrder;
     public int faceQuardatureOrder;
-    
+
     // solver type
     public String linearSolver;
     public String preconditioner;
@@ -54,6 +54,7 @@ public class Parameters implements Serializable {
     public String spatialMethod;
     public String timeMethod;
     public String parallelSolverType;
+    public String parallelPreconditioner;
 
     // dynamics parameters
     public boolean movingMesh;
@@ -63,7 +64,7 @@ public class Parameters implements Serializable {
     // dynamics model
     public String dynamicsModel;
     public String meshDeformationType;
-    
+
     /* parallel mode */
     public final boolean parallelMode;
     public final int overlap;
@@ -78,10 +79,10 @@ public class Parameters implements Serializable {
     public String solutionMonitor;
     public boolean solutionMonitorOn;
     public boolean solutionAverage; // solution average in elementData
-    
+
     // external field
     public boolean externalField;
-    
+
     public Parameters(String parameterFilePath, boolean parallelMode, URL[] jarURLList) throws IOException {
         try {
             this.parallelMode = parallelMode;
@@ -96,13 +97,13 @@ public class Parameters implements Serializable {
             } else {
                 residuum = -1.0;
             }
-            
+
             if (props.containsKey("meshScale")) {
                 meshScale = props.getDouble("meshScale");
             } else {
                 meshScale = 1;
             }
-            
+
             if (props.containsKey("tEnd")) {
                 tEnd = props.getDouble("tEnd");
             } else {
@@ -124,86 +125,103 @@ public class Parameters implements Serializable {
             if (props.containsKey("spatialMethod")) {
                 spatialMethod = props.getString("spatialMethod");
             } else {
-                spatialMethod = "DG";
+                flowpro.core.Mesh.SpatialMethodType.help();
+                throw new IOException("parameter spatialMethod must by defined");
             }
-            
+
             if (props.containsKey("order")) {
                 order = props.getInt("order");
             } else {
                 order = 1;
             }
-            
+
             if (props.containsKey("timeOrder")) {
                 timeOrder = props.getInt("timeOrder");
             } else {
                 timeOrder = 1;
             }
-            
+
             if (props.containsKey("timeMethod")) {
                 timeMethod = props.getString("timeMethod");
             } else {
-                timeMethod = "BDF";
+                flowpro.core.element.Element.TimeIntegrationElementType.help();
+                throw new IOException("parameter timeMethod must by defined");
             }
-            
+
             volumeQuardatureOrder = order;
             if (props.containsKey("volumeQuardatureOrder")) {
                 volumeQuardatureOrder = props.getInt("volumeQuardatureOrder");
             }
-            
+
             faceQuardatureOrder = order;
             if (props.containsKey("faceQuardatureOrder")) {
                 faceQuardatureOrder = props.getInt("faceQuardatureOrder");
             }
-            
+
             cfl = props.getDouble("CFL");
-            if(cfl == -1){
+            if (cfl == -1) {
                 varyCFL = true;
                 cfl = 1;
             }
-            
+
             nThreads = props.getInt("threads");
             newtonIters = props.getInt("newtonIters");
-            
+
             if (props.containsKey("newtonIterTol")) {
                 newtonIterTol = props.getDouble("newtonIterTol");
             } else {
                 newtonIterTol = 1e-4;
             }
-            
+
             // domain transformation object
             domainTransformationObject = null;
             if (props.containsKey("domainTransformationObject")) {
                 domainTransformationObject = (new DomainTransformationObjectFactory()).getDomainTransformationObject(parameterFilePath, jarURLList);
             }
-            
+
             // dynamics parameters
             movingMesh = false;
             if (props.containsKey("movingMesh")) {
                 movingMesh = props.getBoolean("movingMesh");
             }
-            
+
             // iterative solver setting
             if (props.containsKey("linearSolver")) {
                 linearSolver = props.getString("linearSolver");
             } else {
-                linearSolver = "gmres";
+                flowpro.core.LinearSolvers.LinearSolver.LinearSolverType.help();
+                throw new IOException("parameter linearSolver must by defined");
             }
+
             if (props.containsKey("preconditioner")) {
                 preconditioner = props.getString("preconditioner");
             } else {
-                preconditioner = "blockjacobiinversion";
+                flowpro.core.LinearSolvers.preconditioners.Preconditioner.PreconditionerType.help();
+                throw new IOException("parameter preconditioner must by defined");
             }
+
             if (props.containsKey("iterativeSolverTol")) {
                 iterativeSolverTol = props.getDouble("iterativeSolverTol");
             } else {
                 iterativeSolverTol = 1e-2;
             }
-            
-            parallelSolverType = "ksp";
-            if (props.containsKey("parallelSolverType")) {
-                parallelSolverType = props.getString("parallelSolverType");
+
+            if (parallelMode) {
+                if (props.containsKey("parallelSolverType")) {
+                    parallelSolverType = props.getString("parallelSolverType");
+                } else {
+                    flowpro.core.solver.MasterSolver.MasterSolverType.help();
+                    throw new IOException("parameter parallelSolverType must by defined");
+                }
+
+                if (props.containsKey("parallelPreconditioner")) {
+                    parallelPreconditioner = props.getString("parallelPreconditioner");
+                } else {
+                    flowpro.core.DistributedLinearSolver.preconditioner.ParallelPreconditioner.ParallelPreconditionerType.help();
+                    throw new IOException("parameter parallelPreconditioner must by defined");
+                }
             }
-            
+
             if (props.containsKey("curvedBoundary")) {
                 curvedBoundary = props.getBoolean("curvedBoundary");
             } else {
@@ -215,13 +233,13 @@ public class Parameters implements Serializable {
             } else {
                 dynamicsModel = "none";
             }
-            
+
             if (props.containsKey("meshDeformationType")) {
                 meshDeformationType = props.getString("meshDeformationType");
             } else {
                 meshDeformationType = "none";
             }
-            
+
             /* parallel mode */
             if (parallelMode) {
                 overlap = props.getInt("overlap");
@@ -242,7 +260,7 @@ public class Parameters implements Serializable {
                 schwarzIters = -1;
                 schwarzTol = 0.0;
             }
-            
+
             solutionMonitorOn = false;
             if (props.containsKey("solutionMonitor")) {
                 solutionMonitor = props.getString("solutionMonitor");
@@ -250,7 +268,7 @@ public class Parameters implements Serializable {
             } else {
                 solutionMonitor = null;
             }
-            
+
             solutionAverage = false;
             if (props.containsKey("solutionAverage")) {
                 solutionAverage = props.getBoolean("solutionAverage");

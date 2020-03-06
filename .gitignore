@@ -6,6 +6,7 @@ modules
 network/*
 simulations/*
 tasks
+metacentrum
 log*
 *.tmp
 *.jar

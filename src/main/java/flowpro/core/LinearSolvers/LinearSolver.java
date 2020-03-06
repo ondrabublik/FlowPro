@@ -4,6 +4,7 @@ import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
 import flowpro.core.Parameters;
 import flowpro.core.element.Element;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  *
@@ -19,6 +20,18 @@ abstract public class LinearSolver {
 
     abstract public boolean solve(double[] x, double[] b);
 
+    public enum LinearSolverType {
+        gmres, umfpack, eigen, matlab;
+
+        public static void help() {
+            System.out.println("********************************");
+            System.out.println("HELP for parameter linearSolver");
+            System.out.println("list of possible values:");
+            System.out.println(Arrays.asList(LinearSolverType.values()));
+            System.out.println("********************************");
+        }
+    }
+    
     public static LinearSolver factory(Element[] elems, Parameters par) throws IOException {
 
         // build matrix structure
@@ -32,10 +45,11 @@ abstract public class LinearSolver {
         b = new double[A.getDofs()];
         
         solver = null;
-        
+            
         try {
-            switch (par.linearSolver.toLowerCase()) {
-                case "gmres":
+            LinearSolverType linearSolverType = LinearSolverType.valueOf(par.linearSolver.toLowerCase());
+            switch (linearSolverType) {
+                case gmres:
                     solver = new Gmres(A, M, 30, 5, par.iterativeSolverTol, par.nThreads);
                     System.out.println("linear solver: GMRES");
                     break;
@@ -51,26 +65,24 @@ abstract public class LinearSolver {
 //                    solver = new ExternSolver(elems, dofs, par);
 //                    break;
 
-                case "umfpack":
+                case umfpack:
                     solver = new UmfpackExternSolver(A, par);
                     System.out.println("linear solver: UMFPACK");
                     break;
                     
-                case "eigen":
+                case eigen:
                     solver = new EigenExternSolver(A, par);
                     System.out.println("linear solver: EIGEN");
                     break;
 
-                case "matlab":
+                case matlab:
                     solver = new Matlab(A, par);
                     System.out.println("linear solver: MATLAB");
-                    break;   
-                    
-                default:
-                    throw new IOException("unknown solver " + par.linearSolver);
+                    break;
             }
-        } catch (Exception e) {
-            System.out.println("Solver not set!");
+        } catch (IllegalArgumentException ex) {
+            LinearSolverType.help();
+            throw new IOException("unknown linear solver " + par.linearSolver.toLowerCase());
         }
 
         return solver;

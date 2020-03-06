@@ -6,9 +6,11 @@
 
 package flowpro.core.DistributedLinearSolver.preconditioner;
 
+import flowpro.core.LinearSolvers.preconditioners.Preconditioner;
 import flowpro.core.Parameters;
 import flowpro.core.element.Element;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  *
@@ -16,23 +18,34 @@ import java.io.IOException;
  */
 abstract public class ParallelPreconditioner {
     
+    public enum ParallelPreconditionerType {
+        blockjacobiinversion, ilu0;
+
+        public static void help() {
+            System.out.println("********************************");
+            System.out.println("HELP for parameter preconditioner");
+            System.out.println("list of possible values:");
+            System.out.println(Arrays.asList(ParallelPreconditionerType.values()));
+            System.out.println("********************************");
+        }
+    }
+    
     public static ParallelPreconditioner factory(Parameters par) throws IOException {
         ParallelPreconditioner M = null;
+        ParallelPreconditionerType preconditionerType = ParallelPreconditionerType.valueOf(par.parallelPreconditioner);
         try {
-            switch (par.preconditioner) {
-                case "blockjacobiinversion":
+            switch (preconditionerType) {
+                case blockjacobiinversion:
                     M = new ParallelBlockJacobiInversion(par);
                     break;
                     
-                case "ilu0":
+                case ilu0:
                     M = new ParallelIlu0(par);
                     break;
-
-                default:
-                    throw new IOException("unknown preconditioner " + par.preconditioner);
             }
-        } catch (Exception e) {
-            System.out.println("Solver not set!");
+        } catch (IllegalArgumentException ex) {
+            ParallelPreconditioner.ParallelPreconditionerType.help();
+            throw new IOException("unknown preconditioner " + par.parallelPreconditioner);
         }
 
         return M;

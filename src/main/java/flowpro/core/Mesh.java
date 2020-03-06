@@ -10,6 +10,7 @@ import flowpro.core.parallel.Domain.Subdomain;
 import flowpro.core.element.*;
 import flowpro.core.solver.MasterSolver;
 import java.io.*;
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,7 @@ import org.slf4j.LoggerFactory;
 public class Mesh implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Mesh.class);
-    
+
     private final Equation eqn;
     private final Deformation dfm;
     public final int nEqs;        // number of equations
@@ -130,17 +131,17 @@ public class Mesh implements Serializable {
 
             // create element type
             elems[i] = getSpatialMethod(par.spatialMethod);
-            
+
             // seting maximal allowed spatial order for choosen method
-            int elemOrder = Math.min(elemsOrder[i],elems[i].maxMethodSpatialOrder);
-            int volumeQuardatureOrder = Math.min(par.volumeQuardatureOrder,elems[i].maxMethodSpatialOrder);
-            int faceQuardatureOrder = Math.min(par.faceQuardatureOrder,elems[i].maxMethodSpatialOrder);
-            par.order = Math.min(par.order,elems[i].maxMethodSpatialOrder);
-            
-            if(i == 0 && elemOrder != elemsOrder[i]){
+            int elemOrder = Math.min(elemsOrder[i], elems[i].maxMethodSpatialOrder);
+            int volumeQuardatureOrder = Math.min(par.volumeQuardatureOrder, elems[i].maxMethodSpatialOrder);
+            int faceQuardatureOrder = Math.min(par.faceQuardatureOrder, elems[i].maxMethodSpatialOrder);
+            par.order = Math.min(par.order, elems[i].maxMethodSpatialOrder);
+
+            if (i == 0 && elemOrder != elemsOrder[i]) {
                 LOG.warn("method does not support spatial order higher than " + elemOrder);
             }
-            
+
             ElementType elemType = ElementType.elementTypeFactory(elemsType[i], elemOrder, volumeQuardatureOrder, faceQuardatureOrder);
             elems[i].set(i, vertices, meshVelocity, wallDistancee, externalFielde, TTe, TPe, TEalee, TEshifte, shift, fCurv[i], blendFunse, initW[i], this, elemType);
         }
@@ -203,7 +204,7 @@ public class Mesh implements Serializable {
             }
         }
         dofs = dofs0;
-        
+
         System.out.println();
         LOG.info("Degrese of freedom: " + dofs);
         // initial condition on each of elements
@@ -343,18 +344,40 @@ public class Mesh implements Serializable {
         t = t + dt;
     }
 
-    public Element getSpatialMethod(String methodClassName) throws IOException {
+    public enum SpatialMethodType {
+        DG, DGjacobi, DGpure, FVM;
 
-        String className = "flowpro.core.element." + methodClassName;
-
-        try {
-            Class<Element> elemClass = (Class<Element>) Class.forName(className);
-            Element elem = (Element) elemClass.newInstance();
-            return elem;
-        } catch (ClassNotFoundException ex) {
-            throw new IOException("class \"" + className + "\" not found", ex);
-        } catch (InstantiationException | IllegalAccessException | SecurityException | IllegalArgumentException ex) {
-            throw new IOException("error while loading class \"" + className + "\": " + ex, ex);
+        public static void help() {
+            System.out.println("********************************");
+            System.out.println("HELP for parameter spatialMethod");
+            System.out.println("list of possible values:");
+            System.out.println(Arrays.asList(SpatialMethodType.values()));
+            System.out.println("********************************");
         }
+    }
+
+    public Element getSpatialMethod(String spatialMethodName) throws IOException {
+        Element elem = null;
+        try {
+            SpatialMethodType spatialMethod = SpatialMethodType.valueOf(spatialMethodName);
+            switch (spatialMethod) {
+                case DG:
+                    elem = new DG();
+                    break;
+                case DGjacobi:
+                    elem = new DGjacobi();
+                    break;
+                case DGpure:
+                    elem = new DGpure();
+                    break;
+                case FVM:
+                    elem = new FVM();
+                    break;
+            }
+        } catch (IllegalArgumentException ex) {
+            SpatialMethodType.help();
+            throw new IOException("unknown spatial method " + spatialMethodName);
+        }
+        return elem;
     }
 }
