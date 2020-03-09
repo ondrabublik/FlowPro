@@ -26,6 +26,7 @@ public class Parameters implements Serializable {
     public final double tEnd;
     public final int steps;         // pocet casovych kroku
     public final int saveRate;
+    public final double timeSaveRate;
     public final boolean animation;
     public final boolean curvedBoundary;
 
@@ -114,6 +115,12 @@ public class Parameters implements Serializable {
                 saveRate = props.getInt("saveRate");
             } else {
                 saveRate = Integer.MAX_VALUE;
+            }
+            
+            if (props.containsKey("timeSaveRate")) {
+                timeSaveRate = props.getDouble("timeSaveRate");
+            } else {
+                timeSaveRate = Double.MAX_VALUE;
             }
 
             if (props.containsKey("animation")) {

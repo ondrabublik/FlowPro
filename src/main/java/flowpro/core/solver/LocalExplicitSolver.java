@@ -113,6 +113,7 @@ public class LocalExplicitSolver extends MasterSolver {
     }
 
     public Solution solve() throws IOException {
+        int tsr = 1; // for time save rate
         if (par.movingMesh) {
             LOG.error("Moving mesh not supported for local time stepping explicit method!");
         }
@@ -161,13 +162,14 @@ public class LocalExplicitSolver extends MasterSolver {
             copyW2Wo();
 
             String info = infoToString(totalSteps, dt);
-            if ((state.steps % par.saveRate) == 0) {
+            if ((state.steps % par.saveRate) == 0 || (state.t > tsr*par.timeSaveRate)) {
                 Solution solution = mesh.getSolution();
                 if (par.animation) {
                     saveAnimationData(solution, state.steps);
                 }
                 saveData(solution);
                 LOG.info(info);
+                tsr++;
             }
             System.out.printf(info);
             System.out.println();
@@ -221,12 +223,12 @@ public class LocalExplicitSolver extends MasterSolver {
             directory.mkdir();
         }
         synchronized (lock) {
-            Mat.save(sol.avgW, simulationPath + "animation/W" + (10000000 + step) + ".txt");
+            Mat.save(sol.avgW, simulationPath + "animation/W" + String.format("%08d", step) + ".txt");
             if (par.order > 1) {
-                Mat.save(sol.W, simulationPath + "animation/We" + (10000000 + step) + ".txt");
+                Mat.save(sol.W, simulationPath + "animation/We" + String.format("%08d", step) + ".txt");
             }
             if (par.movingMesh) {
-                Mat.save(sol.vertices, simulationPath + "animation/vertices" + (10000000 + step) + ".txt");
+                Mat.save(sol.vertices, simulationPath + "animation/vertices" + String.format("%08d", step) + ".txt");
             }
             lock.notify();
         }

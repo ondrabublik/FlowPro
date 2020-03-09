@@ -142,7 +142,7 @@ public class ResultsPlot {
         double[][] PXY = null;
         try {
             if (iter != -1 && movingMesh) {
-                PXY = Mat.loadDoubleMatrix(simulationPath + "animation/vertices" + (10000000 + iter) + ".txt"); // mesh vertices coordinates
+                PXY = Mat.loadDoubleMatrix(simulationPath + "animation/vertices" + String.format("%08d", iter) + ".txt"); // mesh vertices coordinates
             } else {
                 PXY = Mat.loadDoubleMatrix(meshPath + "vertices.txt"); // mesh vertices coordinates
             }
@@ -190,14 +190,14 @@ public class ResultsPlot {
             switch (precision) {
                 case 0:
                     if (iter != -1) {
-                        W = Mat.loadDoubleMatrix(simulationPath + "animation/W" + (10000000 + iter) + ".txt");
+                        W = Mat.loadDoubleMatrix(simulationPath + "animation/W" + String.format("%08d", iter) + ".txt");
                     } else {
                         W = Mat.loadDoubleMatrix(simulationPath + "W.txt");
                     }
                     break;
                 case 1:
                     if (iter != -1) {
-                        W = Mat.loadDoubleMatrix(simulationPath + "animation/We" + (10000000 + iter) + ".txt");
+                        W = Mat.loadDoubleMatrix(simulationPath + "animation/We" + String.format("%08d", iter) + ".txt");
                     } else {
                         W = Mat.loadDoubleMatrix(simulationPath + "We.txt");
                     }
@@ -206,7 +206,7 @@ public class ResultsPlot {
                     break;
                 default:
                     if (iter != -1) {
-                        W = Mat.loadDoubleMatrix(simulationPath + "animation/We" + (10000000 + iter) + ".txt");
+                        W = Mat.loadDoubleMatrix(simulationPath + "animation/We" + String.format("%08d", iter) + ".txt");
                     } else {
                         W = Mat.loadDoubleMatrix(simulationPath + "We.txt");
                     }
