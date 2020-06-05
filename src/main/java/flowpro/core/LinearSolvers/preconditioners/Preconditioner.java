@@ -8,6 +8,7 @@ package flowpro.core.LinearSolvers.preconditioners;
 import flowpro.core.LinearSolvers.SparseMatrix;
 import flowpro.core.Parameters;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  *
@@ -15,44 +16,48 @@ import java.io.IOException;
  */
 abstract public class Preconditioner {
     
+    public enum PreconditionerType {
+        none, jacobi, blockjacobi, blockjacobiinversion, ssor, ilu0, blockilu0;
+
+        public static void help() {
+            System.out.println("********************************");
+            System.out.println("HELP for parameter preconditioner");
+            System.out.println("list of possible values:");
+            System.out.println(Arrays.asList(PreconditionerType.values()));
+            System.out.println("********************************");
+        }
+    }
+    
     public static Preconditioner factory(Parameters par) throws IOException {
         Preconditioner M = null;
+        PreconditionerType preconditionerType = PreconditionerType.valueOf(par.preconditioner);
         try {
-            switch (par.preconditioner) {
-                case "none":
+            switch (preconditionerType) {
+                case none:
                     M = new None(par);
-                    System.out.println("preconditioner: none");
                     break;
-                case "jacobi":
+                case jacobi:
                     M = new Jacobi(par);
-                    System.out.println("preconditioner: jacobi");
                     break;
-                case "blockjacobi":
+                case blockjacobi:
                     M = new blockJacobi(par);
-                    System.out.println("preconditioner: block jacobi");
                     break;
-                case "blockjacobiinversion":
+                case blockjacobiinversion:
                     M = new BlockJacobiInversion(par);
-                    System.out.println("preconditioner: inverted block jacobi");
                     break;
-                case "ssor":
+                case ssor:
                     M = new SSOR(par);
-                    System.out.println("preconditioner: SSOR");
                     break;
-                case "ilu0":
+                case ilu0:
                     M = new ILU0(par);
-                    System.out.println("preconditioner: ILU(0)");
                     break;
-                case "blockilu0":
+                case blockilu0:
                     M = new BlockILU0(par);
-                    System.out.println("preconditioner: block ILU(0)");
                     break;
-
-                default:
-                    throw new IOException("unknown preconditioner " + par.preconditioner);
             }
-        } catch (Exception e) {
-            System.out.println("Solver not set!");
+        } catch (IllegalArgumentException ex) {
+            PreconditionerType.help();
+            throw new IOException("unknown preconditioner " + par.preconditioner);
         }
 
         return M;

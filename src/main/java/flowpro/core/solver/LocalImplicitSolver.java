@@ -127,6 +127,7 @@ public class LocalImplicitSolver extends MasterSolver {
         long assembleTime = 0;
         long solveTime = 0;
         boolean isFirstIter = true;
+        int tsr = 1; // for time save rate
 
         // save zero iteration
         if (par.animation && state.steps == 0) {
@@ -240,13 +241,14 @@ public class LocalImplicitSolver extends MasterSolver {
             }
 
             String info = infoToString(totalSteps, dt, assembleTime, solveTime);
-            if ((state.steps % par.saveRate) == 0) {
+            if ((state.steps % par.saveRate) == 0 || (state.t > tsr*par.timeSaveRate)) {
                 Solution solution = mesh.getSolution();
                 if (par.animation) {
                     saveAnimationData(solution, state.steps);
                 }
                 saveData(solution);
                 LOG.info(info);
+                tsr++;
             }
             System.out.printf(info);
             System.out.println();
@@ -303,13 +305,13 @@ public class LocalImplicitSolver extends MasterSolver {
             directory.mkdir();
         }
         synchronized (lock) {
-            Mat.save(sol.avgW, simulationPath + "animation/W" + (10000000 + step) + ".txt");
+            Mat.save(sol.avgW, simulationPath + "animation/W" + String.format("%08d", step) + ".txt");
             if (par.order > 1) {
-                Mat.save(sol.W, simulationPath + "animation/We" + (10000000 + step) + ".txt");
+                Mat.save(sol.W, simulationPath + "animation/We" + String.format("%08d", step) + ".txt");
             }
             if (par.movingMesh) {
-                Mat.save(sol.vertices, simulationPath + "animation/vertices" + (10000000 + step) + ".txt");
-                Mat.save(sol.meshVelocity, simulationPath + "animation/verticesVelocity" + (10000000 + step) + ".txt");
+                Mat.save(sol.vertices, simulationPath + "animation/vertices" + String.format("%08d", step) + ".txt");
+                Mat.save(sol.meshVelocity, simulationPath + "animation/verticesVelocity" + String.format("%08d", step) + ".txt");
             }
             lock.notify();
         }

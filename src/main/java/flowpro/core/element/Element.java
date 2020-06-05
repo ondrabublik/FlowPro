@@ -125,10 +125,10 @@ public abstract class Element implements Serializable {
     // external field
     double[][] externalField;
 
-    public Element(){
-        
+    public Element() {
+
     }
-    
+
     public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
 
@@ -172,7 +172,7 @@ public abstract class Element implements Serializable {
         // damping
         dampInner = new double[nEqs];
         innerIndicatorOld = new double[nEqs];
-        
+
         vertices0 = new double[nVertices][dim];
         for (int d = 0; d < dim; d++) {
             for (int i = 0; i < nVertices; i++) {
@@ -193,13 +193,13 @@ public abstract class Element implements Serializable {
     abstract public void residuum(double[] V, double[] K, double[][] KR);
 
     abstract public void residuumWall(int k, double[] V, double[] K, double[] KR);
-    
+
     abstract public void residuumJacobi(double[][] ADiag, Neighbour[] Sous);
-    
+
     abstract public void residuumWallJacobi(int k, double[][] ADiag, Neighbour Sous);
 
     abstract public void limiter(boolean isFirstIter);
-    
+
     abstract public boolean isJacobiMatrixAssembly();
 
     public void createTimeIntegrationElementObject(Element elem) throws IOException {
@@ -318,7 +318,7 @@ public abstract class Element implements Serializable {
             W[i] += x[gIndex[i]];
         }
     }
-    
+
     public double calculateResiduumW(double dt
     ) {
         double rez = 0;
@@ -703,19 +703,54 @@ public abstract class Element implements Serializable {
         }
     }
 
-    public TimeIntegrationElement getTimeIntegrationElement(String methodClassName, int timeOrder, Element elem) throws IOException {
+    public enum TimeIntegrationElementType {
+        BDF1, BDF2, BDFIncompressible1, BDFIncompressible2, RK2, RK3, RK4;
 
-        String className = "flowpro.core.element." + methodClassName + String.valueOf(timeOrder);
-
-        try {
-            Class<TimeIntegrationElement> tiClass = (Class<TimeIntegrationElement>) Class.forName(className);
-            TimeIntegrationElement tiElem = (TimeIntegrationElement) tiClass.newInstance();
-            tiElem.set(elem);
-            return tiElem;
-        } catch (ClassNotFoundException ex) {
-            throw new IOException("class \"" + className + "\" not found", ex);
-        } catch (InstantiationException | IllegalAccessException | SecurityException | IllegalArgumentException ex) {
-            throw new IOException("error while loading class \"" + className + "\": " + ex, ex);
+        public static void help() {
+            System.out.println();
+            System.out.println("********************************");
+            System.out.println("HELP for parameter timeMethod");
+            System.out.println("list of possible values:");
+            System.out.println(Arrays.asList(TimeIntegrationElementType.values()));
+            System.out.println("The method is used without the number, ie. BDF, RK. The number is given by parameter timeOrder.");
+            System.out.println("********************************");
         }
+    }
+
+    public TimeIntegrationElement getTimeIntegrationElement(String methodName, int timeOrder, Element elem) throws IOException {
+
+        String name = methodName + String.valueOf(timeOrder);
+
+        TimeIntegrationElement ti = null;
+        try {
+            TimeIntegrationElementType timeIntegrationElementType = TimeIntegrationElementType.valueOf(name);
+            switch (timeIntegrationElementType) {
+                case BDF1:
+                    ti = new BDF1();
+                    break;
+                case BDF2:
+                    ti = new BDF2();
+                    break;
+                case BDFIncompressible1:
+                    ti = new BDFIncompressible1();
+                    break;
+                case BDFIncompressible2:
+                    ti = new BDFIncompressible2();
+                    break;
+                case RK2:
+                    ti = new RK2();
+                    break;
+                case RK3:
+                    ti = new RK3();
+                    break;
+                case RK4:
+                    ti = new RK4();
+                    break;
+            }
+        } catch (IllegalArgumentException ex) {
+            TimeIntegrationElementType.help();
+            throw new IOException("unknown spatial method " + name);
+        }
+        return ti;
     }
 }
