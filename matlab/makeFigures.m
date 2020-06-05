@@ -3,12 +3,12 @@ function makeFigures(quantity, step, endIter)
 if(nargin < 3)
     endIter = 1e5;
 else
-    if isstring(endIter)
+    if ischar(endIter)
         endIter = str2double(endIter);
     end
 end
 
-if isstring(step)
+if ischar(step)
     step = str2double(step);
 end
 s = 0;

@@ -145,14 +145,27 @@ hold on
 color = 'bgrm';
 linewidth = 2;
 for i = 1 : size(elems,1)
-    for j = 1 : type(i)                        
+    for j = 1 : type(i)        
         if neigh(i,j) < 0
             jp = mod(j, type(i)) + 1;
             ind = [elems(i,j),elems(i,jp)];
 
             plot(x(ind),y(ind),'color',color(-neigh(i,j)),'linewidth',linewidth);
         end
+        
+%         xx = x(elems(i,j));
+%         yy = y(elems(i,j));
+%         if (xx <= 0.005 || xx >= 0.095) && yy > 0.0012 && yy < 0.0013
+%             text(xx, yy, sprintf('%d', elems(i,j)))
+%         end
     end
+        
+%     inds = elems(i,1:3);
+%     if max(x(inds)) >= 0.1-eps
+%         xx = mean(x(inds));    
+%         yy = mean(y(inds));
+%         text(xx, yy, sprintf('%d', i));
+%     end
 end
 
 axis equal
