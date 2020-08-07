@@ -19,9 +19,6 @@ public abstract class TimeIntegrationElement {
     int nBasis;
     int nFaces;
 
-    TimeIntegrationElement() {
-    }
-
     void set(Element elem) {
         this.elem = elem;
         nEqs = elem.nEqs;
