@@ -1,14 +1,18 @@
-function val = getValue(propName)
+function val = getValue(propName, fileName)
 % getValue   Return the value of a specified parameter in parameters.txt.
 %   getValue(propName) returns a value of the property propName.
 
+if nargin < 2
+    fileName = 'parameters.txt';
+end
+
 [~, simulPath, ~] = getPath;
-fileName = [simulPath,'parameters.txt'];
+fileFullName = [simulPath, fileName];
 
 % Read txt into cell A
 val = '';
 try
-    fid = fopen(fileName,'r');
+    fid = fopen(fileFullName,'r');
     tline = fgetl(fid);
     while ischar(tline)
         str = strsplit(tline,'=');
