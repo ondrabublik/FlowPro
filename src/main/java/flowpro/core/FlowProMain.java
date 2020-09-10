@@ -410,6 +410,7 @@ public class FlowProMain {
             }
         }
 
+        memoryInfo();
         return MasterSolver.factory(simulationPath, mesh, dyn, eqn, par, state, domain, lock);
     }
 
@@ -760,5 +761,16 @@ public class FlowProMain {
         } catch (Exception e) {
             System.out.println("Error " + e);
         }
+    }
+    
+    public static void memoryInfo(){
+        Runtime runtime = Runtime.getRuntime();
+        long maxMemory = runtime.maxMemory();
+        long allocatedMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        LOG.info("free memory: " + freeMemory / 1024 / 1024 + "Mb");
+        LOG.info("allocated memory: " + allocatedMemory / 1024 / 1024 + "Mb");
+        LOG.info("max memory: " + maxMemory / 1024 / 1024 + "Mb");
+        LOG.info("total free memory: " + (freeMemory + (maxMemory - allocatedMemory)) / 1024 / 1024 + "Mb");
     }
 }
