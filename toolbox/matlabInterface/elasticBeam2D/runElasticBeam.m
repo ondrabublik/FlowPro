@@ -10,7 +10,8 @@ import java.io.*
 
 s = Socket('localhost', 5767);
 ois = ObjectInputStream(BufferedInputStream(s.getInputStream));
-ois.readObject;
+testMsg = ois.readObject;
+fprintf('Test message received: \"%s\"\n', testMsg);
 oos = ObjectOutputStream(BufferedOutputStream(s.getOutputStream));
 oos.writeObject('OK');
 oos.flush();
@@ -24,6 +25,7 @@ while 1
         close all;
         break;
     end
+    
     switch tag
         case 'init'
             L = 0.5;
