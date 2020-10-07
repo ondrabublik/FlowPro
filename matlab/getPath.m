@@ -1,6 +1,6 @@
 % getPath   Return mesh, simulation and output paths.
 % [meshPath, simulPath, outputPath] = getPath returns path of the mesh,
-% simulation nad outpud folders for the current simulation.
+% simulation and outpud folders for the current simulation.
 % [meshPath, simulPath, outputPath] = getPath(geometry, simulation) returns
 % path of the mesh, simulation nad outpud folders for the simulation
 % specified by the name of the geometry and simulation.
