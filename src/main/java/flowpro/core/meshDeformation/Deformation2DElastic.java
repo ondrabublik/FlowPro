@@ -20,6 +20,7 @@ public class Deformation2DElastic extends Deformation {
         super(par, eqn, TEale);
     }
 
+	@Override
     public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 
         double a1 = 1.0 / dt;
@@ -64,6 +65,7 @@ public class Deformation2DElastic extends Deformation {
         }
     }
 
+	@Override
     public void nextTimeLevel(Element[] elems) {
         for (int i = 0; i < elems.length; i++) {
             for (int j = 0; j < elems[i].nVertices; j++) {
@@ -74,7 +76,58 @@ public class Deformation2DElastic extends Deformation {
             }
         }
     }
+	
+	public void calculateForces1(Element[] elems, MeshMove[] mshMov) {
+        boundaryForce = null;
+        faceIndexes = null;
+
+        int s = 0;
+        for (Element elem : elems) {
+            for (int k = 0; k < elem.nFaces; k++) {
+                if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
+                    s += elem.Int.faces[k].nIntEdge;
+                }
+            }
+        }
+        
+        if (s > 0) {
+            int dim = elems[0].dim;
+            boundaryForce = new double[s][2*dim]; // s x [Fx,Fy,Fz,xes,yes,zes]
+            faceIndexes = new int[s][3];
+            s = 0;
+            for (int i = 0; i < elems.length; i++) {
+                Element elem = elems[i];
+                for (int k = 0; k < elem.nFaces; k++) {
+                    if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
+                        double[] Jac = elem.Int.faces[k].JacobianFace;
+                        double[] weights = elem.Int.faces[k].weightsFace;
+                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
+                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
+                            double[] WL = new double[elem.getNEqs()];
+                            for (int j = 0; j < elem.getNEqs(); j++) {
+                                for (int m = 0; m < elem.nBasis; m++) {
+                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
+                                }
+                            }
+                            double pressure = eqn.pressure(WL);
+                            for (int d = 0; d < dim; d++) {
+                                boundaryForce[s][d] += Jac[p] * weights[p] * elem.n[k][p][d] * pressure;
+                            }
+							
+							System.arraycopy(elem.Xes[k], 0, boundaryForce[s], dim, dim);
+							faceIndexes[s][0] = i;
+							faceIndexes[s][1] = k;
+							faceIndexes[s][2] = elem.TEale[k];
+							
+							s++;
+                        }                        
+                    }
+                }
+            }
+        }
+    }
     
+	@Override
     public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         boundaryForce = null;
         faceIndexes = null;
@@ -125,7 +178,8 @@ public class Deformation2DElastic extends Deformation {
         
         if (s > 0) {
             int dim = elems[0].dim;
-            boundaryForce = new double[s][2*dim]; // s x [Fx,Fy,Fz,xes,yes,zes]
+			// vektor napeti a souradnice stredu strany
+            boundaryForce = new double[s][2*dim]; // [sigmaX, sigmaY, sigmaZ, xes, yes, zes]
             faceIndexes = new int[s][3];
             s = 0;
             for (int i = 0; i < elems.length; i++) {
@@ -134,7 +188,8 @@ public class Deformation2DElastic extends Deformation {
                     if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
                         double pressure = eqn.pressure(elem.calculateAvgW());
                         for (int d = 0; d < dim; d++) {
-                            boundaryForce[s][d] = pressure;
+							 boundaryForce[s][d] = pressure;
+//                            boundaryForce[s][d] = pressure * elem.n[k][0][d];  // prumernou normalu nebo integrovat!!!
                         }
                         System.arraycopy(elem.Xes[k], 0, boundaryForce[s], dim, dim);
                         faceIndexes[s][0] = i;
@@ -147,6 +202,7 @@ public class Deformation2DElastic extends Deformation {
         }
     }
 
+	@Override
     public FluidForces getFluidForces() {
         return new FluidForces(null, null, boundaryForce, faceIndexes, null);
     }

@@ -105,9 +105,10 @@ abstract public class MasterSolver {
                 switch (masterSolverType) {
                     case ksp:
                         masterSolver = new KSPSolver(mpi, simulationPath, meshes, dyn, eqn, par, state, domain, lock);
-
+						break;
                     case schwartz:
                         masterSolver = new SchwartzImplicitSolver(mpi, simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+						break;
                 }
             } catch (IllegalArgumentException ex) {
                 MasterSolverType.help();

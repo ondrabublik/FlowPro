@@ -1,9 +1,9 @@
-%args   Change or print geometry and simulation name.
+% args   Change or print geometry and simulation name.
 %   args(geometry, simulation) saves geometry and simulation name
 %   (parametrs for the JAVA application) into a text file.
-%
+% 
 %   args(geometry) sets simulation as default.
-%
+% 
 %   args prints current geometry and simulation name.
 
 function args(geometry, simulation)

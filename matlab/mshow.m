@@ -13,10 +13,10 @@ for i = 1:nargin
         continue
     end
     
-    filePath = [outputPath, quantityName, '.txt'];
-    if ~exist(filePath, 'file')    
-        args = [args,' ', quantityName];
-    end
+%     filePath = [outputPath, quantityName, '.txt'];
+%     if ~exist(filePath, 'file')    
+    args = [args,' ', quantityName];
+%     end
 end
 
 if ~isempty(args)
