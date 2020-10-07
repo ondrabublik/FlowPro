@@ -266,6 +266,7 @@ public class LocalImplicitSolver extends MasterSolver {
 
     @Override
     public void testDynamic(double dt, int newtonIter) throws IOException {
+        eqn.saveReferenceValues(simulationPath + REF_VALUE_FILE_NAME);
         double t = 0;
         for (int step = 0; step <= par.steps; step++) {
             dyn.computeBodyMove(dt, t, newtonIter, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));

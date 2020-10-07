@@ -9,6 +9,7 @@ if nargin == 0
         system('java -d64 -Xmx12g -jar FlowPro.jar master 0');
     else
 %         system('java -d64 -Xmx12g -Xss100m -jar FlowPro.jar master 0');
+%         system('start java -d64 -Xmx12g -Xss100m -jar FlowPro.jar master 0');
         system('start run.bat');
     end
     cd(path)
