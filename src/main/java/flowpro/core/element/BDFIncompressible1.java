@@ -48,6 +48,9 @@ public class BDFIncompressible1 extends Implicit {
     // Generovani radku globalni matice a vektoru prave strany
     public void assembleJacobiMatrix(double dt, double dto) {
         // coefs
+        double beta = 0;
+        a1[0] = beta / dt;
+        a2[0] = -beta / dt;
         for(int m = 1; m < nEqs; m++){
             a1[m] = 1 / dt;
             a2[m] = -1 / dt;
