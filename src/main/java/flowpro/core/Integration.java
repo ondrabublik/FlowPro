@@ -160,5 +160,36 @@ public class Integration {
         void setFaceTransform(Transformation transform) {
             faceTransform.setVolumeTransformation(transform);
         }
+		
+		public double[] evalWLeft(double[] coeffW, int p) {
+			double[] base = basisFaceLeft[p];
+			int nBasis = base.length;
+			int nEqs = coeffW.length / nBasis;
+			
+			double[] w = new double[nEqs];
+			for (int m = 0; m < nEqs; m++) {
+				for (int i = 0; i < nBasis; i++) {
+					w[m] = w[m] + coeffW[m * nBasis + i] * base[i];
+				}
+			}		
+			return w;
+		}
+
+		public double[] evalDerWLeft(double[] coeffW, int p) {
+			double[][] derBase = dXbasisFaceLeft[p];
+			int nBasis = derBase.length;
+			int dim = derBase[0].length;
+			int nEqs = coeffW.length / nBasis;
+			
+			double[] derW = new double[nEqs * dim];
+			for (int m = 0; m < nEqs; m++) {
+				for (int i = 0; i < nBasis; i++) {
+					for (int d = 0; d < dim; ++d) {
+						derW[nEqs * d + m] += coeffW[m * nBasis + i] * derBase[i][d];
+					}
+				}
+			}		
+			return derW;
+		}
     }
 }
