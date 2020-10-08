@@ -3,6 +3,7 @@ package flowpro.core.meshDeformation;
 import flowpro.api.Equation;
 import flowpro.api.FluidForces;
 import flowpro.api.MeshMove;
+import flowpro.core.Integration.Face;
 import flowpro.core.element.Element;
 import flowpro.core.Parameters;
 import java.io.*;
@@ -21,6 +22,7 @@ public class Deformation2DRigid extends Deformation {
         super(par, eqn, TEale);
     }
 
+	@Override
     public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 
         double a1 = 1.0 / dt;
@@ -55,6 +57,7 @@ public class Deformation2DRigid extends Deformation {
         }
     }
 
+	@Override
     public void nextTimeLevel(Element[] elems) {
         for (int i = 0; i < elems.length; i++) {
             for (int j = 0; j < elems[i].nVertices; j++) {
@@ -65,7 +68,32 @@ public class Deformation2DRigid extends Deformation {
             }
         }
     }
+	
+//	private double[] evalW(Element elem, double[] base) {
+//		double[] W = new double[elem.getNEqs()];
+//		for (int m = 0; m < elem.getNEqs(); m++) {
+//			for (int i = 0; i < elem.nBasis; i++) {
+//				W[m] = W[m] + elem.W[m * elem.nBasis + i] * base[i];
+//			}
+//		}		
+//		return W;
+//	}
+//	
+//	private double[] derEvalW(Element elem, double[][] derBase) {
+//		int dim = derBase[0].length;
+//		int nEqs = elem.getNEqs();
+//		double[] derW = new double[nEqs * dim];
+//		for (int m = 0; m < elem.getNEqs(); m++) {
+//			for (int i = 0; i < elem.nBasis; i++) {
+//				for (int d = 0; d < dim; ++d) {
+//					derW[nEqs * d + m] += elem.W[m * elem.nBasis + i] * derBase[i][d];
+//				}
+//			}
+//		}		
+//		return derW;
+//	}
 
+	@Override
     public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         totalTranslationForce = new double[2][nBodies];
         totalRotationForce = new double[1][nBodies];
@@ -74,21 +102,28 @@ public class Deformation2DRigid extends Deformation {
             for (Element elem : elems) {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
-                        double[] Jac = elem.Int.faces[k].JacobianFace;
-                        double[] weights = elem.Int.faces[k].weightsFace;
-                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
+						Face face = elem.Int.faces[k];
+                        double[] Jac = face.JacobianFace;
+                        double[] weights = face.weightsFace;
+//                        double[][] baseLeft = face.basisFaceLeft;
+//						double[][][] derBaseLeft = face.dXbasisFaceLeft;
                         double fx = 0;
                         double fy = 0;
                         for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
-                            double[] WL = new double[elem.getNEqs()];
-                            for (int j = 0; j < elem.getNEqs(); j++) {
-                                for (int m = 0; m < elem.nBasis; m++) {
-                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
-                                }
-                            }
-                            double pressure = eqn.pressure(WL);
-                            fx += Jac[p] * weights[p] * elem.n[k][p][0] * pressure;
-                            fy += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
+							double[] wL = face.evalWLeft(elem.W, p);
+							double[] derWL = face.evalDerWLeft(elem.W, p);
+//                            double[] WL = new double[elem.getNEqs()];
+//                            for (int j = 0; j < elem.getNEqs(); j++) {
+//                                for (int m = 0; m < elem.nBasis; m++) {
+//                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
+//                                }
+//                            }
+//                            double pressure = eqn.pressure(WL);
+							double[] normalStress = eqn.normalStress(wL, derWL, elem.n[k][p]);
+//                            fx += Jac[p] * weights[p] * elem.n[k][p][0] * pressure;
+//                            fy += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
+							fx -= Jac[p] * weights[p] * normalStress[0];
+                            fy -= Jac[p] * weights[p] * normalStress[1];
                         }
                         totalTranslationForce[0][b] += fx;
                         totalTranslationForce[1][b] += fy;
@@ -99,38 +134,44 @@ public class Deformation2DRigid extends Deformation {
         }
 
         // user defined totalTranslationForce term
-        userDef = new double[nUserValues][nBodies];
-        for (int b = 0; b < nBodies; b++) {
-            for (Element elem : elems) {
-                for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
-                        double[] Jac = elem.Int.faces[k].JacobianFace;
-                        double[] weights = elem.Int.faces[k].weightsFace;
-                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
-                        double fyTop = 0;
-                        double fyBottom = 0;
-                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
-                            double[] WL = new double[elem.getNEqs()];
-                            for (int j = 0; j < elem.getNEqs(); j++) {
-                                for (int m = 0; m < elem.nBasis; m++) {
-                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
-                                }
-                            }
-                            double pressure = eqn.pressure(WL);
-                            if (elem.n[k][p][1] > 0) {
-                                fyTop += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
-                            } else {
-                                fyBottom += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
-                            }
-                        }
-                        userDef[0][b] += fyTop;
-                        userDef[1][b] += fyBottom;
-                    }
-                }
-            }
-        }
+//        userDef = new double[nUserValues][nBodies];
+//        for (int b = 0; b < nBodies; b++) {
+//            for (Element elem : elems) {
+//                for (int k = 0; k < elem.nFaces; k++) {
+//                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
+//                        double[] Jac = elem.Int.faces[k].JacobianFace;
+//                        double[] weights = elem.Int.faces[k].weightsFace;
+//                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
+//                        double fyTop = 0;
+//                        double fyBottom = 0;
+//                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
+////                            double[] WL = new double[elem.getNEqs()];
+////                            for (int j = 0; j < elem.getNEqs(); j++) {
+////                                for (int m = 0; m < elem.nBasis; m++) {
+////                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
+////                                }
+////                            }
+////                            double pressure = eqn.pressure(WL);
+//							double[] wL = face.evalWLeft(elem.W, p);
+//							double[] derWL = face.evalDerWLeft(elem.W, p);
+//							double[] normalStress = eqn.normalStress(WL, WL, elem.n[k][p]);
+//                            if (elem.n[k][p][1] > 0) {
+////                                fyTop += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
+//								fyTop -= Jac[p] * weights[p] * normalStress[1];
+//                            } else {
+////                                fyBottom += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
+//								fyBottom -= Jac[p] * weights[p] * normalStress[1];
+//                            }
+//                        }
+//                        userDef[0][b] += fyTop;
+//                        userDef[1][b] += fyBottom;
+//                    }
+//                }
+//            }
+//        }
     }
 
+	@Override
     public FluidForces getFluidForces() {
         return new FluidForces(totalTranslationForce, totalRotationForce, null, null, userDef);
     }

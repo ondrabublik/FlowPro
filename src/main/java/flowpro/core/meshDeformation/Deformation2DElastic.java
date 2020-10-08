@@ -77,55 +77,59 @@ public class Deformation2DElastic extends Deformation {
         }
     }
 	
-	public void calculateForces1(Element[] elems, MeshMove[] mshMov) {
-        boundaryForce = null;
-        faceIndexes = null;
-
-        int s = 0;
-        for (Element elem : elems) {
-            for (int k = 0; k < elem.nFaces; k++) {
-                if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
-                    s += elem.Int.faces[k].nIntEdge;
-                }
-            }
-        }
-        
-        if (s > 0) {
-            int dim = elems[0].dim;
-            boundaryForce = new double[s][2*dim]; // s x [Fx,Fy,Fz,xes,yes,zes]
-            faceIndexes = new int[s][3];
-            s = 0;
-            for (int i = 0; i < elems.length; i++) {
-                Element elem = elems[i];
-                for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
-                        double[] Jac = elem.Int.faces[k].JacobianFace;
-                        double[] weights = elem.Int.faces[k].weightsFace;
-                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
-                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
-                            double[] WL = new double[elem.getNEqs()];
-                            for (int j = 0; j < elem.getNEqs(); j++) {
-                                for (int m = 0; m < elem.nBasis; m++) {
-                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
-                                }
-                            }
-                            double pressure = eqn.pressure(WL);
-                            for (int d = 0; d < dim; d++) {
-                                boundaryForce[s][d] += Jac[p] * weights[p] * elem.n[k][p][d] * pressure;
-                            }
-							
-							System.arraycopy(elem.Xes[k], 0, boundaryForce[s], dim, dim);
-							faceIndexes[s][0] = i;
-							faceIndexes[s][1] = k;
-							faceIndexes[s][2] = elem.TEale[k];
-							
-							s++;
-                        }                        
-                    }
-                }
-            }
-        }
-    }
+//	public void calculateForces1(Element[] elems, MeshMove[] mshMov) {
+//        boundaryForce = null;
+//        faceIndexes = null;
+//
+//        int s = 0;
+//        for (Element elem : elems) {
+//            for (int k = 0; k < elem.nFaces; k++) {
+//                if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
+//                    s += elem.Int.faces[k].nIntEdge;
+//                }
+//            }
+//        }
+//        
+//        if (s > 0) {
+//            int dim = elems[0].dim;
+//            boundaryForce = new double[s][2*dim]; // s x [Fx,Fy,Fz,xes,yes,zes]
+//            faceIndexes = new int[s][3];
+//            s = 0;
+//            for (int i = 0; i < elems.length; i++) {
+//                Element elem = elems[i];
+//                for (int k = 0; k < elem.nFaces; k++) {
+//                    if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
+//                        double[] Jac = elem.Int.faces[k].JacobianFace;
+//                        double[] weights = elem.Int.faces[k].weightsFace;
+//                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
+//                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
+////                            double[] WL = new double[elem.getNEqs()];
+////                            for (int j = 0; j < elem.getNEqs(); j++) {
+////                                for (int m = 0; m < elem.nBasis; m++) {
+////                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
+////                                }
+////                            }
+////                            double pressure = eqn.pressure(WL);
+//							double[] WL = evalW(elem, baseLeft[p]);
+//							double[] derWL = derEvalW(elem, derBaseLeft[p]);
+//							double[] normalStress = eqn.normalStress(WL, WL, elem.n[k][p]);
+//                            for (int d = 0; d < dim; d++) {
+////                                boundaryForce[s][d] += Jac[p] * weights[p] * elem.n[k][p][d] * pressure;
+//								boundaryForce[s][d] -= Jac[p] * weights[p] * elem.n[k][p][d] * normalStress[d];
+//                            }
+//							
+//							System.arraycopy(elem.Xes[k], 0, boundaryForce[s], dim, dim);
+//							faceIndexes[s][0] = i;
+//							faceIndexes[s][1] = k;
+//							faceIndexes[s][2] = elem.TEale[k];
+//							
+//							s++;
+//                        }                        
+//                    }
+//                }
+//            }
+//        }
+//    }
     
 	@Override
     public void calculateForces(Element[] elems, MeshMove[] mshMov) {
