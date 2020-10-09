@@ -28,8 +28,10 @@ def run():
 	currentPath = os.getcwd()
 	os.chdir(structureSolverPath)
 	try:
-		meshDirPath = os.path.join(structureSolverPath, 'mesh', meshDirName)
-		solver = StructureSolver(meshDirPath, rho, E, nu)
+		fp.args('turekhron/dynamics')
+		geoPath, simPath, outPath = fp.getPath()
+		# meshDirPath = os.path.join(structureSolverPath, 'mesh', meshDirName)
+		solver = StructureSolver(geoPath, simPath, outPath)
 		structureServer('localhost', 5767, solver, pRef, rhoRef, lRef)
 	finally:
 		os.chdir(currentPath)
