@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 
 flowProPath = 'E:\\workspace\\FlowProPackage\\FlowPro'
+paramFileName = 'parameters.txt'
 
 
 def loadArgs():
@@ -52,6 +53,26 @@ def getPath(*argv):
 		outputPath = ""
 
 	return meshPath, simulPath, outputPath
+
+
+def getParam():
+	geoPath, simPath, outPath = getPath()
+	paramFilePath = os.path.join(simPath, paramFileName)
+
+	with open(paramFilePath) as paramFile:
+		lines = paramFile.read().splitlines()
+
+	paramDct = {}
+	for line in lines:
+		line = line.split('%')[0]
+		line = line.split('#')[0]
+		tokens = line.split('=')
+		if len(tokens) == 2:
+			command = tokens[0].strip()
+			value = tokens[1].strip()
+			paramDct[command] = value
+
+	return paramDct
 
 
 def args(geometry=None, simulation='default'):
