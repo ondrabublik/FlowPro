@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 flowProPath = 'E:\\workspace\\FlowProPackage\\FlowPro'
 paramFileName = 'parameters.txt'
 
+simulationDirPath = os.path.join(flowProPath, "simulations")
+
 
 def loadArgs():
 	"""Load geometry and simulation name from 'args.txt' file.
@@ -110,13 +112,18 @@ def args(geometry=None, simulation='default'):
 def listSims():
 	"""Print the list of geometries and simulations."""
 
-	path = os.path.join(flowProPath, "simulations")
-	for file in os.listdir(path):
-		filePath = os.path.join(path, file)
+	__listSubdir('')
 
-		if os.path.isdir(filePath):
-			subdirs = [f for f in os.listdir(filePath) if os.path.isdir(os.path.join(filePath, f))]
-			print(file + ': ' + ', '.join(subdirs))
+
+def __listSubdir(geoName):
+	geoPath = os.path.join(simulationDirPath, geoName)
+	subdirs = [f for f in os.listdir(geoPath) if os.path.isdir(os.path.join(geoPath, f))]
+	if 'mesh' in subdirs:
+		subdirs.remove('mesh')
+		print(geoName + ': ' + ', '.join(subdirs))
+	else:
+		for subdir in subdirs:
+			__listSubdir(os.path.join(geoName, subdir))
 
 
 def run(*argv):
