@@ -84,6 +84,12 @@ function plotMe(quantityName)
     if m == 1
         myContour(tri, vertices, quantity, quantityName);
     elseif m > 2
+        magnitude = zeros(size(quantity, 1), 1);
+        for j = 1 : m
+            magnitude = magnitude + quantity(:,j).^2;
+        end
+        magnitude = sqrt(magnitude);
+        myContour(tri, vertices, magnitude, quantityName);
         figure('name', quantityName, 'color', 'w');
         quiver(vertices(:,1), vertices(:,2), quantity(:,1), quantity(:,2));
         axis equal
