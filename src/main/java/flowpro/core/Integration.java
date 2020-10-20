@@ -191,5 +191,23 @@ public class Integration {
 			}		
 			return derW;
 		}
+		
+		public double[] integrateLeft(Integrand integrand, double[] coeffW, double[][] normals) {
+			double[] result = new double[dimension];
+			for (int p = 0; p < nIntEdge; ++p) {
+				double[] w = evalWLeft(coeffW, p);
+				double[] dw = evalDerWLeft(coeffW, p);
+				
+				double[] val = integrand.fun(w, dw, normals[p]);
+				for (int d = 0; d < dimension; ++d) {
+					result[d] += JacobianFace[p] * weightsFace[p] * val[d];
+				}
+			}
+			return result;
+		}
     }
+	
+	public interface Integrand {
+		public double[] fun(double[] w, double[] dw, double[] normal);
+	}
 }

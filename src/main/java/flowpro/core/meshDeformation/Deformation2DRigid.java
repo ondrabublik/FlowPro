@@ -102,29 +102,24 @@ public class Deformation2DRigid extends Deformation {
             for (Element elem : elems) {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
-						Face face = elem.Int.faces[k];
-                        double[] Jac = face.JacobianFace;
-                        double[] weights = face.weightsFace;
-//                        double[][] baseLeft = face.basisFaceLeft;
-//						double[][][] derBaseLeft = face.dXbasisFaceLeft;
-                        double fx = 0;
-                        double fy = 0;
-                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
-							double[] wL = face.evalWLeft(elem.W, p);
-							double[] derWL = face.evalDerWLeft(elem.W, p);
-//                            double[] WL = new double[elem.getNEqs()];
-//                            for (int j = 0; j < elem.getNEqs(); j++) {
-//                                for (int m = 0; m < elem.nBasis; m++) {
-//                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
-//                                }
-//                            }
-//                            double pressure = eqn.pressure(WL);
-							double[] normalStress = eqn.normalStress(wL, derWL, elem.n[k][p]);
-//                            fx += Jac[p] * weights[p] * elem.n[k][p][0] * pressure;
-//                            fy += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
-							fx -= Jac[p] * weights[p] * normalStress[0];
-                            fy -= Jac[p] * weights[p] * normalStress[1];
-                        }
+						Face face = elem.Int.faces[k];                        
+						
+						double[] force = face.integrateLeft((double[] w, double[] dw, double[] n) ->
+								eqn.stressVector(w, dw, n), elem.W, elem.n[k]);
+						double fx = -force[0];
+						double fy = -force[1];
+						
+//						double[] Jac = face.JacobianFace;
+//                        double[] weights = face.weightsFace;
+//                        double fx = 0;
+//                        double fy = 0;
+//                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
+//							double[] wL = face.evalWLeft(elem.W, p);
+//							double[] derWL = face.evalDerWLeft(elem.W, p);
+//							double[] normalStress = eqn.normalStress(wL, derWL, elem.n[k][p]);
+//							fx -= Jac[p] * weights[p] * normalStress[0];
+//                            fy -= Jac[p] * weights[p] * normalStress[1];
+//                        }
                         totalTranslationForce[0][b] += fx;
                         totalTranslationForce[1][b] += fy;
                         totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));
