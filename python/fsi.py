@@ -1,7 +1,9 @@
 import sys
 import os
+import math
 
 import flowpro as fp
+import elasticity as ela
 
 structureSolverPath = os.path.join(fp.flowProPath, 'toolbox', 'elasticity')
 sys.path.insert(1, structureSolverPath)
@@ -12,33 +14,42 @@ from structureSolver import StructureSolver
 
 
 def run():
-	fluidGeom = 'turekhron/dynamics'
-	fluidSim = 'fsi3'
+	# fluidGeom = 'turekhron/dynamics'
+	# fluidSim = 'fsi3'
+	# fp.args(fluidGeom, fluidSim)
+	#
+	# structureGeom = 'turekhron/4'
+	# structureSim = 'fsi3'
+	# ela.args(structureGeom, structureSim)
 
-	structureGeom = 'turekhron/4'
-	structureSim = 'fsi3'
-
-	# rho = 2
-	# nu = 0.4
-	# E = 1e6
-	# E = 5.6e6
-
-	# pRef = 1e5
-	# rhoRef = 1.23
-	# lRef = 1
-
-	fp.args(fluidGeom, fluidSim)
+	geoPath, simPath, outPath = fp.getPath()
 
 	paramDct = fp.getParam()
 
-	vRef = float(paramDct['vIn'])
-	rhoRef = float(paramDct['rhoIn'])
-	pRef = rhoRef * vRef ** 2
+	model = paramDct['model']
+	if model == 'NavierStokesVelocityInlet':
+		vRef = float(paramDct['vIn'])
+		rhoRef = float(paramDct['rhoIn'])
+		pRef = rhoRef * vRef ** 2
+	elif model == 'IncompressibleNavierStokes':
+		lst = paramDct['VIn'].split(',')
+		vRef = 0.
+		for str in lst:
+			vRef += float(str.strip()) ** 2
+		vRef = math.sqrt(vRef)
+		rhoRef = float(paramDct['density'])
+		pRef = rhoRef * vRef ** 2
+
 	lRef = paramDct.get('lRef')
 	if lRef is None:
 		lRef = 1
 	else:
 		lRef = float(lRef)
+
+	structureParamDct = fp.getStructureParam()
+	elaGeom = structureParamDct['geometry']
+
+	elaGeomPath = os.path.join(ela.structureSolverPath, 'simulations', elaGeom, 'mesh')
 
 	# mach = float(paramDct['mach'])
 	# kappa = float(paramDct['kappa'])
@@ -52,10 +63,8 @@ def run():
 		# fp.args('turekhron/dynamics')
 		# geoPath, simPath, outPath = fp.getPath()
 		# meshDirPath = os.path.join(structureSolverPath, 'mesh', meshDirName)
-		import elasticity as ela
-		ela.args(structureGeom, structureSim)
-		geoPath, simPath, outPath = ela.getPath()
-		solver = StructureSolver(geoPath, simPath, outPath)
+
+		solver = StructureSolver(elaGeomPath, simPath, outPath)
 		structureServer('localhost', 5767, solver, pRef, rhoRef, lRef)
 	finally:
 		os.chdir(currentPath)
