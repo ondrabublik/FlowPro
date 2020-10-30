@@ -100,12 +100,12 @@ public class Deformation2DRigid extends Deformation {
         for (int b = 0; b < nBodies; b++) {
             double[] moveTranslation = mshMov[b].getTranslation();
             for (Element elem : elems) {
-                for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
-						Face face = elem.Int.faces[k];                        
+                for (int r = 0; r < elem.nFaces; r++) {
+                    if (elem.TEale[r] == b + 2 && elem.insideMetisDomain) {
+						Face face = elem.Int.faces[r];                        
 						
 						double[] force = face.integrateLeft((double[] w, double[] dw, double[] n) ->
-								eqn.stressVector(w, dw, n), elem.W, elem.n[k]);
+								eqn.stressVector(w, dw, n), elem.W, elem.n[r]);
 						double fx = -force[0];
 						double fy = -force[1];
 						
@@ -122,7 +122,7 @@ public class Deformation2DRigid extends Deformation {
 //                        }
                         totalTranslationForce[0][b] += fx;
                         totalTranslationForce[1][b] += fy;
-                        totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));
+                        totalRotationForce[0][b] += -fx * (elem.Xes[r][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[r][0] - (center[0][b] + moveTranslation[0]));
                     }
                 }
             }
