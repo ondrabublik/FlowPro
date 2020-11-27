@@ -269,8 +269,12 @@ public class LocalImplicitSolver extends MasterSolver {
         eqn.saveReferenceValues(simulationPath + REF_VALUE_FILE_NAME);
         double t = 0;
         for (int step = 0; step <= par.steps; step++) {
-            dyn.computeBodyMove(dt, t, newtonIter, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
-            dyn.nextTimeLevel();
+			FluidForces[] fluidForces = new FluidForces[dfm.nBodies];
+			for (int b = 0; b < dfm.nBodies; b++) {
+				fluidForces[b] = new FluidForces(new double[2], new double[1]);
+			}
+            dyn.computeBodyMove(dt, t, newtonIter, fluidForces);  
+			dyn.nextTimeLevel();
             dyn.savePositionsAndForces();
             t += dt;
             System.out.println(step + "-th iteration t = " + t);

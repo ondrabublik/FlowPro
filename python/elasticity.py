@@ -5,7 +5,7 @@ import subprocess
 structureSolverPath = 'E:\\workspace\\FlowProPackage\\FlowPro\\toolbox\\elasticity'
 sys.path.insert(1, structureSolverPath)
 
-from structureSolver import StructureSolver
+from dynamics import Dynamics
 import statics
 from parameters import Parameters, ParameterException, Model
 
@@ -147,7 +147,7 @@ def run():
 	if parameters.model == Model.statics:
 		statics.solve(geoPath, simPath, outPath)
 	elif parameters.model == Model.dynamics:
-		solver = StructureSolver(geoPath, simPath, outPath)
+		solver = Dynamics(geoPath, simPath, outPath)
 		solver.solve()
 
 

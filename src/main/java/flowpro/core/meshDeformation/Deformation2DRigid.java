@@ -13,13 +13,13 @@ import java.io.*;
  * @author obublik
  */
 public class Deformation2DRigid extends Deformation {
-
-    public double[][] totalTranslationForce;
-    public double[][] totalRotationForce;
-    public double[][] userDef;
+	
+	private final FluidForces[] fluidForces;
 
     public Deformation2DRigid(Parameters par, Equation eqn, int[][] TEale) throws IOException {
         super(par, eqn, TEale);
+		
+		fluidForces = new FluidForces[nBodies];
     }
 
 	@Override
@@ -95,10 +95,11 @@ public class Deformation2DRigid extends Deformation {
 
 	@Override
     public void calculateForces(Element[] elems, MeshMove[] mshMov) {
-        totalTranslationForce = new double[2][nBodies];
-        totalRotationForce = new double[1][nBodies];
+		
         for (int b = 0; b < nBodies; b++) {
             double[] moveTranslation = mshMov[b].getTranslation();
+			double[] totalTranslationForce = new double[2];
+			double[] totalRotationForce = new double[1];
             for (Element elem : elems) {
                 for (int r = 0; r < elem.nFaces; r++) {
                     if (elem.TEale[r] == b + 2 && elem.insideMetisDomain) {
@@ -120,12 +121,13 @@ public class Deformation2DRigid extends Deformation {
 //							fx -= Jac[p] * weights[p] * normalStress[0];
 //                            fy -= Jac[p] * weights[p] * normalStress[1];
 //                        }
-                        totalTranslationForce[0][b] += fx;
-                        totalTranslationForce[1][b] += fy;
-                        totalRotationForce[0][b] += -fx * (elem.Xes[r][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[r][0] - (center[0][b] + moveTranslation[0]));
+                        totalTranslationForce[0] += fx;
+                        totalTranslationForce[1] += fy;
+                        totalRotationForce[0] += -fx * (elem.Xes[r][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[r][0] - (center[0][b] + moveTranslation[0]));
                     }
                 }
             }
+			fluidForces[b] = new FluidForces(totalTranslationForce, totalRotationForce);
         }
 
         // user defined totalTranslationForce term
@@ -167,7 +169,7 @@ public class Deformation2DRigid extends Deformation {
     }
 
 	@Override
-    public FluidForces getFluidForces() {
-        return new FluidForces(totalTranslationForce, totalRotationForce, null, null, userDef);
+    public FluidForces[] getFluidForces() {
+        return fluidForces;
     }
 }

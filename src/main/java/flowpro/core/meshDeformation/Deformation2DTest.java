@@ -14,15 +14,16 @@ import java.io.*;
  */
 public class Deformation2DTest extends Deformation {
 
-    public double[][] totalTranslationForce;
-    public double[][] totalRotationForce;
-    public double[][] userDef;
-    double t = 0;
+    private final FluidForces[] fluidForces;
+    private double t = 0;
     
     public Deformation2DTest(Parameters par, Equation eqn, int[][] TEale) throws IOException {
         super(par,eqn,TEale);
+		
+		fluidForces = new FluidForces[nBodies];
     }
 
+	@Override
     public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
         
         if(dt > 1000){
@@ -60,6 +61,7 @@ public class Deformation2DTest extends Deformation {
         }
     }
 
+	@Override
     public void nextTimeLevel(Element[] elems) {
         for (int i = 0; i < elems.length; i++) {
             for (int j = 0; j < elems[i].nVertices; j++) {
@@ -71,10 +73,11 @@ public class Deformation2DTest extends Deformation {
         }
     }
     
-    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
-        totalTranslationForce = new double[2][nBodies];
-        totalRotationForce = new double[1][nBodies];
+	@Override
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {        
         for (int b = 0; b < nBodies; b++) {
+			double[] totalTranslationForce = new double[2];
+			double[] totalRotationForce = new double[1];
             for (Element elem : elems) {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
@@ -94,48 +97,50 @@ public class Deformation2DTest extends Deformation {
                             fx += Jac[p] * weights[p] * elem.n[k][p][0] * pressure;
                             fy += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
                         }
-                        totalTranslationForce[0][b] += fx;
-                        totalTranslationForce[1][b] += fy;
-                        totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - center[1][b]) + fy * (elem.Xes[k][0] - center[0][b]);
+                        totalTranslationForce[0] += fx;
+                        totalTranslationForce[1] += fy;
+                        totalRotationForce[0] += -fx * (elem.Xes[k][1] - center[1][b]) + fy * (elem.Xes[k][0] - center[0][b]);
                     }
                 }
             }
+			fluidForces[b] = new FluidForces(totalTranslationForce, totalRotationForce);
         }
 
         // user defined totalTranslationForce term
-        userDef = new double[nUserValues][nBodies];
-        for (int b = 0; b < nBodies; b++) {
-            for (Element elem : elems) {
-                for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
-                        double[] Jac = elem.Int.faces[k].JacobianFace;
-                        double[] weights = elem.Int.faces[k].weightsFace;
-                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
-                        double fyTop = 0;
-                        double fyBottom = 0;
-                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
-                            double[] WL = new double[elem.getNEqs()];
-                            for (int j = 0; j < elem.getNEqs(); j++) {
-                                for (int m = 0; m < elem.nBasis; m++) {
-                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
-                                }
-                            }
-                            double pressure = eqn.pressure(WL);
-                            if (elem.n[k][p][1] > 0) {
-                                fyTop += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
-                            } else {
-                                fyBottom += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
-                            }
-                        }
-                        userDef[0][b] += fyTop;
-                        userDef[1][b] += fyBottom;
-                    }
-                }
-            }
-        }
+//        userDef = new double[nUserValues][nBodies];
+//        for (int b = 0; b < nBodies; b++) {
+//            for (Element elem : elems) {
+//                for (int k = 0; k < elem.nFaces; k++) {
+//                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
+//                        double[] Jac = elem.Int.faces[k].JacobianFace;
+//                        double[] weights = elem.Int.faces[k].weightsFace;
+//                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
+//                        double fyTop = 0;
+//                        double fyBottom = 0;
+//                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
+//                            double[] WL = new double[elem.getNEqs()];
+//                            for (int j = 0; j < elem.getNEqs(); j++) {
+//                                for (int m = 0; m < elem.nBasis; m++) {
+//                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
+//                                }
+//                            }
+//                            double pressure = eqn.pressure(WL);
+//                            if (elem.n[k][p][1] > 0) {
+//                                fyTop += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
+//                            } else {
+//                                fyBottom += Jac[p] * weights[p] * elem.n[k][p][1] * pressure;
+//                            }
+//                        }
+//                        userDef[0][b] += fyTop;
+//                        userDef[1][b] += fyBottom;
+//                    }
+//                }
+//            }
+//        }
     }
     
-    public FluidForces getFluidForces(){
-        return new FluidForces(totalTranslationForce, totalRotationForce, null, null, userDef);
+	@Override
+    public FluidForces[] getFluidForces(){
+        return fluidForces;
     }
 }

@@ -91,7 +91,7 @@ public abstract class Deformation implements Serializable {
         return nBodies;
     }
 
-    abstract public FluidForces getFluidForces();
+    abstract public FluidForces[] getFluidForces();
 
     public double[][] getUserDef() {
         return userDefTerm;

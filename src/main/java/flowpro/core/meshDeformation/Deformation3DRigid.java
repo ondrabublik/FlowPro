@@ -14,13 +14,15 @@ import java.io.*;
  */
 public class Deformation3DRigid extends Deformation {
 
-    public double[][] totalTranslationForce;
-    public double[][] totalRotationForce;
+    private final FluidForces[] fluidForces;
 
     public Deformation3DRigid(Parameters par, Equation eqn, int[][] TEale) throws IOException {
         super(par, eqn, TEale);
+		
+		fluidForces = new FluidForces[nBodies];
     }
 
+	@Override
     public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 
         double a1 = 1.0 / dt;
@@ -60,6 +62,7 @@ public class Deformation3DRigid extends Deformation {
         }
     }
 
+	@Override
     public void nextTimeLevel(Element[] elems) {
         for (int i = 0; i < elems.length; i++) {
             for (int j = 0; j < elems[i].nVertices; j++) {
@@ -71,11 +74,12 @@ public class Deformation3DRigid extends Deformation {
         }
     }
 
-    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
-        totalTranslationForce = new double[3][nBodies];
-        totalRotationForce = new double[3][nBodies];
+	@Override
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {    
         for (int b = 0; b < nBodies; b++) {
             double[] moveTranslation = mshMov[b].getTranslation();
+			double[] totalTranslationForce = new double[nBodies];
+			double[] totalRotationForce = new double[nBodies];
             for (Element elem : elems) {
                 for (int k = 0; k < elem.nFaces; k++) {
                     if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
@@ -98,17 +102,19 @@ public class Deformation3DRigid extends Deformation {
                         double[] Xcenter = new double[]{center[0][b], center[1][b], center[2][b]};
                         double[] M = Mat.cross(f, Mat.minusVec(elem.Xes[k], Mat.plusVec(Xcenter,moveTranslation)));
                         for (int d = 0; d < elem.dim; d++) {
-                            totalTranslationForce[d][b] += f[d];
-                            totalRotationForce[d][b] += M[d];
+                            totalTranslationForce[d] += f[d];
+                            totalRotationForce[d] += M[d];
                         }
                     }
                 }
             }
+			fluidForces[b] = new FluidForces(totalTranslationForce, totalRotationForce);
         }
     }
 
-    public FluidForces getFluidForces() {
-        return new FluidForces(totalTranslationForce, totalRotationForce, null, null, null);
+	@Override
+    public FluidForces[] getFluidForces() {
+        return fluidForces;
     }
 
     double[][] rotationMatrix(double[] angles) {

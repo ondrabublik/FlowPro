@@ -9,8 +9,8 @@ structureSolverPath = os.path.join(fp.flowProPath, 'toolbox', 'elasticity')
 sys.path.insert(1, structureSolverPath)
 
 
-from structureServer import structureServer
-from structureSolver import StructureSolver
+from structureServer import StructureServer, StructureServerTest
+from dynamics import Dynamics
 
 
 def run():
@@ -26,7 +26,7 @@ def run():
 
 	paramDct = fp.getParam()
 
-	model = paramDct['model']
+	model = paramDct['model'] 
 	if model == 'NavierStokesVelocityInlet':
 		vRef = float(paramDct['vIn'])
 		rhoRef = float(paramDct['rhoIn'])
@@ -46,6 +46,14 @@ def run():
 	else:
 		lRef = float(lRef)
 
+	port = paramDct.get('remoteStructureSolverPort')
+	if port is None:
+		port = 5767
+	else:
+		port = int(port)
+
+	print('using port %d' % port)
+
 	structureParamDct = fp.getStructureParam()
 	elaGeom = structureParamDct['geometry']
 
@@ -55,8 +63,6 @@ def run():
 	# kappa = float(paramDct['kappa'])
 	# pOut = 1 / (mach**2 * kappa)
 
-	fp.run()
-
 	currentPath = os.getcwd()
 	os.chdir(structureSolverPath)
 	try:
@@ -64,8 +70,11 @@ def run():
 		# geoPath, simPath, outPath = fp.getPath()
 		# meshDirPath = os.path.join(structureSolverPath, 'mesh', meshDirName)
 
-		solver = StructureSolver(elaGeomPath, simPath, outPath)
-		structureServer('localhost', 5767, solver, pRef, rhoRef, lRef)
+		solver = Dynamics(elaGeomPath, simPath, outPath)
+
+		fp.run()
+		server = StructureServerTest('localhost', port, solver, simPath, pRef, rhoRef, lRef)
+		server.run()
 	finally:
 		os.chdir(currentPath)
 

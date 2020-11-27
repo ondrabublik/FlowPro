@@ -117,8 +117,8 @@ public class Deformation3DBeam extends Deformation {
         }
     }
 
-    public FluidForces getFluidForces() {
-        return new FluidForces(null, null, boundaryForce, faceIndexes, null);
+    public FluidForces[] getFluidForces() {
+        return null;  // prozatim abych prelozil kod
     }
 
     public double radialBasisFunction(double a, double b) {
