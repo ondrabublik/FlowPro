@@ -20,6 +20,10 @@ public class Deformation2DElastic extends Deformation {
 	public int[][] faceIndexes;  // smazat
 	
 	private final FluidForces[] fluidForces;
+	
+	private static final double[][] EYE = new double[][] {{1, 0}, {0, 1}};
+	
+	private int dim = 2;
 
 	public Deformation2DElastic(Parameters par, Equation eqn, int[][] TEale) throws IOException {
 		super(par, eqn, TEale);
@@ -84,132 +88,6 @@ public class Deformation2DElastic extends Deformation {
 		}
 	}
 
-//	@Override
-	public void calculateForces1(Element[] elems, MeshMove[] mshMov) {
-		boundaryForce = null;
-		faceIndexes = null;
-
-		int s = 0;
-		for (Element elem : elems) {
-			for (int k = 0; k < elem.nFaces; k++) {
-				if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
-					s += elem.Int.faces[k].nIntEdge;
-				}
-			}
-		}
-
-		if (s > 0) {
-			int dim = elems[0].dim;
-			boundaryForce = new double[s][2 * dim]; // s x [Fx,Fy,Fz,xes,yes,zes]
-			faceIndexes = new int[s][3];
-			s = 0;
-			for (int k = 0; k < elems.length; k++) {
-				Element elem = elems[k];
-				for (int r = 0; r < elem.nFaces; r++) {
-					if (elem.TEale[r] > 1 && elem.insideMetisDomain) {
-						Integration.Face face = elem.Int.faces[r];
-						for (int p = 0; p < face.nIntEdge; p++) { // edge integral                            
-							double[] WL = face.evalWLeft(elem.W, p);
-							double pressure = eqn.pressure(WL);
-//							double[] derWL = face.evalDerWLeft(elem.W, p);
-//							double[] stressVector = eqn.stressVector(WL, derWL, elem.n[r][p]);
-							for (int d = 0; d < dim; d++) {
-                                boundaryForce[s][d] = elem.n[r][p][d] * pressure;
-//								boundaryForce[s][d] = -stressVector[d];
-							}
-
-							System.arraycopy(elem.Xes[r], 0, boundaryForce[s], dim, dim);
-							faceIndexes[s][0] = k;
-							faceIndexes[s][1] = r;
-							faceIndexes[s][2] = elem.TEale[r];
-
-							s++;
-						}
-					}
-				}
-			}
-		}
-	}
-		
-//	@Override
-	public void calculateForcesOld(Element[] elems, MeshMove[] mshMov) {
-		boundaryForce = null;
-		faceIndexes = null;
-
-		int s = 0;
-		for (Element elem : elems) {
-			for (int k = 0; k < elem.nFaces; k++) {
-				if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
-					s++;
-				}
-			}
-		}
-		/*
-        if (s > 0) {
-            int dim = elems[0].dim;
-            boundaryForce = new double[s][2*dim]; // s x [Fx,Fy,Fz,xes,yes,zes]
-            faceIndexes = new int[s][3];
-            s = 0;
-            for (int i = 0; i < elems.length; i++) {
-                Element elem = elems[i];
-                for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TEale[k] > 1 && elem.insideMetisDomain) {
-                        double[] Jac = elem.Int.faces[k].JacobianFace;
-                        double[] weights = elem.Int.faces[k].weightsFace;
-                        double[][] baseLeft = elem.Int.faces[k].basisFaceLeft;
-                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
-                            double[] WL = new double[elem.getNEqs()];
-                            for (int j = 0; j < elem.getNEqs(); j++) {
-                                for (int m = 0; m < elem.nBasis; m++) {
-                                    WL[j] = WL[j] + elem.W[j * elem.nBasis + m] * baseLeft[p][m];
-                                }
-                            }
-                            double pressure = eqn.pressure(WL);
-                            for (int d = 0; d < dim; d++) {
-                                boundaryForce[s][d] += Jac[p] * weights[p] * elem.n[k][p][d] * pressure;
-                            }
-                        }
-                        System.arraycopy(elem.Xes[k], 0, boundaryForce[s], dim, dim);
-                        faceIndexes[s][0] = i;
-                        faceIndexes[s][1] = k;
-                        faceIndexes[s][2] = elem.TEale[k];
-                        s++;
-                    }
-                }
-            }
-        }*/
-
-		if (s > 0) {
-			int dim = elems[0].dim;
-			// vektor napeti a souradnice stredu strany
-			boundaryForce = new double[s][2 * dim]; // [sigmaX, sigmaY, sigmaZ, xes, yes, zes]
-			faceIndexes = new int[s][3];
-			s = 0;
-			for (int k = 0; k < elems.length; k++) {
-				Element elem = elems[k];
-				for (int r = 0; r < elem.nFaces; r++) {
-					if (elem.TEale[r] > 1 && elem.insideMetisDomain) {
-//						Integration.Face face = elem.Int.faces[r];
-//						double[] WL = face.evalWLeft(elem.W, 0);
-//						double[] derWL = face.evalDerWLeft(elem.W, 0);
-//						double[] stressVector = eqn.stressVector(WL, derWL, elem.n[r][0]);
-						double pressure = eqn.pressure(elem.calculateAvgW());
-						for (int d = 0; d < dim; d++) {
-//							boundaryForce[s][d] = pressure;
-                            boundaryForce[s][d] = pressure * elem.n[r][0][d];  // prumernou normalu nebo integrovat!!!
-//							boundaryForce[s][d] = -stressVector[d];
-						}
-						System.arraycopy(elem.Xes[r], 0, boundaryForce[s], dim, dim);
-						faceIndexes[s][0] = k;
-						faceIndexes[s][1] = r;
-						faceIndexes[s][2] = elem.TEale[r];
-						s++;
-					}
-				}
-			}
-		}
-	}
-
 	@Override
 	public FluidForces[] getFluidForces() {
 		return fluidForces;
@@ -224,17 +102,28 @@ public class Deformation2DElastic extends Deformation {
 		return 1 - norm;
 	}
 	
+	double[] getStressTensor(Element elem, double[] WL,  double[] derWL) {
+		double[][] stressTensor = new double[dim][];
+		
+		for (int d = 0; d < dim; d++) {
+			stressTensor[d] = eqn.stressVector(WL, derWL, EYE[d]);
+		}
+		
+		return new double[] {stressTensor[0][0], stressTensor[1][1], stressTensor[0][1]};
+	}
+	
 	@Override
 	public void calculateForces(Element[] elems, MeshMove[] mshMov) {
 		BoundaryIndices[] boundaryIndexesOfBodies = getBoundaryIndexesOfBodies(elems);
 		
-		int dim = elems[0].dim;
+//		int dim = elems[0].dim;
 		for (int b = 0; b < nBodies; b++) {	
 			BoundaryIndices boundaryIndexes = boundaryIndexesOfBodies[b];
 			
 			double[] force = new double[dim];
 			double[][] stressVectors = new double[boundaryIndexes.nIntegrationPoints][dim];
-			double[][] stressVectorPositions = new double[boundaryIndexes.nIntegrationPoints][dim];
+			double[][] stressTensors = new double[boundaryIndexes.nIntegrationPoints][3];
+			double[][] stressVectorPositions = new double[boundaryIndexes.nIntegrationPoints][dim];			
 			
 			for (int i = 0; i < boundaryIndexes.elemInds.length; i++) {
 				Element elem = elems[boundaryIndexes.elemInds[i]];
@@ -243,8 +132,9 @@ public class Deformation2DElastic extends Deformation {
 				for (int p = 0; p < face.nIntEdge; p++) {
 					int globalIdx = i * face.nIntEdge + p;
 					double[] WL = face.evalWLeft(elem.W, p);
-					double[] derWL = face.evalDerWLeft(elem.W, 0);
+					double[] derWL = face.evalDerWLeft(elem.W, p);
 					double[] stressVector = eqn.stressVector(WL, derWL, elem.n[faceIdx][p]);
+					stressTensors[globalIdx] = getStressTensor(elem, WL, derWL);
 //					double pressure = eqn.pressure(WL);
 //					double pressure = eqn.pressure(elem.calculateAvgW());
 					for (int d = 0; d < dim; d++) {
@@ -259,6 +149,7 @@ public class Deformation2DElastic extends Deformation {
 			
 			fluidForces[b] = new FluidForces(stressVectors, stressVectorPositions);
 			fluidForces[b].force = force;
+			fluidForces[b].stressTensors = stressTensors;
 		}
 	}
 	
