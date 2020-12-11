@@ -9,7 +9,7 @@ structureSolverPath = os.path.join(fp.flowProPath, 'toolbox', 'elasticity')
 sys.path.insert(1, structureSolverPath)
 
 
-from structureServer import StructureServer, StructureServerTest
+from structureServer import StructureServer, StructureServerTest, StructureServerALE
 from dynamics import Dynamics
 
 
@@ -54,6 +54,8 @@ def run():
 
 	print('using port %d' % port)
 
+	saveRate = int(paramDct.get('saveRate'))
+
 	structureParamDct = fp.getStructureParam()
 	elaGeom = structureParamDct['geometry']
 
@@ -69,11 +71,11 @@ def run():
 		# fp.args('turekhron/dynamics')
 		# geoPath, simPath, outPath = fp.getPath()
 		# meshDirPath = os.path.join(structureSolverPath, 'mesh', meshDirName)
-
-		solver = Dynamics(elaGeomPath, simPath, outPath)
+		animationPath = os.path.join(simPath, 'animation')
+		solver = Dynamics(elaGeomPath, simPath, outPath, animationPath)
 
 		fp.run()
-		server = StructureServerTest('localhost', port, solver, simPath, pRef, rhoRef, lRef)
+		server = StructureServer('localhost', port, solver)  # , pRef, rhoRef, lRef, saveRate, animation)
 		server.run()
 	finally:
 		os.chdir(currentPath)

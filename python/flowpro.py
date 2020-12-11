@@ -52,8 +52,8 @@ def getPath(*argv):
 		print("Simulation " + geometry + " does not exist.")
 		return
 
-	if not os.path.isdir(outputPath):
-		outputPath = ""
+	# if not os.path.isdir(outputPath):
+	# 	outputPath = ""
 
 	return meshPath, simulPath, outputPath
 

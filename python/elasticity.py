@@ -49,6 +49,7 @@ def getPath(*argv):
 	meshPath = os.path.join(structureSolverPath, 'simulations', geometry, 'mesh')
 	simulPath = os.path.join(structureSolverPath, 'simulations', geometry, simulation)
 	outputPath = os.path.join(simulPath, 'output')
+	animPath = os.path.join(simulPath, 'animation')
 
 	if not os.path.isdir(meshPath):
 		print("Geometry '" + geometry + "' does not exist.")
@@ -61,7 +62,7 @@ def getPath(*argv):
 	# if not os.path.isdir(outputPath):
 	# 	outputPath = ""
 
-	return meshPath, simulPath, outputPath
+	return meshPath, simulPath, outputPath, animPath
 
 
 def getParam():
@@ -141,13 +142,13 @@ def __listSubdir(geoName):
 
 def run():
 	"""Run Structure Solver."""
-	geoPath, simPath, outPath = getPath()
+	geoPath, simPath, outPath, animation = getPath()
 	parameters = Parameters(simPath)
 
 	if parameters.model == Model.statics:
 		statics.solve(geoPath, simPath, outPath)
 	elif parameters.model == Model.dynamics:
-		solver = Dynamics(geoPath, simPath, outPath)
+		solver = Dynamics(geoPath, simPath, outPath, animation)
 		solver.solve()
 
 

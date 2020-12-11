@@ -91,10 +91,14 @@ switch action
         pRef = 1;
         tRef = 1;
         lRef = 1;
-        if get(findobj('tag','refVals'),'value')
-            [geometry, simulation] = loadArgs;
-            [pRef, ~, ~, tRef, lRef] = refvals(geometry, simulation);
-        end
+%         if get(findobj('tag','refVals'),'value')
+%             [geometry, simulation] = loadArgs;
+% %             [pRef, ~, ~, tRef, lRef] = refvals(geometry, simulation);
+%             map = refvals(geometry, simulation);
+%             pRef = map('p');
+%             tRef = map('t');
+%             lRef = map('l');
+%         end
         
         fftVal = get(findobj('tag','fft'),'value');
         
