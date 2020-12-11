@@ -221,8 +221,8 @@ public class LocalImplicitSolver extends MasterSolver {
 
             state.residuum = calculateResiduumW(dt);
             if (state.residuum == 0) {
-                LOG.error(" computation error ");
-                //break;
+                LOG.error("computational error - residuum is equal to zero");
+                break;
             }
             state.executionTime = watch.getTime();
             state.t += dt;
