@@ -99,7 +99,7 @@ public class Deformation2DElastic extends Deformation {
 			norm += (a[i] - b[i]) * (a[i] - b[i]);
 		}
 		norm = Math.sqrt(norm);
-		return 1 - norm;
+		return 1 - norm * norm * norm;
 	}
 	
 	double[] getStressTensor(Element elem, double[] WL,  double[] derWL) {
