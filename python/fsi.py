@@ -5,7 +5,7 @@ import math
 import flowpro as fp
 import elasticity as ela
 
-structureSolverPath = os.path.join(fp.flowProPath, 'toolbox', 'elasticity')
+structureSolverPath = ela.structureSolverPath
 sys.path.insert(1, structureSolverPath)
 
 

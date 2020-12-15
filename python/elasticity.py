@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-structureSolverPath = 'E:\\workspace\\FlowProPackage\\FlowPro\\toolbox\\elasticity'
+structureSolverPath = 'D:\Soubory\Ostatni\AlesTurek\elasticity'
 sys.path.insert(1, structureSolverPath)
 
 from dynamics import Dynamics

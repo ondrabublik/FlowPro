@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-flowProPath = 'E:\\workspace\\FlowProPackage\\FlowPro'
+flowProPath = 'D:/Soubory/Ostatni/AlesTurek/FlowProPackage/FlowPro'
 paramFileName = 'parameters.txt'
 structureParamFileName = 'structuralParameters.txt'
 
