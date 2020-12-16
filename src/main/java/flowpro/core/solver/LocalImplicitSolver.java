@@ -213,8 +213,7 @@ public class LocalImplicitSolver extends MasterSolver {
                     elems[i].updateW(x);
                 }
 
-                double iner_tol = 1e-15;  // zadat jako parametr !!!!!!!
-                if (state.residuum < iner_tol) {
+                if (state.residuum < par.newtonIterTol) {
                     break;
                 }
             }
