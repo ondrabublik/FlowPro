@@ -166,14 +166,14 @@ public class FlowProMain {
                     break;
 
                 case "getparameters": // get all solver parameters
-                        dgfem = new FlowProMain();
-                        System.out.println();
-                        System.out.println("FlowPro parameters:");
-                        Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false, jarURLList).getClass();
-                        Field[] fields = par.getFields();
-                        for (Field field : fields) {
-                            System.out.println(field.getName() + ": " + field.getGenericType());
-                        }
+                    dgfem = new FlowProMain();
+                    System.out.println();
+                    System.out.println("FlowPro parameters:");
+                    Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false, jarURLList).getClass();
+                    Field[] fields = par.getFields();
+                    for (Field field : fields) {
+                        System.out.println(field.getName() + ": " + field.getGenericType());
+                    }
                     break;
 
                 default:
@@ -762,8 +762,8 @@ public class FlowProMain {
             System.out.println("Error " + e);
         }
     }
-    
-    public static void memoryInfo(){
+
+    public static void memoryInfo() {
         Runtime runtime = Runtime.getRuntime();
         long maxMemory = runtime.maxMemory();
         long allocatedMemory = runtime.totalMemory();
