@@ -55,13 +55,15 @@ public class Deformation2DElastic extends Deformation {
 					double[][] rbfCoeffs = mshMov[k].getDeformationCoefficients();
 					double[] Xdef = new double[elems[i].dim];
 					if (rbfCoeffs != null) {
-						double[][] boundaryPointsCoords = mshMov[k].getboundaryPointsCoords();
+						double[][] boundaryPointsCoords = mshMov[k].getBoundaryPoints();
 						for (int p = 0; p < rbfCoeffs[0].length; p++) {
 							double rbf = radialBasisFunction(elems[i].vertices0[j], boundaryPointsCoords[p]);
 							for (int d = 0; d < elems[i].dim; d++) {
 								Xdef[d] += rbfCoeffs[d][p] * rbf;
 							}
 						}
+					} else {
+						System.out.println("rbfCoeffs are null!!!!!!!!!!!!!");
 					}
 					double xNew = (Math.cos(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) - Math.sin(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[0][k] - elems[i].vertices0[j][0]) * nBodies + elems[i].vertices0[j][0] + moveTranslation[0] * nBodies + Xdef[0] * nBodies;
 					double yNew = (Math.sin(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) + Math.cos(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[1][k] - elems[i].vertices0[j][1]) * nBodies + elems[i].vertices0[j][1] + moveTranslation[1] * nBodies + Xdef[1] * nBodies;
