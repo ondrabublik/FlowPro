@@ -10,12 +10,12 @@ import java.io.IOException;
  */
 public class DeformationFactory {
 
-    public Deformation getDeformation(Parameters par, Equation eqn, int[][] TEale) throws IOException {
+    public Deformation getDeformation(Parameters par, Equation eqn, double[][] PXY, int[][] TP, int[][] TEale) throws IOException {
         switch (par.meshDeformationType) {
             case "Rigid2D":
                 return new Deformation2DRigid(par, eqn, TEale);
             case "Elastic2D":
-                return new Deformation2DElastic(par, eqn, TEale);
+                return new Deformation2DElastic1(par, eqn, PXY, TP, TEale);
             case "Rigid3D":
                 return new Deformation3DRigid(par, eqn, TEale);
             case "Elastic3D":

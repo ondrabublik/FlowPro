@@ -390,7 +390,7 @@ public class FlowProMain {
 
         LOG.info("initialising mesh...");
         // initialising ALE objects
-        Deformation dfm = new DeformationFactory().getDeformation(par, eqn, TEale);
+        Deformation dfm = new DeformationFactory().getDeformation(par, eqn, PXY, TP, TEale);
         Dynamics dyn = null;
         if (par.movingMesh) {
             dyn = (new DynamicsFactory()).getDynamicsModel(simulationPath + PARAMETER_FILE_NAME, jarURLList, dfm.nBodies, simulationPath, meshPath, eqn);
