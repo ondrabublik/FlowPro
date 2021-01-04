@@ -45,7 +45,7 @@ public class Deformation3DBeam extends Deformation {
                     double yTrans = 0;
                     double alpha = 0;
                     if (rbfCoeffs != null) {
-                        double[][] beamZcoord = mshMov[k].getboundaryPointsCoords();
+                        double[][] beamZcoord = mshMov[k].getBoundaryPoints();
                         for (int p = 0; p < rbfCoeffs[0].length; p++) {
                             double rbf = radialBasisFunction(elems[i].vertices0[j][2], beamZcoord[p][0]);
                             xTrans += rbfCoeffs[0][p] * rbf;
