@@ -17,7 +17,7 @@ import java.util.Arrays;
  *
  * @author obublik
  */
-public class DGpureIncompressible extends Element {
+public class DGiso extends Element {
 
     public double penalty;    // interior penalty constant
     public double beta0;  // direct discontinuous constant 
@@ -28,7 +28,9 @@ public class DGpureIncompressible extends Element {
     public double[] dampInnerCoef; // koeficienty pro pridavnou viskozitu uvnitr
     public double dampConst; // konstantni pridavna viskozita 
     
-    public DGpureIncompressible(){
+    public double[][][] K;
+    
+    public DGiso(){
         
     }
     
@@ -71,6 +73,7 @@ public class DGpureIncompressible extends Element {
 
     public void initCondition() {
         // fill the solution vector with initial condition
+        K = new double[dim][nBasis][nBasis];
         W = new double[nBasis * nEqs];
         Wo = new double[nBasis * nEqs];
         Wo2 = new double[nBasis * nEqs];
@@ -163,11 +166,7 @@ public class DGpureIncompressible extends Element {
                             double fsum = 0;
                             double dWsum = 0;
                             for (int d = 0; d < dim; d++) {
-                                if(m > 0){
-                                    fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
-                                } else {
-                                    fsum += (f[d][m]) * dBase[j][d];
-                                }
+                                fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
                                 dWsum += dWInt[nEqs * d + m] * dBase[j][d];
                             }
                             K[nBasis * m + j] += Jac * weight * fsum - (eps + dampConst + dampInner[m]) * Jac * weight * dWsum;
@@ -308,11 +307,7 @@ public class DGpureIncompressible extends Element {
                 for (int j = 0; j < nBasis; j++) {
                     double jwb = Jac * weight * baseLeft[j];
                     if (eqn.isConvective()) {
-                        if(m > 0){
-                            K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
-                        } else {
-                            K[nBasis * m + j] -= jwb * (fn[m]);
-                        }
+                        K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
                         if (TT[k] > -1) {
                             K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
                         }
@@ -331,11 +326,7 @@ public class DGpureIncompressible extends Element {
                     for (int j = 0; j < nRBasis; j++) {
                         double jwb = Jac * weight * baseRight[j];
                         if (eqn.isConvective()) {
-                            if(m > 0){
-                                KR[nRBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
-                            } else {
-                                KR[nRBasis * m + j] -= jwb * (fn[m]);
-                            }
+                            KR[nRBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
                             KR[nRBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
                         }
                         if (eqn.isDiffusive()) {
@@ -540,6 +531,7 @@ public class DGpureIncompressible extends Element {
         // integracni vzorec pro vypocet matice hmotnosti musi mit prislusny rad, zkontrolovat!!!!!!!!!!   
 
         double[][] base = Int.basisVolume;
+        double[][][] dBase = Int.dXbasisVolume;
         double[] Jac = Int.JacobianVolume;
         double[] weights = Int.weightsVolume;
 
@@ -548,6 +540,9 @@ public class DGpureIncompressible extends Element {
             for (int j = 0; j < nBasis; j++) {
                 for (int p = 0; p < Int.nIntVolume; p++) {
                     M[i][j] = M[i][j] + Jac[p] * weights[p] * base[p][i] * base[p][j];
+                    for(int d = 0; d < dim; d++){
+                        K[d][i][j] = K[d][i][j] + Jac[p] * weights[p] * base[p][i] * dBase[p][j][d];
+                    }
                 }
             }
             for (int p = 0; p < Int.nIntVolume; p++) {
