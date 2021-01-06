@@ -7,4 +7,4 @@ end
 args = [args,' -fvtk'];
 show(args);
 [~, ~, outputPath] = getPath;
-system(['paraview ',outputPath,'results.vtk']);
+system(['start paraview ',outputPath,'results.vtk']);

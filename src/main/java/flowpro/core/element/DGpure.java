@@ -32,11 +32,13 @@ public class DGpure extends Element {
         
     }
     
+    @Override
     public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
         super.set(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
     }
 
+    @Override
     public void initMethod(FlowProProperties props) throws IOException {
         computeOrderTruncationMatrix();
         
@@ -69,6 +71,7 @@ public class DGpure extends Element {
         }
     }
 
+    @Override
     public void initCondition() {
         // fill the solution vector with initial condition
         W = new double[nBasis * nEqs];
@@ -102,6 +105,7 @@ public class DGpure extends Element {
     }
 
     // tato funkce vypocitava reziduum__________________________________________
+    @Override
     public void residuum(double[] V, double[] K, double[][] KR) {
 
         // vypocet toku hranici
@@ -185,6 +189,7 @@ public class DGpure extends Element {
     }
 
     // tato funkce vypocitava reziduum__________________________________________
+    @Override
     public void residuumWall(int k, double[] V, double[] K, double[] KR) {
         if (KR != null) {
             Arrays.fill(KR, 0.0);
@@ -337,6 +342,7 @@ public class DGpure extends Element {
     }
 
     // Aplikace limiteru
+    @Override
     public void limiter(boolean isFirstIter) {
         eps = 0;
         c_IP = 0;
@@ -524,6 +530,7 @@ public class DGpure extends Element {
         return shock / rhoLmax / sumS / Math.pow(elemSize, par.order / 2.0);
     }
 
+    @Override
     public void computeMassMatrixAndBasisWeights() { // funkce pro generovani matic
         // integracni vzorec pro vypocet matice hmotnosti musi mit prislusny rad, zkontrolovat!!!!!!!!!!   
 
@@ -552,6 +559,7 @@ public class DGpure extends Element {
         }
     }
 
+    @Override
     public void recalculateMassMatrix() {
         double[][] base = Int.basisVolume;
         double[] Jac = Int.JacobianVolume;
@@ -613,11 +621,14 @@ public class DGpure extends Element {
         }
     }
     
+    @Override
     public boolean isJacobiMatrixAssembly(){
         return false;
     }
     
+    @Override
     public void residuumJacobi(double[][] ADiag, Implicit.Neighbour[] Sous){}
     
+    @Override
     public void residuumWallJacobi(int k, double[][] ADiag, Implicit.Neighbour Sous){}
 }

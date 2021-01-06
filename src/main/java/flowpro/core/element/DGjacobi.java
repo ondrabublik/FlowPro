@@ -21,6 +21,7 @@ public class DGjacobi extends DG {
     public DGjacobi(){
         
     }
+    @Override
     public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
             Mesh mesh, ElementType elemType) throws IOException {
         super.set(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
@@ -30,6 +31,7 @@ public class DGjacobi extends DG {
         super.initMethod(par.props);
     }
     
+    @Override
     public void residuumJacobi(double[][] ADiag, Neighbour[] Sous) {
         // vypocet toku hranici
         for (int k = 0; k < nFaces; k++) { // opakovani pres jednotlive steny
@@ -109,6 +111,7 @@ public class DGjacobi extends DG {
         }
     }
 
+    @Override
     public void residuumWallJacobi(int k, double[][] ADiag, Neighbour Sous) {
         double[] aL = null;
         double[] aR = null;
@@ -397,6 +400,7 @@ public class DGjacobi extends DG {
         }
     }
     
+    @Override
     public boolean isJacobiMatrixAssembly(){
         return true;
     }

@@ -20,10 +20,12 @@ public class BDF1 extends Implicit {
         super();
     }
 
+    @Override
     public int getOrder() {
         return 1;
     }
 
+    @Override
     public void init(FlowProProperties props) {
         super.initImplicit();
         useJacobiMatrixForAssembly = elem.isJacobiMatrixAssembly();
@@ -46,6 +48,7 @@ public class BDF1 extends Implicit {
     }
 
     // Generovani radku globalni matice a vektoru prave strany
+    @Override
     public void assembleJacobiMatrix(double dt, double dto) {
         // coefs
         double a1 = 1 / dt;
@@ -67,7 +70,7 @@ public class BDF1 extends Implicit {
         // assemble rhs
         assembleRHS(Rw, a1, a2);
 
-        if (useJacobiMatrixForAssembly) { // fast assemble when jacobian of equations is known
+        if (useJacobiMatrixForAssembly) { // fast assemble when jacobi matrix of equations is known
             ADiag = new double[nEqs * nBasis][nEqs * nBasis];
             for (Neighbour neigh : ANeighs) {
                 neigh.nullMatrix();

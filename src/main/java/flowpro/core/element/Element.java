@@ -274,6 +274,7 @@ public abstract class Element implements Serializable {
         if (par.solutionAverage) {
             elemData.Wavg = calculateAvgW();
         }
+        elemData.elemSize = elemSize;
 
         return u;
     }
@@ -309,6 +310,7 @@ public abstract class Element implements Serializable {
         if (par.solutionAverage) {
             elemData.Wavg = calculateAvgW();
         }
+        elemData.elemSize = elemSize;
 
         return u;
     }

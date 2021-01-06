@@ -166,7 +166,7 @@ public class DGpureIncompressible extends Element {
                                 if(m > 0){
                                     fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
                                 } else {
-                                    fsum += (f[d][m] - u[d]) * dBase[j][d];
+                                    fsum += f[d][m] * dBase[j][d];
                                 }
                                 dWsum += dWInt[nEqs * d + m] * dBase[j][d];
                             }
@@ -311,7 +311,7 @@ public class DGpureIncompressible extends Element {
                         if(m > 0){
                             K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
                         } else {
-                            K[nBasis * m + j] -= jwb * (fn[m] - vn);
+                            K[nBasis * m + j] -= jwb * fn[m];
                         }
                         if (TT[k] > -1) {
                             K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
@@ -334,7 +334,7 @@ public class DGpureIncompressible extends Element {
                             if(m > 0){
                                 KR[nRBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
                             } else {
-                                KR[nRBasis * m + j] -= jwb * (fn[m] - vn);
+                                KR[nRBasis * m + j] -= jwb * fn[m];
                             }
                             KR[nRBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
                         }

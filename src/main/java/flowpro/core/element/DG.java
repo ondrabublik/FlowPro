@@ -836,11 +836,14 @@ public class DG extends Element {
         }
     }
     
+    @Override
     public boolean isJacobiMatrixAssembly(){
         return false;
     }
     
+    @Override
     public void residuumJacobi(double[][] ADiag, Neighbour[] Sous){}
     
+    @Override
     public void residuumWallJacobi(int k, double[][] ADiag, Neighbour Sous){}
 }

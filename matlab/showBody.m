@@ -12,17 +12,18 @@ switch action
         [~, simulPath, ~] = getPath;
         body = load(strcat(simulPath, 'bodiesDynamic.txt'));
         [~, n] = size(body);
-        nBody = (n-1)/6;
+        nVals = 8;
+        nBody = (n-1)/nVals;
 
         % structure
         t = body(:,1);
         bodies{nBody} = [];
         for i = 1:nBody
-            bodies{i}.x = body(:,6*(i-1)+2);
-            bodies{i}.y = body(:,6*(i-1)+3);
-            bodies{i}.alfa = body(:,6*(i-1)+4);
-            bodies{i}.Fx = body(:,6*(i-1)+5);
-            bodies{i}.Fy = body(:,6*(i-1)+6);
+            bodies{i}.x = body(:,nVals*(i-1)+2);
+            bodies{i}.y = body(:,nVals*(i-1)+3);
+            bodies{i}.alfa = body(:,nVals*(i-1)+4);
+            bodies{i}.Fx = body(:,nVals*(i-1)+5);
+            bodies{i}.Fy = body(:,nVals*(i-1)+6);
             bodies{i}.momentum = body(:,6*(i-1)+7);
         end
         
