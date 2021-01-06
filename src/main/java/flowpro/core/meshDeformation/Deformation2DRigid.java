@@ -125,6 +125,7 @@ public class Deformation2DRigid extends Deformation {
                             
                             pressureAvg += Jac[p] * weights[p] * eqn.pressure(wL);
                         }
+
                         totalTranslationForce[0][b] += fx;
                         totalTranslationForce[1][b] += fy;
                         totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));

@@ -92,7 +92,7 @@ switch action
         pRef = 1;
         tRef = 1;
         lRef = 1;
-        if(get(findobj('tag','refVals'),'value'))
+        if get(findobj('tag','refVals'),'value')
             [geometry, simulation] = loadArgs;
             [pRef, ~, ~, tRef, lRef] = refvals(geometry, simulation);
         end
