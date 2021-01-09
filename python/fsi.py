@@ -26,25 +26,38 @@ def run():
 
 	paramDct = fp.getParam()
 
-	model = paramDct['model'] 
+	model = paramDct['model']
 	if model == 'NavierStokesVelocityInlet':
 		vRef = float(paramDct['vIn'])
 		rhoRef = float(paramDct['rhoIn'])
-		pRef = rhoRef * vRef ** 2
+		kapa = float(paramDct['kappa'])
+		mach =float(paramDct['mach'])
+		soundSpeed = vRef / mach
+		pOut = rhoRef * soundSpeed**2 / kapa
 	elif model == 'IncompressibleNavierStokes':
-		lst = paramDct['VIn'].split(',')
-		vRef = 0.
-		for str in lst:
-			vRef += float(str.strip()) ** 2
-		vRef = math.sqrt(vRef)
-		rhoRef = float(paramDct['density'])
-		pRef = rhoRef * vRef ** 2
+		pOut = float(paramDct['pOut'])
 
-	lRef = paramDct.get('lRef')
-	if lRef is None:
-		lRef = 1
-	else:
-		lRef = float(lRef)
+	print('outlet pressure = %.3e' % pOut)  # 1.142857142857143e+06
+
+	# model = paramDct['model'] 
+	# if model == 'NavierStokesVelocityInlet':
+	# 	vRef = float(paramDct['vIn'])
+	# 	rhoRef = float(paramDct['rhoIn'])
+	# 	pRef = rhoRef * vRef ** 2
+	# elif model == 'IncompressibleNavierStokes':
+	# 	lst = paramDct['VIn'].split(',')
+	# 	vRef = 0.
+	# 	for str in lst:
+	# 		vRef += float(str.strip()) ** 2
+	# 	vRef = math.sqrt(vRef)
+	# 	rhoRef = float(paramDct['density'])
+	# 	pRef = rhoRef * vRef ** 2
+
+	# lRef = paramDct.get('lRef')
+	# if lRef is None:
+	# 	lRef = 1
+	# else:
+	# 	lRef = float(lRef)
 
 	port = paramDct.get('remoteStructureSolverPort')
 	if port is None:
@@ -54,28 +67,31 @@ def run():
 
 	print('using port %d' % port)
 
-	saveRate = int(paramDct.get('saveRate'))
-
 	structureParamDct = fp.getStructureParam()
-	elaGeom = structureParamDct['geometry']
+	elaGeom = structureParamDct['geometry']	
 
 	elaGeomPath = os.path.join(ela.structureSolverPath, 'simulations', elaGeom, 'mesh')
-
-	# mach = float(paramDct['mach'])
-	# kappa = float(paramDct['kappa'])
-	# pOut = 1 / (mach**2 * kappa)
 
 	currentPath = os.getcwd()
 	os.chdir(structureSolverPath)
 	try:
-		# fp.args('turekhron/dynamics')
-		# geoPath, simPath, outPath = fp.getPath()
-		# meshDirPath = os.path.join(structureSolverPath, 'mesh', meshDirName)
 		animationPath = os.path.join(simPath, 'animation')
 		solver = Dynamics(elaGeomPath, simPath, outPath, animationPath)
 
+		regime = structureParamDct.get('regime')
 		fp.run()
-		server = StructureServer('localhost', port, solver)  # , pRef, rhoRef, lRef, saveRate, animation)
+		if regime is None or regime == 'fsi':
+			print('starting FSI computation')
+			server = StructureServer('localhost', port, solver, pOut)  # , pRef, rhoRef, lRef, saveRate, animation)
+		elif regime == 'ale':
+			print('starting ALE computation')
+			server = StructureServerALE('localhost', port, solver)
+		elif regime == 'stationary':
+			print('starting test computation')
+			server = StructureServerTest('localhost', port, solver)
+		else:
+			raise ValueError('parameter regime has a wrong value')
+
 		server.run()
 	finally:
 		os.chdir(currentPath)
