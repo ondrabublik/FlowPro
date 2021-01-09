@@ -135,8 +135,8 @@ public class Deformation2DElastic1 extends Deformation {
 		return newValues;
 	}
 	
-@Override
-	public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
+//@Override
+	public void newMeshPositionAndVelocity1(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 		
 		if (!isInitialized) {
 			isInitialized = true;
@@ -211,7 +211,7 @@ public class Deformation2DElastic1 extends Deformation {
 	}
 	
 //	@Override
-	public void newMeshPositionAndVelocity0(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
+	public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 		
 		if (!isInitialized) {
 			isInitialized = true;
