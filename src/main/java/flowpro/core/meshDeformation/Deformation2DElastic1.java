@@ -69,7 +69,7 @@ public class Deformation2DElastic1 extends Deformation {
 		Set<Integer> movingBndNodes = new HashSet<>();
 		for (int k = 0; k < TEale.length; k++) {  // element index
 			for (int i = 0; i < TEale[k].length; i++) {  // face index
-				if (TEale[k][i] == 1) {
+				if (TEale[k][i] == 1 || TEale[k][i] == 3) {  // TEale[k][i] == 3 jen docasne pro Turek-Hron benchmark (staticky valec)
 					staticBndNodes.add(TP[k][i]);
 					int iNext = (i + 1) % TP[k].length;
 					staticBndNodes.add(TP[k][iNext]);
@@ -216,22 +216,19 @@ public class Deformation2DElastic1 extends Deformation {
 		if (!isInitialized) {
 			isInitialized = true;
 			
+			int movingBndLen = 0;
 //			for (int b = 0; b < nBodies; b++) {
 			int b = 0;
-			
-			double[][] movingBndPoints = mshMov[b].getBoundaryPoints();
-
-			int len = movingBndPoints.length + staticBndPoints.length;
-			bndPoints = new double[len][dim];
-			bndDisplacement = new double[dim][len];
+				double[][] movingBndPoints = mshMov[b].getBoundaryPoints();
+				movingBndLen += movingBndPoints.length;
+//			}
+			int totalLen = movingBndLen + staticBndPoints.length;
+			bndPoints = new double[totalLen][dim];
+			bndDisplacement = new double[dim][totalLen];
 
 			for (int p = 0; p < staticBndPoints.length; p++) {
-				System.arraycopy(staticBndPoints[p], 0, bndPoints[p+movingBndPoints.length], 0, dim);
-			}
-
-			double[][] dis = mshMov[b].getBoundaryDisplacement();
-			displacement = new double[dis.length][dis[0].length];
-//			}			
+				System.arraycopy(staticBndPoints[p], 0, bndPoints[p+movingBndLen], 0, dim);
+			}			
 		}
 
 		double a1 = 1.0 / dt;
@@ -253,20 +250,23 @@ public class Deformation2DElastic1 extends Deformation {
 //			}
 //		}
 		
+		int pos = 0;
 //		for (int b = 0; b < nBodies; b++) {
 		int b = 0;
-		
-		displacement = mshMov[b].getBoundaryDisplacement();
-		double[][] diffBoundaryDisplacement = displacement;
-		double[][] movingBndPoints = mshMov[b].getBoundaryPoints();
+			displacement = mshMov[b].getBoundaryDisplacement();
+			double[][] diffBoundaryDisplacement = displacement;
+			double[][] movingBndPoints = mshMov[b].getBoundaryPoints();
 
-		for (int p = 0; p < movingBndPoints.length; p++) {
-			System.arraycopy(movingBndPoints[p], 0, bndPoints[p], 0, dim);
-		}
+			for (int p = 0; p < movingBndPoints.length; p++) {
+				System.arraycopy(movingBndPoints[p], 0, bndPoints[p], 0, dim);
+			}
 
-		for (int d = 0; d < dim; d++) {
-			System.arraycopy(diffBoundaryDisplacement[d], 0, bndDisplacement[d], 0, diffBoundaryDisplacement[d].length);
-		}
+			for (int d = 0; d < dim; d++) {
+				System.arraycopy(diffBoundaryDisplacement[d], 0, bndDisplacement[d], pos, diffBoundaryDisplacement[d].length);
+			}
+			
+			pos += diffBoundaryDisplacement[0].length;
+//		}
 
 		double[][] rbfCoeffs = computeRadialBasisFunctionCoefficients(bndPoints, bndDisplacement);
 
@@ -450,7 +450,7 @@ public class Deformation2DElastic1 extends Deformation {
 		BoundaryIndices[] boundaryIndexesOfBodies = getBoundaryIndexesOfBodies(elems);
 		
 //		int dim = elems[0].dim;
-		for (int b = 0; b < nBodies; b++) {	
+		for (int b = 0; b < nBodies; b++) {
 			BoundaryIndices boundaryIndexes = boundaryIndexesOfBodies[b];
 			
 			double[] force = new double[dim];
@@ -564,6 +564,11 @@ public class Deformation2DElastic1 extends Deformation {
 			}
 			
 			fluidForces[b] = new FluidForces(stressVectors, stressVectorPositions);
+		}
+		
+		// jen docasne - je treba pri nacitani rozlisit tuhy, elasticky i stacionarni telesa
+		if (nBodies > 1) {
+			fluidForces[1].bodyType = FluidForces.BodyType.STATIC;
 		}
 	}		
 	
