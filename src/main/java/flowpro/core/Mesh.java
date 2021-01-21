@@ -8,7 +8,6 @@ import flowpro.core.elementType.ElementType;
 import flowpro.api.SolutionMonitor;
 import flowpro.core.parallel.Domain.Subdomain;
 import flowpro.core.element.*;
-import flowpro.core.solver.MasterSolver;
 import java.io.*;
 import java.util.Arrays;
 import org.slf4j.Logger;

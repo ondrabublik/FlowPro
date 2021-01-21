@@ -36,6 +36,7 @@ def run():
 		pOut = rhoRef * soundSpeed**2 / kapa
 	elif model == 'IncompressibleNavierStokes':
 		pOut = float(paramDct['pOut'])
+		pOut = 0
 
 	print('outlet pressure = %.3e' % pOut)  # 1.142857142857143e+06
 

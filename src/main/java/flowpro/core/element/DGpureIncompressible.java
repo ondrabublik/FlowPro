@@ -102,6 +102,7 @@ public class DGpureIncompressible extends Element {
     }
 
     // tato funkce vypocitava reziduum__________________________________________
+    @Override
     public void residuum(double[] V, double[] K, double[][] KR) {
 
         // vypocet toku hranici
@@ -166,20 +167,23 @@ public class DGpureIncompressible extends Element {
                                 if(m > 0){
                                     fsum += (f[d][m] - u[d] * WInt[m]) * dBase[j][d];
                                 } else {
-                                    fsum += (f[d][m]) * dBase[j][d];
+                                    fsum += f[d][m] * dBase[j][d];
                                 }
                                 dWsum += dWInt[nEqs * d + m] * dBase[j][d];
                             }
-                            K[nBasis * m + j] += Jac * weight * fsum - (eps + dampConst + dampInner[m]) * Jac * weight * dWsum;
+                            K[nBasis * m + j] += Jac * weight * fsum;
+                            if(m > 0){
+                                K[nBasis * m + j] -= (eps + dampConst + dampInner[m]) * Jac * weight * dWsum;
+                            }
                         }
-                        if (eqn.isDiffusive()) {
+                        if (eqn.isDiffusive() && m > 0) {
                             double fvsum = 0;
                             for (int d = 0; d < dim; d++) {
                                 fvsum += fv[d][m] * dBase[j][d];
                             }
                             K[nBasis * m + j] -= Jac * weight * fvsum;
                         }
-                        if (eqn.isSourcePresent()) {
+                        if (eqn.isSourcePresent() && m > 0) {
                             K[nBasis * m + j] += Jac * weight * product[m] * base[j];
                         }
                     }
@@ -189,6 +193,7 @@ public class DGpureIncompressible extends Element {
     }
 
     // tato funkce vypocitava reziduum__________________________________________
+    @Override
     public void residuumWall(int k, double[] V, double[] K, double[] KR) {
         if (KR != null) {
             Arrays.fill(KR, 0.0);
@@ -226,6 +231,9 @@ public class DGpureIncompressible extends Element {
 
             // interpolation of mesh velocity
             double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
+//            if(TT[k] == -1){
+//                  System.out.println(U[edgeIndex[0]][1] + " " + U[edgeIndex[1]][1]);
+//            }
 
             double[] WL = new double[nEqs];
             double[] WR = new double[nEqs];
@@ -310,19 +318,20 @@ public class DGpureIncompressible extends Element {
                     if (eqn.isConvective()) {
                         if(m > 0){
                             K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
+                            if (TT[k] > -1) {
+                                K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
+                            }
                         } else {
-                            K[nBasis * m + j] -= jwb * (fn[m]);
-                        }
-                        if (TT[k] > -1) {
-                            K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
+                            K[nBasis * m + j] -= jwb * fn[m];
                         }
                     }
-                    if (eqn.isDiffusive()) {
+                    if (eqn.isDiffusive() && m > 0) {
                         K[nBasis * m + j] += jwb * fvn[m];
                         if (TT[k] > -1) {
                             K[nBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
                         } else if (eqn.isIPFace(TT[k])) {
                             K[nBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
+                            //System.out.println(u[1]);
                         }
                     }
                 }
@@ -333,12 +342,12 @@ public class DGpureIncompressible extends Element {
                         if (eqn.isConvective()) {
                             if(m > 0){
                                 KR[nRBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
+                                KR[nRBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
                             } else {
-                                KR[nRBasis * m + j] -= jwb * (fn[m]);
+                                KR[nRBasis * m + j] -= jwb * fn[m];
                             }
-                            KR[nRBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
                         }
-                        if (eqn.isDiffusive()) {
+                        if (eqn.isDiffusive() && m > 0) {
                             KR[nRBasis * m + j] += jwb * fvn[m];
                             KR[nRBasis * m + j] -= c_IP * jwb * (WL[m] - WR[m]);
                         }
@@ -349,6 +358,7 @@ public class DGpureIncompressible extends Element {
     }
 
     // Aplikace limiteru
+    @Override
     public void limiter(boolean isFirstIter) {
         eps = 0;
         c_IP = 0;
