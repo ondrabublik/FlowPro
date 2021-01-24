@@ -8,7 +8,7 @@ for i = 1:nargin
     
     if strcmpi(quantityName,'mesh') || strcmpi(quantityName,'meshALE') || strcmpi(quantityName,'order') || ...
        strcmpi(quantityName,'bodies') || strcmpi(quantityName,'residuum') || ...
-       strcmpi(quantityName,'av') || strcmpi(quantityName,'y') || ...
+       strcmpi(quantityName,'av') || strcmpi(quantityName,'meshvelo') || strcmpi(quantityName,'y') || ...
        strcmpi(quantityName,'bf')
         continue
     end
@@ -53,6 +53,9 @@ for k = 1 : nargin
         case 'av'
             showArtificialViscosity;
             continue
+        case 'meshvelo'
+            showMeshVelo;
+            continue  
         case 'y'
             showWallDistance;
             continue
@@ -327,6 +330,33 @@ function showArtificialViscosity
         axis(osy);
         colorbar;
         colormap jet
+    end
+end
+
+function showMeshVelo
+    [meshPath, simulPath, ~] = getPath;   
+    
+    uxy = load([simulPath,'UXY.txt']);
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    type = firstDigit(dlmread([meshPath, 'elementType.txt']));
+    tri = convert2Triangular(elems, type);
+    
+    
+    for m = 1:length(uxy(1,:))
+        try
+            figure('color', 'w');
+            [~, h2] = tricontf(xy(:,1),xy(:,2),tri,uxy(:,m),30);
+    %         tricontour(tri,xy(:,1),xy(:,2),uxy(:,m),30)
+            set(h2, 'linestyle', 'none');
+            box on;
+            axis equal;
+            osy = [min(xy(:,1)) max(xy(:,1)) min(xy(:,2)) max(xy(:,2))];
+            axis(osy);
+            colorbar;
+            colormap jet
+        catch
+        end
     end
 end
 

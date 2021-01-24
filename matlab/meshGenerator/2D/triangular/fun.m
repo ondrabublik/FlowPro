@@ -4,21 +4,20 @@ n = length(x);
 h = 10*ones(size(x));
 
 % pro obtekani profilu
-r0 = 1;    % radius jemne oblasti
-r1 = 0.3;
+r0 = 5;    % radius jemne oblasti
+r1 = 2;
 x0 = 0;  % x-ova souradnice stredu
-y0 = 0;  % y-ova souradnice stredu
-h0 = 0.02;
-h1 = 0.01;
+y0 = 0; % y-ova souradnice stredu
+h0 = 0.3;
+h1 = 0.1;
 for i = 1 : n
-    if(abs(x(i) - 0.3) < 0.7 && abs(y(i)) < 0.5)
-        i
+    if(x(i) > 0 && x(i) < 20 && abs(y(i)) < 5)
         h(i) = h0;
     end
     radius = sqrt((x(i)-x0)^2 + (y(i)-y0)^2);
-%     if radius < r0
-%         h(i) = h0;
-%     end
+    if radius < r0
+        h(i) = h0;
+    end
     if radius < r1
         h(i) = h1;
     end
