@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Ondřej"
+  given-names: "Bublík"
+  orcid: "https://orcid.org/0000-0002-6427-2748"
+- family-names: "Pecka"
+  given-names: "Aleš"
+  orcid: "https://orcid.org/0000-0002-3506-3138"
+title: "FlowPro"
+date-released: 2018-04-17
+url: "https://github.com/ondrabublik/FlowPro"
