@@ -207,7 +207,7 @@ function showMeshALE(xy, elems, neigh, type)
     triplot(tri, xy(:,1), xy(:,2), 'k', 'linewidth', .1);
 
     hold on
-    color = 'bgrm';
+    color = 'bgrmycbgrmyc';
     linewidth = 2;
     for i = 1 : size(elems,1)
         for j = 1 : type(i)        
@@ -227,14 +227,14 @@ function showOrder
     [meshPath, simulPath, ~] = getPath;
     
     order = dlmread([simulPath, 'order.txt']);
-    xy = dlmread([meshPath, 'vertices.txt']);    
+    xy = dlmread([meshPath, 'vertices.txt']);
     elems = dlmread([meshPath, 'elements.txt'])+1;
     type = dlmread([meshPath, 'elementType.txt']);
     nElem = length(elems(:,1));
     xys = zeros(nElem,2);
     for i = 1:nElem
         for j = 1:type(i)
-            xys(i,:) = xys(i,:) + xy(elems(i,j),:);
+            xys(i,:) = xys(i,:) + xy(elems(i,j),[1:2]);
         end
         xys(i,:) = xys(i,:)/type(i);
     end
@@ -451,7 +451,7 @@ function showBlendingFunctions
     for i = 1:length(bfs(1,:))
         figure('color', 'w');
         [~, h2] = tricontf(xy(:,1),xy(:,2),tri,bfs(:,i),30);
-        % tricontour(tri,PX,PY,Quantity,30)
+%         trimesh(tri,xy(:,1),xy(:,2),bfs(:,i));
         set(h2, 'linestyle', 'none');
         box on;
         axis equal;
