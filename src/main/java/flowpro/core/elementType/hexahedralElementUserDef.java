@@ -19,18 +19,20 @@ public class hexahedralElementUserDef extends hexahedralElement {
     
     hexahedralElementUserDef(int order, int volumeQuardatureOrder, int faceQuardatureOrder){
         super(order, volumeQuardatureOrder, faceQuardatureOrder);
-        if(order == 2){
-            this.volumeQuadratureOrder = 3;
-            this.faceQuadratureOrder = 2;
-        }
+//        if(order == 2){
+//            this.volumeQuadratureOrder = 2;
+//            this.faceQuadratureOrder = 2;
+//        }
     }
     
+    @Override
     public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {
         Transformation transform = new transformation3DhexaUserDef(par);
         transform.computeTransform(vertices);
         return transform;
     }
     
+    @Override
     public Basis getBasis(Transformation transform) throws IOException {
         Basis basis = new basis3DhexaRot(order);
         basis.calculateCoefficients();

@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
+import java.util.Arrays;
 
 /**
  *
@@ -38,6 +39,8 @@ public class Parameters implements Serializable {
     public final int newtonIters;   // pocet vnitrnich iteraci    
     public final double newtonIterTol;
     public final double meshScale; // mesh scale
+    public final double lRef; // reference length
+    public final boolean[] scaleDims; // dimensions to scale
 
     // transformation object
     public DomainTransformationObject domainTransformationObject;
@@ -98,13 +101,26 @@ public class Parameters implements Serializable {
             } else {
                 residuum = -1.0;
             }
-
+            
             if (props.containsKey("meshScale")) {
                 meshScale = props.getDouble("meshScale");
             } else {
                 meshScale = 1;
             }
+            
+            if (props.containsKey("lRef")) {
+                lRef = props.getDouble("lRef");
+            } else {
+                lRef = 1;
+            }
 
+            if (props.containsKey("scaleDims")) {
+                scaleDims = props.getBooleanArray("scaleDims");
+            } else {
+                scaleDims = new boolean[3];
+                Arrays.fill(scaleDims, Boolean.TRUE);
+            }
+            
             if (props.containsKey("tEnd")) {
                 tEnd = props.getDouble("tEnd");
             } else {

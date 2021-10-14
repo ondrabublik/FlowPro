@@ -63,13 +63,6 @@ public class transformation3DhexaUserDef extends Transformation {
             A[2][0] * Xi[0] * Xi[1] * Xi[2] + A[2][1] * Xi[0] * Xi[1] + A[2][2] * Xi[0] * Xi[2] + A[2][3] * Xi[1] * Xi[2] + A[2][4] * Xi[0] + A[2][5] * Xi[1] + A[2][6] * Xi[2] + A[2][7]};
 
         return domTrans.transform(Xr);
-        
-//        Complex[] Xic = new Complex[Xi.length];
-//        for(int i = 0; i < Xi.length; i++){
-//            Xic[i] = new Complex(Xi[i], 0);
-//        }
-//        Complex[] Y =  getX(Xic);
-//        return new double[]{Y[0].getRe(), Y[1].getRe(), Y[2].getRe()};
     }
 
     public Complex[] getX(Complex[] Xi) {
@@ -117,23 +110,18 @@ public class transformation3DhexaUserDef extends Transformation {
         return domTrans.transformComplex(Xr);
     }
 
-    @Override
-    public double getDX(double[] Xi, int dimTop, int dimBottom) {
-        double h = 1e-8;
-        Complex ih = new Complex(0, h);
-        Complex[] Xic = new Complex[Xi.length];
-        for (int i = 0; i < Xi.length; i++) {
-            Xic[i] = new Complex(Xi[i], 0);
-        }
-        Xic[dimBottom].add(ih);
-        Complex[] Y = getX(Xic);
-
-        return Y[dimTop].getIm() / h;
-    }
-    
-    public double[] cylinderTransform(double[] X) {
-        return domTrans.transform(X);
-    }
+//    @Override
+//    public double getDX(double[] Xi, int dimTop, int dimBottom) {
+//        double h = 1e-8;
+//        Complex ih = new Complex(0, h);
+//        Complex[] Xic = new Complex[Xi.length];
+//        for (int i = 0; i < Xi.length; i++) {
+//            Xic[i] = new Complex(Xi[i], 0);
+//        }
+//        Xic[dimBottom].add(ih);
+//        Complex[] Y = getX(Xic);
+//        return Y[dimTop].getIm() / h;
+//    }
 
     @Override
     public double jacobian(double[] Xi) {

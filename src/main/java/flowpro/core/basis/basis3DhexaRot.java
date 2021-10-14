@@ -16,12 +16,12 @@ public class basis3DhexaRot extends Basis {
 
     public basis3DhexaRot(int order) throws IOException {
         this.order = order;
-        int[] nBas = new int[]{1, 5, 10};
+        int[] nBas = new int[]{1, 4, 10};
         nBasis = nBas[order - 1];
         //               1  2                 3
         xExp = new int[]{0, 1, 0, 0, 0, 0, 1, 2, 0, 1};
-        yExp = new int[]{0, 0, 1, 0, 2, 1, 1, 0, 0, 0};
-        zExp = new int[]{0, 0, 0, 1, 0, 1, 0, 0, 2, 1};
+        yExp = new int[]{0, 0, 1, 0, 0, 1, 0, 0, 2, 1};
+        zExp = new int[]{0, 0, 0, 1, 2, 1, 1, 0, 0, 0};
         
 //        int[] nBas = new int[]{1, 4, 10, 20, 35};
 //        nBasis = nBas[order - 1];
