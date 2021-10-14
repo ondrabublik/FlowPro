@@ -38,8 +38,8 @@ public class ForcesAndDisplacements implements Serializable {
 			combinedFluidForces[b] = new FluidForces();			
 			
 			FluidForces fluidForces0 = forcesDisps[0].fluFor[b];
-			combinedFluidForces[b].isElastic = fluidForces0.isElastic;
-			if (fluidForces0.isElastic) {
+			combinedFluidForces[b].bodyType = fluidForces0.bodyType;
+			if (fluidForces0.bodyType == FluidForces.BodyType.ELASTIC) {
 				combinedFluidForces[b].stressVectors = Mat.copyMat(fluidForces0.stressVectors);
 				combinedFluidForces[b].stressVectorPositions = Mat.copyMat(fluidForces0.stressVectorPositions);
 
