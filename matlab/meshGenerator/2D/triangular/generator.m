@@ -227,6 +227,7 @@ elseif strcmp(action,'obdelnik') % pridava obdelnik do dane geometrie
     d = str2double(get(findobj('tag','d'),'string'));
     v = str2double(get(findobj('tag','v'),'string'));
     alfa = str2double(get(findobj('tag','alfa_sq'),'string'));
+    alfa = alfa/180*pi; 
     
     Xp = [x; x+d; x+d; x];
     Yp = [y; y; y+v; y+v];
