@@ -126,9 +126,9 @@ public abstract class Deformation implements Serializable {
             for (int i = 0; i < nElem; i++) {
                 for (int j = 0; j < eTyp[elemsType[i]].nFaces; j++) {
                     if (dim == 2) {
-                        nA = nA + 4;
+                        nA = nA + 6;
                     } else {
-                        nA = nA + 2 * eTyp[elemsType[i]].getFaceIndexes(j).length;
+                        nA = nA + 4 * eTyp[elemsType[i]].getFaceIndexes(j).length;
                     }
                 }
             }
