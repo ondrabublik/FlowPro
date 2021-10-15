@@ -39,7 +39,10 @@ public class Deformation2DElastic1 extends Deformation {
 	
 	double[][] points;
 	
-	int step = 0;
+	private int step;
+//	private static double p0 = 285.7142857142857;  // CFD2 and FSI2
+//	private static double p0 = 1.143e+06;  // CFD3 and FSI3
+//	private static double p0 = 0;
 
 	public Deformation2DElastic1(Parameters par, Equation eqn, double[][] points, int[][] TP, int[][] TEale) throws IOException {
 		super(par, eqn, TEale);
@@ -47,6 +50,7 @@ public class Deformation2DElastic1 extends Deformation {
 		this.points = points;
 		
 		isInitialized = false;
+		step = 0;
 //		bndPoints = new double[nBodies][][];
 //		bndDisplacement = new double[nBodies][][];
 //		displacement = new double[nBodies][][];
@@ -210,7 +214,7 @@ public class Deformation2DElastic1 extends Deformation {
 		step++;
 	}
 	
-//	@Override
+	@Override
 	public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 		
 		if (!isInitialized) {
@@ -466,8 +470,16 @@ public class Deformation2DElastic1 extends Deformation {
 					int globalIdx = i * face.nIntEdge + p;
 					double[] WL = face.evalWLeft(elem.W, p);
 					double[] derWL = face.evalDerWLeft(elem.W, p);
-					double[] stressVector = eqn.stressVector(WL, derWL, elem.n[faceIdx][p]);
+//					double[] stressVector = eqn.stressVector(WL, derWL, elem.n[faceIdx][p]);					
+					
 					stressTensors[globalIdx] = getStressTensor(elem, WL, derWL);
+					
+					double[] stressVector = new double[dim];  // stressTensor * normal
+					stressVector[0] = stressTensors[globalIdx][0] * elem.n[faceIdx][p][0]
+							+ stressTensors[globalIdx][2] * elem.n[faceIdx][p][1];
+					stressVector[1] = stressTensors[globalIdx][2] * elem.n[faceIdx][p][0]
+							+ stressTensors[globalIdx][1] * elem.n[faceIdx][p][1];
+					
 //					double pressure = eqn.pressure(WL);
 //					double pressure = eqn.pressure(elem.calculateAvgW());
 					for (int d = 0; d < dim; d++) {
