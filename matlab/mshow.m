@@ -25,11 +25,15 @@ end
 
 par = loadParam(simulPath);
 
+polyOrder = 1;
 for k = 1 : nargin
     q = varargin{k};
 
     if q(1) == '-'
-        warning('cannot evaluate option ''%s'': switches are not allowed here', q)
+        if q(2) == 'p'
+            polyOrder = q(3:end);
+        end
+%         warning('cannot evaluate option ''%s'': switches are not allowed here', q)
         continue
     end
 
@@ -67,8 +71,14 @@ for k = 1 : nargin
     if par.dimension ~= 2
         error('mshow supports only 2D view');
     end
-    elements = dlmread([meshPath, 'elements.txt'], ' ');
-    elementType = load([meshPath, 'elementType.txt']);
+    
+    if polyOrder == 1
+        elements = dlmread([meshPath, 'elements.txt'], ' ');
+        elementType = load([meshPath, 'elementType.txt']);
+    elseif polyOrder > 1
+        elements = dlmread([outputPath, 'elements.txt'], ' ');
+        elementType = 3 * ones(size(elements, 1), 1);
+    end
     tri = convert2Triangular(elements, elementType);
     
     plotMe(q)
@@ -93,9 +103,9 @@ function plotMe(quantityName)
         end
         magnitude = sqrt(magnitude);
         myContour(tri, vertices, magnitude, quantityName);
-        figure('name', quantityName, 'color', 'w');
-        quiver(vertices(:,1), vertices(:,2), quantity(:,1), quantity(:,2));
-        axis equal
+%         figure('name', quantityName, 'color', 'w');
+%         quiver(vertices(:,1), vertices(:,2), quantity(:,1), quantity(:,2));
+%         axis equal
     end
 end
 
@@ -167,9 +177,11 @@ for i = 1 : size(elems,1)
         
 %         xx = x(elems(i,j));
 %         yy = y(elems(i,j));
-%         if (xx <= 0.005 || xx >= 0.095) && yy > 0.0012 && yy < 0.0013
-%             text(xx, yy, sprintf('%d', elems(i,j)))
-%         end
+%         xlims = [-30 -20];
+%         ylims = [-5 5];
+%         if xx >= xlims(1) && xx <= xlims(2) && yy >= ylims(1) && yy < ylims(2)
+%             text(xx, yy, sprintf('%d', elems(i,j)))            
+%         end        
     end
         
 %     inds = elems(i,1:3);
@@ -177,6 +189,14 @@ for i = 1 : size(elems,1)
 %         xx = mean(x(inds));    
 %         yy = mean(y(inds));
 %         text(xx, yy, sprintf('%d', i));
+%     end
+
+%     xlims = [-30 -5];
+%     ylims = [-5 5];
+%     xs = mean(x(elems(i,:)));
+%     ys = mean(y(elems(i,:)));
+%     if xs >= xlims(1) && xs <= xlims(2) && ys >= ylims(1) && ys < ylims(2)
+%         text(xs, ys, sprintf('%d', i))
 %     end
 end
 
@@ -209,12 +229,13 @@ function showMeshALE(xy, elems, neigh, type)
     hold on
     color = 'bgrm';
     linewidth = 2;
+    
     for i = 1 : size(elems,1)
         for j = 1 : type(i)        
             if neigh(i,j) < 0
                 jp = mod(j, type(i)) + 1;
-                ind = [elems(i,j),elems(i,jp)];
-
+                ind = [elems(i,j),elems(i,jp)];                                
+                
                 plot(x(ind),y(ind),'color',color(neighALE(i,j)),'linewidth',linewidth);
             end
         end
@@ -234,9 +255,9 @@ function showOrder
     xys = zeros(nElem,2);
     for i = 1:nElem
         for j = 1:type(i)
-            xys(i,:) = xys(i,:) + xy(elems(i,j),:);
+            xys(i,1:2) = xys(i,1:2) + xy(elems(i,j),1:2);
         end
-        xys(i,:) = xys(i,:)/type(i);
+        xys(i,1:2) = xys(i,1:2)/type(i);
     end
     
     col = 'brgmckybrgmcky';
@@ -245,6 +266,11 @@ function showOrder
         x = xys(order == i,1);
         y = xys(order == i,2);
         plot(x,y,'marker','.','color',col(i),'linestyle','none');
+        
+        n = length(x);
+        if n > 0
+            fprintf('%d elems of order %d\n', n, i);
+        end
     end
 end
 
