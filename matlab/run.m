@@ -1,7 +1,11 @@
-function run(nDomains)
+function run(runInTerminal, nDomains)
 % run   Run FlowPro.
 
 if nargin == 0
+    runInTerminal = true;
+end
+
+if nargin <= 1
     %metis(1);
     path = pwd;
     cd(getFlowProPath);
@@ -10,7 +14,11 @@ if nargin == 0
     else
 %         system('java -d64 -Xmx12g -Xss100m -jar FlowPro.jar master 0');
 %         system('start java -d64 -Xmx12g -Xss100m -jar FlowPro.jar master 0');
-        system('start run.bat');
+        if runInTerminal
+            system('start run.bat');
+        else
+            system('java -d64 -Xmx12g -Xss10m -jar FlowPro.jar master 0');
+        end
     end
     cd(path)
 else    
@@ -28,8 +36,12 @@ else
     path = pwd;
     cd(getFlowProPath);
 
-%     system(['java -d64 -Xmx8g -jar FlowPro.jar master ',num2str(nDomains)]);
-    system(['java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)]);
+    command = ['java -d64 -Xmx8g -jar FlowPro.jar master ', num2str(nDomains)];
+    if runInTerminal
+        command = ['start ', command];
+    end
 
+    system(command);
+        
     cd(path)
 end
