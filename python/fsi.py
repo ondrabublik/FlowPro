@@ -81,17 +81,20 @@ def run():
 
 		regime = structureParamDct.get('regime')
 		fp.run()
-		if regime is None or regime == 'fsi':
-			print('starting FSI computation')
-			server = StructureServer('localhost', port, solver, pOut)  # , pRef, rhoRef, lRef, saveRate, animation)
-		elif regime == 'ale':
-			print('starting ALE computation')
-			server = StructureServerALE('localhost', port, solver)
-		elif regime == 'stationary':
-			print('starting test computation')
-			server = StructureServerTest('localhost', port, solver)
-		else:
-			raise ValueError('parameter regime has a wrong value')
+
+		print('starting FSI computation')
+		server = StructureServer('localhost', port, solver, pOut, regime)
+		# if regime is None or regime == 'fsi':
+		# 	print('starting FSI computation')
+		# 	server = StructureServer('localhost', port, solver, pOut)  # , pRef, rhoRef, lRef, saveRate, animation)
+		# elif regime == 'ale':
+		# 	print('starting ALE computation')
+		# 	server = StructureServerALE('localhost', port, solver)
+		# elif regime == 'stationary':
+		# 	print('starting test computation')
+		# 	server = StructureServerTest('localhost', port, solver)
+		# else:
+		# 	raise ValueError('parameter regime has a wrong value')
 
 		server.run()
 	finally:
