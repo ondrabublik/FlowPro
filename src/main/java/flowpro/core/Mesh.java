@@ -118,15 +118,15 @@ public class Mesh implements Serializable {
 
             // read or compute blending function
             double[][] blendFunse = null;
-//            if (par.movingMesh) {
-//                double[][] blendFuns = dfm.getBlendFuns();
-//                blendFunse = new double[nVertices][dfm.nBodies];
-//                for (int j = 0; j < nVertices; j++) {
-//                    for (int k = 0; k < dfm.nBodies; k++) {
-//                        blendFunse[j][k] = blendFuns[TP[i][j]][k];
-//                    }
-//                }
-//            }
+            if (par.movingMesh) {
+                double[][] blendFuns = dfm.getBlendFuns();
+                blendFunse = new double[nVertices][dfm.nBodies];
+                for (int j = 0; j < nVertices; j++) {
+                    for (int k = 0; k < dfm.nBodies; k++) {
+                        blendFunse[j][k] = blendFuns[TP[i][j]][k];
+                    }
+                }
+            }
 
             // create element type
             elems[i] = getSpatialMethod(par.spatialMethod);
