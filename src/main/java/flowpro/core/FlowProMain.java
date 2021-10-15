@@ -237,14 +237,18 @@ public class FlowProMain {
         try {
             elemsOrder = Mat.loadIntArray(simulationPath + "order.txt");
             LOG.info("reading local order of spatial accuracy from file " + "order.txt");
+			if (par.order >= 1) {
+				LOG.warn("both local and global order of accurecy was defined; using local order from file order.txt");
+			}
+			par.order = Mat.max(elemsOrder);
         } catch (FileNotFoundException ex) {
             if (par.order < 1) {
                 throw new IOException("neither global nor local order of spatial accuracy defined, "
-                        + " either define variable order in file " + simulationPath + PARAMETER_FILE_NAME
+                        + " either define parameter order in file " + simulationPath + PARAMETER_FILE_NAME
                         + " or create file " + "order.txt" + " in simulation path");
             }
             elemsOrder = new int[nElems];
-            LOG.warn("file " + simulationPath + "order.txt" + " not found"
+            LOG.info("file " + simulationPath + "order.txt" + " not found"
                     + ", setting global order of spatial accuracy to " + par.order);
             Arrays.fill(elemsOrder, par.order);
         }
@@ -336,7 +340,7 @@ public class FlowProMain {
 
         // load initial condition
         double initW[][];
-        State state = new State(simulationPath + STATE_FILE_NAME, par.order);
+        State state = new State(simulationPath + STATE_FILE_NAME, par);
         if (optimalisation) {
             initW = Mat.loadDoubleMatrix(simulationPath + "We.txt");
         } else if (par.continueComputation) {

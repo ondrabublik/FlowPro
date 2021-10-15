@@ -83,7 +83,7 @@ public class SchwartzImplicitSolver extends MasterSolver {
         String timeStr = millisecsToTime(state.getOverallExecutionTime());
 
         return String.format("%d/%d  resid: %.2e,  dt: %.1e,  t: %.2f,  CFL: %1.2f,  CPU: %s",
-                state.steps, totalSteps, state.residuum, dt, state.t, state.cfl, timeStr);
+                state.steps, totalSteps, state.residuum, dt, state.t, state.currentCFL, timeStr);
     }
 
     private Solution collectSolution(MPIMaster mpi) throws MPIException {
@@ -170,15 +170,15 @@ public class SchwartzImplicitSolver extends MasterSolver {
             for (++state.steps; state.steps <= totalSteps && state.residuum > par.residuum
                     && state.t < par.tEnd; ++state.steps) {
                 if (convergesNewton) {
-                    state.cfl = cflObj.getCFL(state.cfl, state.residuum);
+                    state.currentCFL = cflObj.getCFL(state.currentCFL, state.residuum);
                 }
                 // zastavovaci podminka
-                if (state.cfl < (par.cfl / 20)) {
+                if (state.currentCFL < (par.cfl / 20)) {
                     LOG.error("algorithm does not converge - aborting computation");
                     System.exit(1);
                 }
 
-                mpi.sendAll(new MPIMessage(Tag.TIME_STEP_REQ, state.cfl));
+                mpi.sendAll(new MPIMessage(Tag.TIME_STEP_REQ, state.currentCFL));
                 double dt = Mat.min(mpi.receiveAllDouble(Tag.TIME_STEP));
 
                 // solution monitor
@@ -255,9 +255,9 @@ public class SchwartzImplicitSolver extends MasterSolver {
 
                     if (!convergesNewton || !convergesSchwarz) {
                         mpi.sendAll(new MPIMessage(Tag.PREVIOUS_TIME_LEVEL));
-                        state.cfl = cflObj.reduceCFL(state.cfl);
+                        state.currentCFL = cflObj.reduceCFL(state.currentCFL);
                         --state.steps;
-                        LOG.warn("GMRES does not converge, CFL reduced to " + state.cfl);
+                        LOG.warn("GMRES does not converge, CFL reduced to " + state.currentCFL);
                         continue outerloop;
                     }
 

@@ -32,6 +32,8 @@ public class Parameters implements Serializable {
 
     public double cfl;        // max CFL cislo
     public boolean varyCFL;
+	public double dt;
+	public boolean isTimeStepFixed;
     public int order;         // rad metody v prostoru
     public final int timeOrder;         // rad metody v case
     public final int nThreads;      // pocet vlaken
@@ -133,13 +135,13 @@ public class Parameters implements Serializable {
                 spatialMethod = props.getString("spatialMethod");
             } else {
                 flowpro.core.Mesh.SpatialMethodType.help();
-                throw new IOException("parameter spatialMethod must by defined");
+                throw new IOException("parameter spatialMethod must be defined");
             }
 
             if (props.containsKey("order")) {
                 order = props.getInt("order");
             } else {
-                order = 1;
+                order = -1;
             }
 
             if (props.containsKey("timeOrder")) {
@@ -152,7 +154,7 @@ public class Parameters implements Serializable {
                 timeMethod = props.getString("timeMethod");
             } else {
                 flowpro.core.element.Element.TimeIntegrationElementType.help();
-                throw new IOException("parameter timeMethod must by defined");
+                throw new IOException("parameter timeMethod must be defined");
             }
 
             volumeQuardatureOrder = order;
@@ -165,11 +167,21 @@ public class Parameters implements Serializable {
                 faceQuardatureOrder = props.getInt("faceQuardatureOrder");
             }
 
-            cfl = props.getDouble("CFL");
-            if (cfl == -1) {
-                varyCFL = true;
-                cfl = 1;
-            }
+			if (props.containsKey("CFL")) {
+				isTimeStepFixed = false;				
+				cfl = props.getDouble("CFL");
+				if (cfl <= 0) {
+					varyCFL = true;
+					cfl = 1;
+				} else {
+					varyCFL = false;
+				}
+			} else if (props.containsKey("dt")) {
+				isTimeStepFixed = true;
+				dt = props.getDouble("dt");
+			} else {
+				throw new IOException("either parameter CFL or dt must be defined");
+			}
 
             nThreads = props.getInt("threads");
             newtonIters = props.getInt("newtonIters");
@@ -197,14 +209,14 @@ public class Parameters implements Serializable {
                 linearSolver = props.getString("linearSolver");
             } else {
                 flowpro.core.LinearSolvers.LinearSolver.LinearSolverType.help();
-                throw new IOException("parameter linearSolver must by defined");
+                throw new IOException("parameter linearSolver must be defined");
             }
 
             if (props.containsKey("preconditioner")) {
                 preconditioner = props.getString("preconditioner");
             } else {
                 flowpro.core.LinearSolvers.preconditioners.Preconditioner.PreconditionerType.help();
-                throw new IOException("parameter preconditioner must by defined");
+                throw new IOException("parameter preconditioner must be defined");
             }
 
             if (props.containsKey("iterativeSolverTol")) {
@@ -218,14 +230,14 @@ public class Parameters implements Serializable {
                     parallelSolverType = props.getString("parallelSolverType");
                 } else {
                     flowpro.core.solver.MasterSolver.MasterSolverType.help();
-                    throw new IOException("parameter parallelSolverType must by defined");
+                    throw new IOException("parameter parallelSolverType must be defined");
                 }
 
                 if (props.containsKey("parallelPreconditioner")) {
                     parallelPreconditioner = props.getString("parallelPreconditioner");
                 } else {
                     flowpro.core.DistributedLinearSolver.preconditioner.ParallelPreconditioner.ParallelPreconditionerType.help();
-                    throw new IOException("parameter parallelPreconditioner must by defined");
+                    throw new IOException("parameter parallelPreconditioner must be defined");
                 }
             }
 

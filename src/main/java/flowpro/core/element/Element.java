@@ -349,6 +349,11 @@ public abstract class Element implements Serializable {
 
         return dt;
     }
+	
+	public double calculateMaxEigenvalue() {
+		interpolateVelocityAndFillElementDataObjectOnVolume(centreVolumeInterpolant);
+        return eqn.maxEigenvalue(calculateAvgW(), elemData);
+	}
 
     // vypocet geometrie _______________________________________________________
     public void computeGeometry() {

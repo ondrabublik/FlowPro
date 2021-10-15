@@ -109,7 +109,7 @@ public class LocalExplicitSolver extends MasterSolver {
         String timeStr = millisecsToTime(state.getOverallExecutionTime());
 
         return String.format("%d/%d  resid: %.2e,  dt: %.1e,  t: %.2f,  CFL: %1.2f,  CPU: %s",
-                state.steps, totalSteps, state.residuum, dt, state.t, state.cfl, timeStr);
+                state.steps, totalSteps, state.residuum, dt, state.t, state.currentCFL, timeStr);
     }
 
     public Solution solve() throws IOException {
@@ -137,10 +137,10 @@ public class LocalExplicitSolver extends MasterSolver {
         for (++state.steps; state.steps <= totalSteps && state.residuum > par.residuum
                 && state.t < par.tEnd; ++state.steps) {
 
-            state.cfl = cflObj.getCFL(state.cfl, state.residuum);
+            state.currentCFL = cflObj.getCFL(state.currentCFL, state.residuum);
 
             // nastaveni dt
-            double dt = timeStep(state.cfl);
+            double dt = timeStep(state.currentCFL);
             if (state.t + dt > par.tEnd) {
                 dt = par.tEnd - state.t;
             }

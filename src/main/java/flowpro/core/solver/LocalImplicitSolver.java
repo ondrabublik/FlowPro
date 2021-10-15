@@ -71,19 +71,7 @@ public class LocalImplicitSolver extends MasterSolver {
 
     public Mesh getMesh() {
         return mesh;
-    }
-
-    private double timeStep(double CFL) {
-        double dt = Double.MAX_VALUE;
-        for (Element elem : elems) {
-            double loc_dt = elem.delta_t(CFL);
-            if (loc_dt < dt) {
-                dt = loc_dt;
-            }
-        }
-
-        return dt;
-    }
+    }    
 
     private void copyWo2W() {
         for (Element elem : elems) {
@@ -110,7 +98,7 @@ public class LocalImplicitSolver extends MasterSolver {
         String timeStr = millisecsToTime(state.getOverallExecutionTime());
 
         return String.format("%d/%d  resid: %.2e,  dt: %.1e,  t: %.2f,  CFL: %1.2f,  CPU: %s, AT: %dms, ST: %dms",
-                state.steps, totalSteps, state.residuum, dt, state.t, state.cfl, timeStr, assembleTime, solveTime);
+                state.steps, totalSteps, state.residuum, dt, state.t, state.currentCFL, timeStr, assembleTime, solveTime);
     }
 
     public Solution solve() throws IOException {
@@ -120,7 +108,6 @@ public class LocalImplicitSolver extends MasterSolver {
         double[] x = new double[dofs];
         StopWatch watch = new StopWatch();
 
-        CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
         double dto = -1;
         boolean converges = true;
         int totalSteps = state.steps + par.steps;
@@ -142,17 +129,17 @@ public class LocalImplicitSolver extends MasterSolver {
                 && state.t < par.tEnd; ++state.steps) {
 
             if (converges) {
-                state.cfl = cflObj.getCFL(state.cfl, state.residuum);
+                state.updateCFL();
             }
             // zastavovaci podminka
-            if (state.cfl < (par.cfl / 20)) {
+            if (state.currentCFL < (par.cfl / 20)) {
                 LOG.error("algorithm does not converge - aborting computation");
                 return mesh.getSolution();
             }
 
             // nastaveni dt
-            double dt = timeStep(state.cfl);
-            if (dto == -1) {
+            double dt = state.getTimeStep(elems);
+            if (dto <= 0) {
                 dto = dt;
             }
             if (state.t + dt > par.tEnd) {
@@ -197,9 +184,9 @@ public class LocalImplicitSolver extends MasterSolver {
 
                 if (!converges) {
                     copyWo2W();
-                    state.cfl = cflObj.reduceCFL(state.cfl);
+                    state.reduceCFL();
                     --state.steps;
-                    LOG.warn("GMRES does not converge, CFL reduced to " + state.cfl);
+                    LOG.warn("GMRES does not converge, CFL reduced to " + state.currentCFL);
                     continue outerloop;
                 }
 
