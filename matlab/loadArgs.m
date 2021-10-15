@@ -4,15 +4,12 @@
 
 function [geometry, simulation] = loadArgs
     flowProPath = getFlowProPath;
+        
+    file = fopen([flowProPath,'/args.txt']);
+    line = fgetl(file);
+    fclose(file);
     
-    str = fileread([flowProPath,'/args.txt']);
-    
-    % read first line from file and get rid of \n and \r characters
-    line = strsplit(str, '\n');
-    line = strsplit(line{1}, '\r');
-    
-    % split the line into an array of strings, which are separated by space
-    strArray = strsplit(line{1}, ' ');
+    strArray = strsplit(line, ' ');
     
     geometry = strArray{1};
     simulation = strArray{2};
