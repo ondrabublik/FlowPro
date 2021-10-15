@@ -158,7 +158,6 @@ public class ResultsPlot {
         } catch (Exception e) {
             System.out.println("MeshScale not defined!");
         }
-//<<<<<<< HEAD
 
         try {
             order = Mat.loadIntArray(simulationPath + "order.txt");
@@ -181,8 +180,6 @@ public class ResultsPlot {
             System.out.println("file " + simulationPath + "order.txt not found"
                     + ", setting global order of spatial accuracy to " + order[0]);            
         }
-//=======
-//>>>>>>> 4968a5076632d4dd332e71b237bf1a15125532f4
 
         // loading result
         double[][] W = null;
