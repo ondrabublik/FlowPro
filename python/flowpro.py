@@ -7,8 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-flowProPath = 'E:\\workspace\\FlowProPackage\\FlowPro'
+flowProPath = 'D:/Soubory/Ostatni/AlesTurek/FlowProPackage/FlowPro'
 paramFileName = 'parameters.txt'
+structureParamFileName = 'structuralParameters.txt'
 
 simulationDirPath = os.path.join(flowProPath, "simulations")
 
@@ -51,16 +52,13 @@ def getPath(*argv):
 		print("Simulation " + geometry + " does not exist.")
 		return
 
-	if not os.path.isdir(outputPath):
-		outputPath = ""
+	# if not os.path.isdir(outputPath):
+	# 	outputPath = ""
 
 	return meshPath, simulPath, outputPath
 
 
-def getParam():
-	geoPath, simPath, outPath = getPath()
-	paramFilePath = os.path.join(simPath, paramFileName)
-
+def __loadParam(paramFilePath):
 	with open(paramFilePath) as paramFile:
 		lines = paramFile.read().splitlines()
 
@@ -75,6 +73,18 @@ def getParam():
 			paramDct[command] = value
 
 	return paramDct
+
+
+def getParam():
+	geoPath, simPath, outPath = getPath()
+	paramFilePath = os.path.join(simPath, paramFileName)
+	return __loadParam(paramFilePath)
+
+
+def getStructureParam():
+	geoPath, simPath, outPath = getPath()
+	paramFilePath = os.path.join(simPath, structureParamFileName)
+	return __loadParam(paramFilePath)
 
 
 def args(geometry=None, simulation='default'):
@@ -233,7 +243,7 @@ def param():
 		return
 		# raise Exception("geometry does not exist")
 
-	paramPath = os.path.join(geomPath, simulation, "parameters.txt")
+	paramPath = os.path.join(geomPath, simulation, paramFileName)
 
 	if not os.path.isfile(paramPath):
 		answer = input("Simulation " + simulation + " does not exist, do you want to creat it [Y/n]? ")
@@ -242,6 +252,28 @@ def param():
 		if ans == "y" or ans == "yes" or ans == "":
 			subprocess.call('java -jar FlowProManager.jar createparamfile', shell=True, cwd=flowProPath)
 		else:
+			return
+
+	os.system("subl " + paramPath)
+
+
+def structureParam():
+	"""Open text file with structural parameters."""
+
+	geometry, simulation = loadArgs()
+	geomPath = os.path.join(flowProPath, 'simulations', geometry)
+
+	if not os.path.isdir(geomPath):
+		print("geometry does not exist")
+		return
+	# raise Exception("geometry does not exist")
+
+	paramPath = os.path.join(geomPath, simulation, structureParamFileName)
+
+	if not os.path.isfile(paramPath):
+		answer = input("File " + structureParamFileName + " does not exist, do you want to creat it [Y/n]? ")
+		ans = answer.lower()
+		if ans != "y" and ans != "yes" and ans != "":
 			return
 
 	os.system("subl " + paramPath)

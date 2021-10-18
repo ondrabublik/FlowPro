@@ -14,5 +14,11 @@ socketList.txt - musi bejt jedna
 
 ### ondra
 zobecnit deformaci site a dynamiku pro 1D i 3D
-algoritmus deformace site pro poddajne teleso ??????
 vyzkouset prismovy element
+
+# ALE
+do outputu (konkretne do souboru vertices.txt) se neuklada aktualni poloha telesa ale pocatecni
+
+# FSI
+pri nacitani rozlisovat tuha, poddajna a staticka telesa a podle toho poustet ruzne strukturalni solvry
+procistit Elastic2DRemoteSolver a Deformation2DElastic1

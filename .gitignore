@@ -2,12 +2,13 @@ build
 certificate/*
 matlab/pclist.txt
 matlab/flowProPath.txt
+metacentrum
 modules
 network/*
 simulations/*
 tasks
-metacentrum
 log*
+*__pycache__*
 *.tmp
 *.jar
 *.zip

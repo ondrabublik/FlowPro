@@ -40,8 +40,13 @@ steps = 20   % number of time steps
 %saveRate = 50
 %animation = true
 
+spatialMethod = DGpure
+timeMethod = BDF
+linearSolver = gmres
+preconditioner = ilu0
+
 order = 2
-orderInTime = 1
+timeOrder = 1
 CFL = 5
 threads = 1
 newtonIters = 1

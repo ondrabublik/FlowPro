@@ -1,3 +1,4 @@
+
 package flowpro.core.solver;
 
 import flowpro.core.*;
@@ -69,21 +70,10 @@ public class LocalImplicitSolver extends MasterSolver {
         this.lock = lock;
     }
 
+    @Override
     public Mesh getMesh() {
         return mesh;
-    }
-
-    private double timeStep(double CFL) {
-        double dt = Double.MAX_VALUE;
-        for (Element elem : elems) {
-            double loc_dt = elem.delta_t(CFL);
-            if (loc_dt < dt) {
-                dt = loc_dt;
-            }
-        }
-
-        return dt;
-    }
+    }    
 
     private void copyWo2W() {
         for (Element elem : elems) {
@@ -110,9 +100,10 @@ public class LocalImplicitSolver extends MasterSolver {
         String timeStr = millisecsToTime(state.getOverallExecutionTime());
 
         return String.format("%d/%d  resid: %.2e,  dt: %.1e,  t: %.2f,  CFL: %1.2f,  CPU: %s, AT: %dms, ST: %dms",
-                state.steps, totalSteps, state.residuum, dt, state.t, state.cfl, timeStr, assembleTime, solveTime);
+                state.steps, totalSteps, state.residuum, dt, state.t, state.currentCFL, timeStr, assembleTime, solveTime);
     }
 
+    @Override
     public Solution solve() throws IOException {
         int nElems = elems.length;
         LinearSolver linSolver = LinearSolver.factory(elems, par);
@@ -120,7 +111,6 @@ public class LocalImplicitSolver extends MasterSolver {
         double[] x = new double[dofs];
         StopWatch watch = new StopWatch();
 
-        CFLSetup cflObj = new CFLSetup(par.cfl, par.varyCFL);
         double dto = -1;
         boolean converges = true;
         int totalSteps = state.steps + par.steps;
@@ -142,17 +132,17 @@ public class LocalImplicitSolver extends MasterSolver {
                 && state.t < par.tEnd; ++state.steps) {
 
             if (converges) {
-                state.cfl = cflObj.getCFL(state.cfl, state.residuum);
+                state.updateCFL();
             }
             // zastavovaci podminka
-            if (state.cfl < (par.cfl / 20)) {
+            if (state.currentCFL < (par.cfl / 20)) {
                 LOG.error("algorithm does not converge - aborting computation");
                 return mesh.getSolution();
             }
 
             // nastaveni dt
-            double dt = timeStep(state.cfl);
-            if (dto == -1) {
+            double dt = state.getTimeStep(elems);
+            if (dto <= 0) {
                 dto = dt;
             }
             if (state.t + dt > par.tEnd) {
@@ -197,9 +187,9 @@ public class LocalImplicitSolver extends MasterSolver {
 
                 if (!converges) {
                     copyWo2W();
-                    state.cfl = cflObj.reduceCFL(state.cfl);
+                    state.reduceCFL();
                     --state.steps;
-                    LOG.warn("GMRES does not converge, CFL reduced to " + state.cfl);
+                    LOG.warn("GMRES does not converge, CFL reduced to " + state.currentCFL);
                     continue outerloop;
                 }
 
@@ -213,16 +203,15 @@ public class LocalImplicitSolver extends MasterSolver {
                     elems[i].updateW(x);
                 }
 
-                double iner_tol = 1e-4;  // zadat jako parametr !!!!!!!
-                if (state.residuum < iner_tol) {
+                if (state.residuum < par.newtonIterTol) {
                     break;
                 }
             }
 
             state.residuum = calculateResiduumW(dt);
             if (state.residuum == 0) {
-                LOG.error(" computation error ");
-                //break;
+                LOG.error("computational error - residuum is equal to zero");
+                break;
             }
             state.executionTime = watch.getTime();
             state.t += dt;
@@ -269,8 +258,12 @@ public class LocalImplicitSolver extends MasterSolver {
         eqn.saveReferenceValues(simulationPath + REF_VALUE_FILE_NAME);
         double t = 0;
         for (int step = 0; step <= par.steps; step++) {
-            dyn.computeBodyMove(dt, t, newtonIter, new FluidForces(new double[2][dfm.nBodies], new double[1][dfm.nBodies], null, null, null));
-            dyn.nextTimeLevel();
+			FluidForces[] fluidForces = new FluidForces[dfm.nBodies];
+			for (int b = 0; b < dfm.nBodies; b++) {
+				fluidForces[b] = new FluidForces(new double[2], new double[1]);
+			}
+            dyn.computeBodyMove(dt, t, newtonIter, fluidForces);  
+			dyn.nextTimeLevel();
             dyn.savePositionsAndForces();
             t += dt;
             System.out.println(step + "-th iteration t = " + t);

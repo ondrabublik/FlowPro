@@ -2,6 +2,7 @@ package flowpro.core.meshDeformation;
 
 import flowpro.api.Equation;
 import flowpro.api.FluidForces;
+import flowpro.api.Mat;
 import flowpro.api.MeshMove;
 import flowpro.core.Integration.Face;
 import flowpro.core.element.Element;
@@ -14,15 +15,15 @@ import java.io.*;
  */
 public class Deformation2DRigid extends Deformation {
 
-    public double[][] totalTranslationForce;
-    public double[][] totalRotationForce;
-    public double[][] userDef;
+    private final FluidForces[] fluidForces;
 
     public Deformation2DRigid(Parameters par, Equation eqn, int[][] TEale) throws IOException {
         super(par, eqn, TEale);
+
+        fluidForces = new FluidForces[nBodies];
     }
 
-	@Override
+    @Override
     public void newMeshPositionAndVelocity(Element[] elems, int timeOrder, double dt, double dto, MeshMove[] mshMov) {
 
         double a1 = 1.0 / dt;
@@ -36,95 +37,98 @@ public class Deformation2DRigid extends Deformation {
         }
 
         // multiple blending function
-        for (int i = 0; i < elems.length; i++) {
-            for (int j = 0; j < elems[i].nVertices; j++) {
-                for (int d = 0; d < elems[i].dim; d++) {
-                    elems[i].vertices[j][d] = 0;
+        for (Element elem : elems) {
+            for (int j = 0; j < elem.nVertices; j++) {
+                for (int d = 0; d < elem.dim; d++) {
+                    elem.vertices[j][d] = 0;
                 }
-                for (int k = 0; k < nBodies; k++) {
-                    double[] moveTranslation = mshMov[k].getTranslation();
-                    double[] moveRotation = mshMov[k].getRotation();
-                    double xNew = (Math.cos(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) - Math.sin(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[0][k] - elems[i].vertices0[j][0]) * nBodies + elems[i].vertices0[j][0] + moveTranslation[0] * nBodies;
-                    double yNew = (Math.sin(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) + Math.cos(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[1][k] - elems[i].vertices0[j][1]) * nBodies + elems[i].vertices0[j][1] + moveTranslation[1] * nBodies;
-                    elems[i].vertices[j][0] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][0] + elems[i].blendFun[j][k] * xNew) / nBodies;
-                    elems[i].vertices[j][1] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][1] + elems[i].blendFun[j][k] * yNew) / nBodies;
-                }
-
-                for (int d = 0; d < elems[i].dim; d++) {
-                    elems[i].U[j][d] = a1 * elems[i].vertices[j][d] + a2 * elems[i].verticesOld[j][d] + a3 * elems[i].verticesOld2[j][d];
+            }
+            for (int k = 0; k < nBodies; k++) {
+                double[] moveTranslation = mshMov[k].getTranslation();
+                double[] moveRotation = mshMov[k].getRotation();
+                for (int j = 0; j < elem.nVertices; j++) {
+                    double xNew = (Math.cos(moveRotation[0]) * (elem.vertices0[j][0] - center[0][k]) - Math.sin(moveRotation[0]) * (elem.vertices0[j][1] - center[1][k]) + center[0][k] - elem.vertices0[j][0]) * nBodies + elem.vertices0[j][0] + moveTranslation[0] * nBodies;
+                    double yNew = (Math.sin(moveRotation[0]) * (elem.vertices0[j][0] - center[0][k]) + Math.cos(moveRotation[0]) * (elem.vertices0[j][1] - center[1][k]) + center[1][k] - elem.vertices0[j][1]) * nBodies + elem.vertices0[j][1] + moveTranslation[1] * nBodies;
+                    elem.vertices[j][0] += ((1 - elem.blendFun[j][k]) * elem.vertices0[j][0] + elem.blendFun[j][k] * xNew) / nBodies;
+                    elem.vertices[j][1] += ((1 - elem.blendFun[j][k]) * elem.vertices0[j][1] + elem.blendFun[j][k] * yNew) / nBodies;
                 }
             }
         }
-    }
-
-	@Override
-    public void nextTimeLevel(Element[] elems) {
-        for (int i = 0; i < elems.length; i++) {
-            for (int j = 0; j < elems[i].nVertices; j++) {
-                for (int d = 0; d < elems[i].dim; d++) {
-                    elems[i].verticesOld2[j][d] = elems[i].verticesOld[j][d];
-                    elems[i].verticesOld[j][d] = elems[i].vertices[j][d];
-                }
-            }
-        }
-    }
-	
-	@Override
-    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
-        totalTranslationForce = new double[2][nBodies];
-        totalRotationForce = new double[1][nBodies];
-        userDef = new double[3][nBodies];
         
-//        for (int b = 0; b < nBodies; b++) {
-//            double[] moveTranslation = mshMov[b].getTranslation();
-//            for (Element elem : elems) {
-//                for (int k = 0; k < elem.nFaces; k++) {
-//                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
-//						Face face = elem.Int.faces[k];
-//                        double[] Jac = face.JacobianFace;
+//        // multiple blending function
+//        for (int i = 0; i < elems.length; i++) {
+//            for (int j = 0; j < elems[i].nVertices; j++) {
+//                for (int d = 0; d < elems[i].dim; d++) {
+//                    elems[i].vertices[j][d] = 0;
+//                }
+//                for (int k = 0; k < nBodies; k++) {
+//                    double[] moveTranslation = mshMov[k].getTranslation();
+//                    double[] moveRotation = mshMov[k].getRotation();
+//                    double xNew = (Math.cos(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) - Math.sin(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[0][k] - elems[i].vertices0[j][0]) * nBodies + elems[i].vertices0[j][0] + moveTranslation[0] * nBodies;
+//                    double yNew = (Math.sin(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) + Math.cos(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[1][k] - elems[i].vertices0[j][1]) * nBodies + elems[i].vertices0[j][1] + moveTranslation[1] * nBodies;
+//                    elems[i].vertices[j][0] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][0] + elems[i].blendFun[j][k] * xNew) / nBodies;
+//                    elems[i].vertices[j][1] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][1] + elems[i].blendFun[j][k] * yNew) / nBodies;
+//                }
+//            }
+//        }
+
+        for (Element elem : elems) {
+            for (int j = 0; j < elem.nVertices; j++) {
+                for (int d = 0; d < elem.dim; d++) {
+                    elem.U[j][d] = a1 * elem.vertices[j][d] + a2 * elem.verticesOld[j][d] + a3 * elem.verticesOld2[j][d];
+                }
+            }
+        }
+    }
+
+    @Override
+    public void nextTimeLevel(Element[] elems) {
+        for (Element elem : elems) {
+            for (int j = 0; j < elem.nVertices; j++) {
+                for (int d = 0; d < elem.dim; d++) {
+                    elem.verticesOld2[j][d] = elem.verticesOld[j][d];
+                    elem.verticesOld[j][d] = elem.vertices[j][d];
+                }
+            }
+        }
+    }
+
+
+    @Override
+    public void calculateForces(Element[] elems, MeshMove[] mshMov) {
+
+        for (int b = 0; b < nBodies; b++) {
+            double[] moveTranslation = mshMov[b].getTranslation();
+            double[] totalTranslationForce = new double[2];
+            double[] totalRotationForce = new double[1];
+            for (Element elem : elems) {
+                for (int r = 0; r < elem.nFaces; r++) {
+                    if (elem.TEale[r] == b + 2 && elem.insideMetisDomain) {
+                        Face face = elem.Int.faces[r];
+
+                        double[] force = face.integrateLeft((double[] w, double[] dw, double[] n)
+                                -> eqn.stressVector(w, dw, n), elem.W, elem.n[r]);
+                        double fx = -force[0];
+                        double fy = -force[1];
+
+//						double[] Jac = face.JacobianFace;
 //                        double[] weights = face.weightsFace;
 //                        double fx = 0;
 //                        double fy = 0;
 //                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
 //							double[] wL = face.evalWLeft(elem.W, p);
 //							double[] derWL = face.evalDerWLeft(elem.W, p);
-//							double[] normalStress = eqn.stressVector(wL, derWL, elem.n[k][p]);
+//							double[] normalStress = eqn.normalStress(wL, derWL, elem.n[k][p]);
 //							fx -= Jac[p] * weights[p] * normalStress[0];
 //                            fy -= Jac[p] * weights[p] * normalStress[1];
 //                        }
-//                        totalTranslationForce[0][b] += fx;
-//                        totalTranslationForce[1][b] += fy;
-//                        totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));
-//                    }
-//                }
-//            }
-//        }
-        
-        for (int b = 0; b < nBodies; b++) {
-            double[] moveTranslation = mshMov[b].getTranslation();
-            for (Element elem : elems) {
-                for (int k = 0; k < elem.nFaces; k++) {
-                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
-            			Face face = elem.Int.faces[k];                        
-						
-						double[] force = face.integrateLeft((double[] w, double[] dw, double[] n) ->
-								eqn.stressVector(w, dw, n), elem.W, elem.n[k]);
-						double fx = -force[0];
-						double fy = -force[1];
-						
-                        totalTranslationForce[0][b] += fx;
-                        totalTranslationForce[1][b] += fy;
-                        totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));
-
-                        
-//                        userDef[0][b] += pressureAvg*elem.Xes[k][0];
-//                        userDef[1][b] += pressureAvg*elem.Xes[k][1];
-//                        userDef[2][b] += pressureAvg;
+                        totalTranslationForce[0] += fx;
+                        totalTranslationForce[1] += fy;
+                        totalRotationForce[0] += -fx * (elem.Xes[r][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[r][0] - (center[0][b] + moveTranslation[0]));
                     }
                 }
             }
-//            userDef[0][b] /= userDef[2][b];
-//            userDef[1][b] /= userDef[2][b];
+            fluidForces[b] = new FluidForces(totalTranslationForce, totalRotationForce);
         }
 
         // user defined totalTranslationForce term
@@ -165,8 +169,8 @@ public class Deformation2DRigid extends Deformation {
 //        }
     }
 
-	@Override
-    public FluidForces getFluidForces() {
-        return new FluidForces(totalTranslationForce, totalRotationForce, null, null, userDef);
+    @Override
+    public FluidForces[] getFluidForces() {
+        return fluidForces;
     }
 }

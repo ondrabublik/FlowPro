@@ -2,10 +2,7 @@ package flowpro.core.curvedBoundary;
 
 import flowpro.api.Mat;
 import flowpro.core.elementType.ElementType;
-import static flowpro.core.elementType.ElementType.firstDigit;
 import java.io.IOException;
-import static flowpro.core.elementType.ElementType.firstDigit;
-import static flowpro.core.elementType.ElementType.firstDigit;
 import static flowpro.core.elementType.ElementType.firstDigit;
 
 /**

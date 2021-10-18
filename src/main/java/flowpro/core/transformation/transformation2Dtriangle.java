@@ -9,11 +9,13 @@ public class transformation2Dtriangle extends Transformation {
     private double[] A, B;
     private double[] iA, iB;
     private double[][] invV, invVi;
+	protected static final double[][] COORDS_XI = new double[][] {{0, 0}, {1, 0}, {0, 1}};
 
     public transformation2Dtriangle(double[][] vertices) {
-        coordsXi = new double[][]{{0, 0}, {1, 0}, {0, 1}};
-        coordsX = vertices;
-        
+//        coordsXi = new double[][]{{0, 0}, {1, 0}, {0, 1}};
+		coordsXi = COORDS_XI;
+        coordsX = vertices;        
+		
         // transform
         double[][] V;
         V = new double[3][3];

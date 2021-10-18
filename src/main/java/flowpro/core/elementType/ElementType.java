@@ -97,7 +97,7 @@ public abstract class ElementType implements Serializable {
                 break;
             case 63:
                 elemType = new hexahedralElementUserDef(order, volumeQuardatureOrder, faceQuardatureOrder);
-                break; 
+                break;
             case 7:
                 elemType = new prismElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;

@@ -166,14 +166,14 @@ public class FlowProMain {
                     break;
 
                 case "getparameters": // get all solver parameters
-                        dgfem = new FlowProMain();
-                        System.out.println();
-                        System.out.println("FlowPro parameters:");
-                        Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false, jarURLList).getClass();
-                        Field[] fields = par.getFields();
-                        for (Field field : fields) {
-                            System.out.println(field.getName() + ": " + field.getGenericType());
-                        }
+                    dgfem = new FlowProMain();
+                    System.out.println();
+                    System.out.println("FlowPro parameters:");
+                    Class par = new Parameters(dgfem.simulationPath + PARAMETER_FILE_NAME, false, jarURLList).getClass();
+                    Field[] fields = par.getFields();
+                    for (Field field : fields) {
+                        System.out.println(field.getName() + ": " + field.getGenericType());
+                    }
                     break;
 
                 default:
@@ -199,13 +199,17 @@ public class FlowProMain {
         LOG.info("loading data...");
         // load matrices defining the mesh
         double[][] PXY = Mat.loadDoubleMatrix(meshPath + "vertices.txt"); // mesh vertices coordinates
-        if (par.meshScale != 1) {
+        if (par.meshScale != 1 || par.lRef != 1) {
             for (int i = 0; i < PXY.length; i++) {
                 for (int j = 0; j < PXY[i].length; j++) {
-                    PXY[i][j] *= par.meshScale;
+                    if(par.scaleDims[j]){
+                        PXY[i][j] *= par.meshScale / par.lRef;
+                    }
                 }
             }
-            LOG.info("Mesh was scaled with parameter " + par.meshScale);
+            LOG.info("Mesh was scaled (meshScale/lR"
+                    + ""
+                    + "ef) with parameters: meshScale = " + par.meshScale + " and lRef = " + par.lRef);
         }
 
         double[][] UXY = null;
@@ -237,14 +241,18 @@ public class FlowProMain {
         try {
             elemsOrder = Mat.loadIntArray(simulationPath + "order.txt");
             LOG.info("reading local order of spatial accuracy from file " + "order.txt");
+			if (par.order >= 1) {
+				LOG.warn("both local and global order of accurecy was defined; using local order from file order.txt");
+			}
+			par.order = Mat.max(elemsOrder);
         } catch (FileNotFoundException ex) {
             if (par.order < 1) {
                 throw new IOException("neither global nor local order of spatial accuracy defined, "
-                        + " either define variable order in file " + simulationPath + PARAMETER_FILE_NAME
+                        + " either define parameter order in file " + simulationPath + PARAMETER_FILE_NAME
                         + " or create file " + "order.txt" + " in simulation path");
             }
             elemsOrder = new int[nElems];
-            LOG.warn("file " + simulationPath + "order.txt" + " not found"
+            LOG.info("file " + simulationPath + "order.txt" + " not found"
                     + ", setting global order of spatial accuracy to " + par.order);
             Arrays.fill(elemsOrder, par.order);
         }
@@ -336,7 +344,7 @@ public class FlowProMain {
 
         // load initial condition
         double initW[][];
-        State state = new State(simulationPath + STATE_FILE_NAME, par.order);
+        State state = new State(simulationPath + STATE_FILE_NAME, par);
         if (optimalisation) {
             initW = Mat.loadDoubleMatrix(simulationPath + "We.txt");
         } else if (par.continueComputation) {
@@ -390,12 +398,12 @@ public class FlowProMain {
 
         LOG.info("initialising mesh...");
         // initialising ALE objects
-        Deformation dfm = new DeformationFactory().getDeformation(par, eqn, TEale);
+        Deformation dfm = new DeformationFactory().getDeformation(par, eqn, PXY, TP, TEale);
         Dynamics dyn = null;
         if (par.movingMesh) {
             dyn = (new DynamicsFactory()).getDynamicsModel(simulationPath + PARAMETER_FILE_NAME, jarURLList, dfm.nBodies, simulationPath, meshPath, eqn);
             dfm.setCenters(dyn.getCenter());
-            dfm.calculateBlendingFunctions(PXY, TP, TT, TEale, elemsType, meshPath);
+            dfm.calculateBlendingFunctions(PXY, wallDistance, TP, TT, TEale, elemsType, meshPath);
         }
 
         Domain domain = new Domain(elemsOrder, elemsType, TT, TP, TEale, TEshift, fCurv, initW, elem2DomMap, nDoms, par.overlap, PXY.length);
@@ -762,8 +770,8 @@ public class FlowProMain {
             System.out.println("Error " + e);
         }
     }
-    
-    public static void memoryInfo(){
+
+    public static void memoryInfo() {
         Runtime runtime = Runtime.getRuntime();
         long maxMemory = runtime.maxMemory();
         long allocatedMemory = runtime.totalMemory();

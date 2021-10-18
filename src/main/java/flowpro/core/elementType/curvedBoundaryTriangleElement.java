@@ -1,5 +1,6 @@
 package flowpro.core.elementType;
 
+import flowpro.core.Parameters;
 import flowpro.core.curvedBoundary.FaceCurvature;
 import flowpro.core.transformation.*;
 
@@ -13,7 +14,8 @@ public class curvedBoundaryTriangleElement extends triangleElement{
             super(order, volumeQuardatureOrder, faceQuardatureOrder);
     }
     
-    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv) {
+	@Override
+    public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {
         Transformation transform = new transformation2DTriangleCurved(fCurv);
         transform.computeTransform(vertices);
         return transform;

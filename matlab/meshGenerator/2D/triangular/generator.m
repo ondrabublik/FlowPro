@@ -8,7 +8,11 @@ if (nargin < 1)
 end
 
 if strcmp(action,'initialize')
-    load 'geom';
+    if exist('geom.mat','file')
+        load 'geom';
+    else
+        geom = [];
+    end
     figure(...
         'Name','Unstructured mesh generator', ...
         'Position',[120 50 1000 600], ...
@@ -227,6 +231,7 @@ elseif strcmp(action,'obdelnik') % pridava obdelnik do dane geometrie
     d = str2double(get(findobj('tag','d'),'string'));
     v = str2double(get(findobj('tag','v'),'string'));
     alfa = str2double(get(findobj('tag','alfa_sq'),'string'));
+    alfa = alfa/180*pi; 
     
     Xp = [x; x+d; x+d; x];
     Yp = [y; y; y+v; y+v];

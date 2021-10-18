@@ -3,10 +3,13 @@ function makeFigures(quantity)
 [~,simPath,~] = getPath;
 
 list = dir([simPath,'/animation']);
+
+
+
 for i = 1:length(list)
     s = getNumber(list(i).name);
     if s > -1
-        eval(['show ', quantity,' -i', num2str(s), ' -fvtk -n',num2str(s)]);
+        eval(['show ', quantity, ' -i', num2str(s), ' -fvtk -n', num2str(s)]);
         close all;
         display(['step: ',num2str(s)]);
     end

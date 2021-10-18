@@ -312,6 +312,8 @@ public class DGpure extends Element {
                         K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
                         if (TT[k] > -1) {
                             K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
+//                        } else{
+//                            System.out.println(u[1]);
                         }
                     }
                     if (eqn.isDiffusive()) {
