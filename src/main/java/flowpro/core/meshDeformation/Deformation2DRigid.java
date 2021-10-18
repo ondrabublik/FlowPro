@@ -69,35 +69,37 @@ public class Deformation2DRigid extends Deformation {
         }
     }
 	
-//	private double[] evalW(Element elem, double[] base) {
-//		double[] W = new double[elem.getNEqs()];
-//		for (int m = 0; m < elem.getNEqs(); m++) {
-//			for (int i = 0; i < elem.nBasis; i++) {
-//				W[m] = W[m] + elem.W[m * elem.nBasis + i] * base[i];
-//			}
-//		}		
-//		return W;
-//	}
-//	
-//	private double[] derEvalW(Element elem, double[][] derBase) {
-//		int dim = derBase[0].length;
-//		int nEqs = elem.getNEqs();
-//		double[] derW = new double[nEqs * dim];
-//		for (int m = 0; m < elem.getNEqs(); m++) {
-//			for (int i = 0; i < elem.nBasis; i++) {
-//				for (int d = 0; d < dim; ++d) {
-//					derW[nEqs * d + m] += elem.W[m * elem.nBasis + i] * derBase[i][d];
-//				}
-//			}
-//		}		
-//		return derW;
-//	}
-
 	@Override
     public void calculateForces(Element[] elems, MeshMove[] mshMov) {
         totalTranslationForce = new double[2][nBodies];
         totalRotationForce = new double[1][nBodies];
         userDef = new double[3][nBodies];
+        
+//        for (int b = 0; b < nBodies; b++) {
+//            double[] moveTranslation = mshMov[b].getTranslation();
+//            for (Element elem : elems) {
+//                for (int k = 0; k < elem.nFaces; k++) {
+//                    if (elem.TEale[k] == b + 2 && elem.insideMetisDomain) {
+//						Face face = elem.Int.faces[k];
+//                        double[] Jac = face.JacobianFace;
+//                        double[] weights = face.weightsFace;
+//                        double fx = 0;
+//                        double fy = 0;
+//                        for (int p = 0; p < elem.Int.faces[k].nIntEdge; p++) { // edge integral
+//							double[] wL = face.evalWLeft(elem.W, p);
+//							double[] derWL = face.evalDerWLeft(elem.W, p);
+//							double[] normalStress = eqn.stressVector(wL, derWL, elem.n[k][p]);
+//							fx -= Jac[p] * weights[p] * normalStress[0];
+//                            fy -= Jac[p] * weights[p] * normalStress[1];
+//                        }
+//                        totalTranslationForce[0][b] += fx;
+//                        totalTranslationForce[1][b] += fy;
+//                        totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));
+//                    }
+//                }
+//            }
+//        }
+        
         for (int b = 0; b < nBodies; b++) {
             double[] moveTranslation = mshMov[b].getTranslation();
             for (Element elem : elems) {
@@ -114,14 +116,15 @@ public class Deformation2DRigid extends Deformation {
                         totalTranslationForce[1][b] += fy;
                         totalRotationForce[0][b] += -fx * (elem.Xes[k][1] - (center[1][b] + moveTranslation[1])) + fy * (elem.Xes[k][0] - (center[0][b] + moveTranslation[0]));
 
+                        
 //                        userDef[0][b] += pressureAvg*elem.Xes[k][0];
 //                        userDef[1][b] += pressureAvg*elem.Xes[k][1];
 //                        userDef[2][b] += pressureAvg;
                     }
                 }
             }
-            userDef[0][b] /= userDef[2][b];
-            userDef[1][b] /= userDef[2][b];
+//            userDef[0][b] /= userDef[2][b];
+//            userDef[1][b] /= userDef[2][b];
         }
 
         // user defined totalTranslationForce term

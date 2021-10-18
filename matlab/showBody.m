@@ -12,7 +12,7 @@ switch action
         [~, simulPath, ~] = getPath;
         body = load(strcat(simulPath, 'bodiesDynamic.txt'));
         [~, n] = size(body);
-        nVals = 8;
+        nVals = 6;
         nBody = (n-1)/nVals;
 
         % structure

@@ -345,7 +345,7 @@ public class Mesh implements Serializable {
     }
 
     public enum SpatialMethodType {
-        DG, DGjacobi, DGpure, FVM, DGpureIncompressible;
+        DG, DGjacobi, DGpure, DGpureFast, FVM, DGpureIncompressible;
 
         public static void help() {
             System.out.println("********************************");
@@ -369,6 +369,9 @@ public class Mesh implements Serializable {
                     break;
                 case DGpure:
                     elem = new DGpure();
+                    break;
+                case DGpureFast:
+                    elem = new DGpureFast();
                     break;
                 case DGpureIncompressible:
                     elem = new DGpureIncompressible();

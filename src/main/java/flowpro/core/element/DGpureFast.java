@@ -5,6 +5,7 @@
  */
 package flowpro.core.element;
 
+import flowpro.api.ElementData;
 import flowpro.api.Mat;
 import flowpro.core.Mesh;
 import flowpro.core.curvedBoundary.FaceCurvature;
@@ -16,9 +17,9 @@ import java.io.IOException;
  *
  * @author obublik
  */
-public class DGjacobi extends DG {
+public class DGpureFast extends DG {
     
-    public DGjacobi(){
+    public DGpureFast(){
         
     }
     @Override
@@ -29,6 +30,21 @@ public class DGjacobi extends DG {
     
     public void initMethod() throws IOException {
         super.initMethod(par.props);
+    }
+    
+    public double[] convectiveJac(double[] W, double[] n, ElementData elem){
+        double h = 1e-8;
+        double[] a = new double[nEqs*nEqs];     
+        double[] f0 = eqn.convectiveFlux(W, n, elem);
+        for(int m = 0; m < nEqs; m++){
+            W[m] += h;
+            double[] f = eqn.convectiveFlux(W, n, elem);
+            W[m] -= h;
+            for(int q = 0; q < nEqs; q++){
+                a[nEqs * q + m] = (f[q] - f0[q])/h;
+            }   
+        }
+        return a;
     }
     
     @Override
@@ -67,7 +83,8 @@ public class DGjacobi extends DG {
                 for (int d = 0; d < dim; d++) {
                     if (eqn.isConvective()) {
                         nor[d] = 1;
-                        a = eqn.convectiveFluxJacobian(WInt, nor, elemData);
+                        //a = eqn.convectiveFluxJacobian(WInt, nor, elemData);
+                        a = convectiveJac(WInt, nor, elemData);
                         nor[d] = 0;
                         for (int m = 0; m < nEqs; m++) {
                             a[nEqs * m + m] -= u[d];
