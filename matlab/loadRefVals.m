@@ -1,9 +1,10 @@
-function  refVals = loadRefVals(simulPath)
+function  refVals = loadRefVals(simulationPath)
+% refvals   Return reference values of the simulation in a structure.
 
 if nargin == 0
-    [~, simulPath, ~] = getPath;
+    [~, simulationPath, ~] = getPath;
 end
     
-filePath = strcat(simulPath, 'referenceValues.txt');
+filePath = strcat(simulationPath, 'referenceValues.txt');
 
 refVals = loadPropertiesFile(filePath);

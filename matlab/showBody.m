@@ -103,7 +103,7 @@ switch action
         tRef = 1;
         lRef = 1;
         if get(findobj('tag','refVals'),'value')
-            vals = refvals();
+            vals = loadRefVals();
             pRef = vals.p;
             tRef = vals.t;
             lRef = vals.l;
