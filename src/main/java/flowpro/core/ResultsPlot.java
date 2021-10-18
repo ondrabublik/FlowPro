@@ -43,7 +43,7 @@ public class ResultsPlot {
     int[][] TT;
     int dim;
     int[] order;
-    
+
     FlowProProperties props;
 
     double lRef;
@@ -152,11 +152,31 @@ public class ResultsPlot {
         dim = PXY[0].length;
 
         meshScale = 1;
-        try {
+        if (props.containsKey("meshScale")) {
             meshScale = props.getDouble("meshScale");
-            System.out.println("MeshScale found: " + meshScale + " ");
-        } catch (Exception e) {
-            System.out.println("MeshScale not defined!");
+        }
+
+        lRef = 1;
+        if (props.containsKey("lRef")) {
+            lRef = props.getDouble("lRef");
+        }
+
+        boolean[] scaleDims = new boolean[3];
+        Arrays.fill(scaleDims, Boolean.TRUE);
+        if (props.containsKey("scaleDims")) {
+            scaleDims = props.getBooleanArray("scaleDims");
+        } else {
+            
+        }
+
+        if (meshScale != 1 || lRef != 1) {
+            for (int i = 0; i < PXY.length; i++) {
+                for (int j = 0; j < PXY[i].length; j++) {
+                    if (scaleDims[j]) {
+                        PXY[i][j] *= par.meshScale / par.lRef;
+                    }
+                }
+            }
         }
 
         try {
@@ -176,9 +196,9 @@ public class ResultsPlot {
                         + " either define variable order in file " + simulationPath + PARAMETER_FILE_NAME
                         + " or create file " + "order.txt" + " in simulation path");
             }
-            
+
             System.out.println("file " + simulationPath + "order.txt not found"
-                    + ", setting global order of spatial accuracy to " + order[0]);            
+                    + ", setting global order of spatial accuracy to " + order[0]);
         }
 
         // loading result
@@ -212,7 +232,6 @@ public class ResultsPlot {
                     TP = Mat.loadIntMatrix(meshPath + "elements.txt");
                     TT = Mat.loadIntMatrix(meshPath + "neighbors.txt");
                     Wcoef = Mat.loadDoubleMatrix(simulationPath + "We.txt");
-
 
                     if (par.curvedBoundary) {
                         fCurv = CurvedBoundary.modifyMesh(elemsType, PXY, TP, TT);
@@ -274,13 +293,30 @@ public class ResultsPlot {
                         for (int j = 0; j < TP[i].length; j++) {
                             int nEqs = eqn.nEqs();
                             double[] xiCoord = transform.getXi(PXY[TP[i][j]]);
+                            // basis derivative transform
+                            double[][] dXiBasis = new double[nBasis][dim];
+                            for (int m = 0; m < nBasis; m++) {
+                                for (int d = 0; d < dim; d++) {
+                                    dXiBasis[m][d] = basis.derBasis(m, xiCoord, d);
+                                }
+                            }
+                            double[][] iT = Mat.invert(transform.jacobiMatrix(xiCoord));
+                            double[][] dXBasis = new double[nBasis][dim];
+                            for (int m = 0; m < nBasis; m++) {
+                                for (int r = 0; r < dim; r++) {
+                                    for (int t = 0; t < dim; t++) {
+                                        dXBasis[m][r] += iT[t][r] * dXiBasis[m][t];
+                                    }
+                                }
+                            }
+
                             double[] Wpoint = new double[nEqs];
                             double[] dWpoint = new double[dim * nEqs];
                             for (int k = 0; k < Wpoint.length; k++) {
                                 for (int m = 0; m < nBasis; m++) {
                                     Wpoint[k] += W[i][k * nBasis + m] * basis.basisFun(m, xiCoord);
                                     for (int d = 0; d < dim; d++) {
-                                        dWpoint[nEqs * d + k] += W[i][k * nBasis + m] * basis.derBasis(m, xiCoord, d);
+                                        dWpoint[nEqs * d + k] += W[i][k * nBasis + m] * dXBasis[m][d];
                                     }
                                 }
                             }
@@ -295,7 +331,7 @@ public class ResultsPlot {
 
                 for (int i = 0; i < PXY.length; i++) {
                     for (int d = 0; d < eqn.dim(); d++) {
-                        PXY[i][d] *= meshScale * lRef;
+                        PXY[i][d] *= meshScale;
                     }
                     for (int k = 0; k < result[i].length; k++) {
                         result[i][k] /= nNeighElem[i];
@@ -347,14 +383,16 @@ public class ResultsPlot {
                     for (int j = 0; j < TP[i].length; j++) {
                         System.arraycopy(PXY[TP[i][j]], 0, vertices[j], 0, dim);
                     }
-                    
+
                     ElementType elemType = ElementType.elementTypeFactory(elemsType[i], order[i], par.volumeQuardatureOrder, par.faceQuardatureOrder);
                     Transformation transform = elemType.getVolumeTransformation(vertices, fCurv[i], par);
-                    
+
                     Basis basis = elemType.getBasis(transform);
                     int nBasis = basis.nBasis;
                     LocalElementSubdivision triLoc = new LocalElementSubdivision(elemsType[i], precision);
                     double[][] xCoords = transform.getX(triLoc.xiCoord);
+                    double[][][] dXiBasis = basis.getDerBasisXi(triLoc.xiCoord, dim);
+                    double[][][] dXBasis = transform.transformBasis(triLoc.xiCoord, dXiBasis);
                     double[][] values = new double[xCoords.length][value.length];
                     int nEqs = eqn.nEqs();
                     for (int j = 0; j < xCoords.length; j++) {
@@ -364,7 +402,7 @@ public class ResultsPlot {
                             for (int m = 0; m < nBasis; m++) {
                                 Wpoint[k] += W[i][k * nBasis + m] * basis.basisFun(m, triLoc.xiCoord[j]);
                                 for (int d = 0; d < dim; d++) {
-                                    dWpoint[nEqs * d + k] += W[i][k * nBasis + m] * basis.derBasis(m, triLoc.xiCoord[j], d);
+                                    dWpoint[nEqs * d + k] += W[i][k * nBasis + m] * dXBasis[j][m][d];
                                 }
                             }
                         }

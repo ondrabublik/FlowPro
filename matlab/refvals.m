@@ -5,6 +5,6 @@ if nargin == 0
     [~, simulationPath, ~] = getPath;
 end
     
-filePath = strcat(simulationPath, 'referenceValuse.txt');
+filePath = strcat(simulationPath, 'referenceValues.txt');
 
 vals = loadPropertiesFile(filePath);

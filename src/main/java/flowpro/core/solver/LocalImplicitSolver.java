@@ -1,3 +1,4 @@
+
 package flowpro.core.solver;
 
 import flowpro.core.*;
@@ -69,6 +70,7 @@ public class LocalImplicitSolver extends MasterSolver {
         this.lock = lock;
     }
 
+    @Override
     public Mesh getMesh() {
         return mesh;
     }    
@@ -101,6 +103,7 @@ public class LocalImplicitSolver extends MasterSolver {
                 state.steps, totalSteps, state.residuum, dt, state.t, state.currentCFL, timeStr, assembleTime, solveTime);
     }
 
+    @Override
     public Solution solve() throws IOException {
         int nElems = elems.length;
         LinearSolver linSolver = LinearSolver.factory(elems, par);

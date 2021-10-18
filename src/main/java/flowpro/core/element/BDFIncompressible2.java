@@ -25,10 +25,12 @@ public class BDFIncompressible2 extends Implicit {
     }
 
 
+    @Override
     public int getOrder(){
         return 2;
     }
     
+    @Override
     public void init(FlowProProperties props){
         super.initImplicit();
         a1 = new double[nEqs];
@@ -64,6 +66,7 @@ public class BDFIncompressible2 extends Implicit {
     }
 
     // Generovani radku globalni matice a vektoru prave strany
+    @Override
     public void assembleJacobiMatrix(double dt, double dto) {
         
         // coefs

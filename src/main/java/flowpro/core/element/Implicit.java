@@ -23,10 +23,12 @@ public abstract class Implicit extends TimeIntegrationElement {
 
     abstract public void assembleJacobiMatrix(double dt, double dto);
 
+    @Override
     public boolean isImplicit() {
         return true;
     }
 
+    @Override
     public String getLocalSolverType() {
         return "localimplicit";
     }

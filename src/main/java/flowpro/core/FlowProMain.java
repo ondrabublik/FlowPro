@@ -199,13 +199,17 @@ public class FlowProMain {
         LOG.info("loading data...");
         // load matrices defining the mesh
         double[][] PXY = Mat.loadDoubleMatrix(meshPath + "vertices.txt"); // mesh vertices coordinates
-        if (par.meshScale != 1) {
+        if (par.meshScale != 1 || par.lRef != 1) {
             for (int i = 0; i < PXY.length; i++) {
                 for (int j = 0; j < PXY[i].length; j++) {
-                    PXY[i][j] *= par.meshScale;
+                    if(par.scaleDims[j]){
+                        PXY[i][j] *= par.meshScale / par.lRef;
+                    }
                 }
             }
-            LOG.info("Mesh was scaled with parameter " + par.meshScale);
+            LOG.info("Mesh was scaled (meshScale/lR"
+                    + ""
+                    + "ef) with parameters: meshScale = " + par.meshScale + " and lRef = " + par.lRef);
         }
 
         double[][] UXY = null;
@@ -399,7 +403,7 @@ public class FlowProMain {
         if (par.movingMesh) {
             dyn = (new DynamicsFactory()).getDynamicsModel(simulationPath + PARAMETER_FILE_NAME, jarURLList, dfm.nBodies, simulationPath, meshPath, eqn);
             dfm.setCenters(dyn.getCenter());
-            dfm.calculateBlendingFunctions(PXY, TP, TT, TEale, elemsType, meshPath);
+            dfm.calculateBlendingFunctions(PXY, wallDistance, TP, TT, TEale, elemsType, meshPath);
         }
 
         Domain domain = new Domain(elemsOrder, elemsType, TT, TP, TEale, TEshift, fCurv, initW, elem2DomMap, nDoms, par.overlap, PXY.length);

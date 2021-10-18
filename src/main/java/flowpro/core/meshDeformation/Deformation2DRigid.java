@@ -2,6 +2,7 @@ package flowpro.core.meshDeformation;
 
 import flowpro.api.Equation;
 import flowpro.api.FluidForces;
+import flowpro.api.Mat;
 import flowpro.api.MeshMove;
 import flowpro.core.Integration.Face;
 import flowpro.core.element.Element;
@@ -37,13 +38,15 @@ public class Deformation2DRigid extends Deformation {
 
         // multiple blending function
         for (Element elem : elems) {
+            for (int j = 0; j < elem.nVertices; j++) {
+                for (int d = 0; d < elem.dim; d++) {
+                    elem.vertices[j][d] = 0;
+                }
+            }
             for (int k = 0; k < nBodies; k++) {
                 double[] moveTranslation = mshMov[k].getTranslation();
                 double[] moveRotation = mshMov[k].getRotation();
                 for (int j = 0; j < elem.nVertices; j++) {
-                    for (int d = 0; d < elem.dim; d++) {
-                        elem.vertices[j][d] = 0;
-                    }
                     double xNew = (Math.cos(moveRotation[0]) * (elem.vertices0[j][0] - center[0][k]) - Math.sin(moveRotation[0]) * (elem.vertices0[j][1] - center[1][k]) + center[0][k] - elem.vertices0[j][0]) * nBodies + elem.vertices0[j][0] + moveTranslation[0] * nBodies;
                     double yNew = (Math.sin(moveRotation[0]) * (elem.vertices0[j][0] - center[0][k]) + Math.cos(moveRotation[0]) * (elem.vertices0[j][1] - center[1][k]) + center[1][k] - elem.vertices0[j][1]) * nBodies + elem.vertices0[j][1] + moveTranslation[1] * nBodies;
                     elem.vertices[j][0] += ((1 - elem.blendFun[j][k]) * elem.vertices0[j][0] + elem.blendFun[j][k] * xNew) / nBodies;
@@ -51,6 +54,23 @@ public class Deformation2DRigid extends Deformation {
                 }
             }
         }
+        
+//        // multiple blending function
+//        for (int i = 0; i < elems.length; i++) {
+//            for (int j = 0; j < elems[i].nVertices; j++) {
+//                for (int d = 0; d < elems[i].dim; d++) {
+//                    elems[i].vertices[j][d] = 0;
+//                }
+//                for (int k = 0; k < nBodies; k++) {
+//                    double[] moveTranslation = mshMov[k].getTranslation();
+//                    double[] moveRotation = mshMov[k].getRotation();
+//                    double xNew = (Math.cos(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) - Math.sin(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[0][k] - elems[i].vertices0[j][0]) * nBodies + elems[i].vertices0[j][0] + moveTranslation[0] * nBodies;
+//                    double yNew = (Math.sin(moveRotation[0]) * (elems[i].vertices0[j][0] - center[0][k]) + Math.cos(moveRotation[0]) * (elems[i].vertices0[j][1] - center[1][k]) + center[1][k] - elems[i].vertices0[j][1]) * nBodies + elems[i].vertices0[j][1] + moveTranslation[1] * nBodies;
+//                    elems[i].vertices[j][0] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][0] + elems[i].blendFun[j][k] * xNew) / nBodies;
+//                    elems[i].vertices[j][1] += ((1 - elems[i].blendFun[j][k]) * elems[i].vertices0[j][1] + elems[i].blendFun[j][k] * yNew) / nBodies;
+//                }
+//            }
+//        }
 
         for (Element elem : elems) {
             for (int j = 0; j < elem.nVertices; j++) {
@@ -73,29 +93,7 @@ public class Deformation2DRigid extends Deformation {
         }
     }
 
-//	private double[] evalW(Element elem, double[] base) {
-//		double[] W = new double[elem.getNEqs()];
-//		for (int m = 0; m < elem.getNEqs(); m++) {
-//			for (int i = 0; i < elem.nBasis; i++) {
-//				W[m] = W[m] + elem.W[m * elem.nBasis + i] * base[i];
-//			}
-//		}		
-//		return W;
-//	}
-//	
-//	private double[] derEvalW(Element elem, double[][] derBase) {
-//		int dim = derBase[0].length;
-//		int nEqs = elem.getNEqs();
-//		double[] derW = new double[nEqs * dim];
-//		for (int m = 0; m < elem.getNEqs(); m++) {
-//			for (int i = 0; i < elem.nBasis; i++) {
-//				for (int d = 0; d < dim; ++d) {
-//					derW[nEqs * d + m] += elem.W[m * elem.nBasis + i] * derBase[i][d];
-//				}
-//			}
-//		}		
-//		return derW;
-//	}
+
     @Override
     public void calculateForces(Element[] elems, MeshMove[] mshMov) {
 

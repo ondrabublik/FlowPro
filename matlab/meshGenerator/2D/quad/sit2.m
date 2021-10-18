@@ -4,13 +4,12 @@ global geom poc;
 geom = {};
 poc = 0;
 
-n1 = 80;
-n2 = 30;
+n1 = 60;
+n2 = 20;
 
-dy = 0.0005;
+dy = 1e-2;
 
-obdelnik([0,0],[1,0],[1,0.2],[0,0.2],n1,n2,1,3,1,3,dy,dy);
-% obdelnik([0,0.05],[1,0.05],[1,0.1],[0,0.1],n1,n2,1,0,1,0,dy,dy);
+obdelnik([0,0],[1,0],[1,0.1],[0,0.1],n1,n2,1,0,1,0,dy,dy);
 
 [P,Q] = vytvor_sit;
 kresli;
@@ -65,10 +64,10 @@ for i = 1:poc
     I = 1:n1+1;
     J = 1:n2+1;
     for i = 1:n1+1
-        plot(X(i,J),Y(i,J));
+        plot(X(i,J),Y(i,J),'k');
     end
     for j = 1:n2+1
-        plot(X(I,j),Y(I,j));
+        plot(X(I,j),Y(I,j),'k');
     end
 end
 axis equal

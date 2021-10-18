@@ -31,7 +31,7 @@ public class Matlab extends LinearSolver {
     MatlabClient3 mc;
 
     Matlab(SparseMatrix A, Parameters par) throws IOException {
-        this.dofs = dofs;
+        //this.dofs = dofs;
         this.A = A;
         b = new double[dofs];
 

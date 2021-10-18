@@ -102,6 +102,7 @@ public class DGpure extends Element {
     }
 
     // tato funkce vypocitava reziduum__________________________________________
+    @Override
     public void residuum(double[] V, double[] K, double[][] KR) {
 
         // vypocet toku hranici
@@ -185,6 +186,7 @@ public class DGpure extends Element {
     }
 
     // tato funkce vypocitava reziduum__________________________________________
+    @Override
     public void residuumWall(int k, double[] V, double[] K, double[] KR) {
         if (KR != null) {
             Arrays.fill(KR, 0.0);
@@ -339,6 +341,7 @@ public class DGpure extends Element {
     }
 
     // Aplikace limiteru
+    @Override
     public void limiter(boolean isFirstIter) {
         eps = 0;
         c_IP = 0;

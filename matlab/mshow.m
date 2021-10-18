@@ -227,7 +227,7 @@ function showMeshALE(xy, elems, neigh, type)
     triplot(tri, xy(:,1), xy(:,2), 'k', 'linewidth', .1);
 
     hold on
-    color = 'bgrm';
+    color = 'bgrmycbgrmyc';
     linewidth = 2;
     
     for i = 1 : size(elems,1)
@@ -246,18 +246,28 @@ end
 
 function showOrder
     [meshPath, simulPath, ~] = getPath;
-    
-    order = dlmread([simulPath, 'order.txt']);
-    xy = dlmread([meshPath, 'vertices.txt']);    
+
+    xy = dlmread([meshPath, 'vertices.txt']);
+    xy = xy(:, 1:2);
     elems = dlmread([meshPath, 'elements.txt'])+1;
     type = dlmread([meshPath, 'elementType.txt']);
     nElem = length(elems(:,1));
     xys = zeros(nElem,2);
+    
+    filePath = [simulPath, 'order.txt'];
+    if exist(filePath, 'file')
+        order = dlmread([simulPath, 'order.txt']);
+    else
+        par = loadParam();
+        order = par.order * ones(size(elems, 1), 1);
+        fprintf('File %s does not exist - global accuracy is %d.\n', filePath, par.order);
+    end
+    
     for i = 1:nElem
         for j = 1:type(i)
-            xys(i,1:2) = xys(i,1:2) + xy(elems(i,j),1:2);
+            xys(i,:) = xys(i,:) + xy(elems(i,j),:);
         end
-        xys(i,1:2) = xys(i,1:2)/type(i);
+        xys(i,:) = xys(i,:)/type(i);
     end
     
     col = 'brgmckybrgmcky';
@@ -387,7 +397,7 @@ function showMeshVelo
 end
 
 function showWallDistance
-    [meshPath, simulPath, ~] = getPath;   
+    [meshPath, ~, ~] = getPath;   
     
     dist = load([meshPath,'wallDistance.txt']);
     xy = dlmread([meshPath, 'vertices.txt']);    
@@ -416,45 +426,6 @@ function x = reorganise(x)
     end
 end
 
-function  par = loadParam(simulPath)
-
-if nargin == 0
-    [geomPath, simulPath, outputPath] = getPath;
-end
-    
-path = strcat(simulPath, 'parameters.txt');
-fid = fopen(path);
-
-tline = fgets(fid);
-
-keys = {};
-vals = {};
-
-while ischar(tline)
-    strarray = strsplit(tline, '%'); % get rid of comments    
-    str = strtrim(strarray{1});
-    
-    if ~isempty(str) && ~strcmp(str(end), '=')
-        strarray = strsplit(str, '=');
-
-        key = strtrim(strarray{1});
-        valueStr = strtrim(strarray{2});
-        value = str2num(valueStr);
-        if isempty(value)
-            value = valueStr;
-        end
-
-        keys = [keys, key];
-        vals = [vals, value];
-    end
-        
-    tline = fgets(fid);
-end
-fclose(fid);
-
-par = cell2struct(vals, keys, 2);
-end
-
 function t = firstDigit(typ)
     t = typ;
     for i = 1:length(typ)
@@ -466,7 +437,7 @@ function t = firstDigit(typ)
 end
 
 function showBlendingFunctions
-    [meshPath, simulPath, ~] = getPath;   
+    [meshPath, ~, ~] = getPath;   
     
     bfs = load([meshPath,'blendingFunctions.txt']);
     xy = dlmread([meshPath, 'vertices.txt']);    
@@ -477,7 +448,7 @@ function showBlendingFunctions
     for i = 1:length(bfs(1,:))
         figure('color', 'w');
         [~, h2] = tricontf(xy(:,1),xy(:,2),tri,bfs(:,i),30);
-        % tricontour(tri,PX,PY,Quantity,30)
+%         trimesh(tri,xy(:,1),xy(:,2),bfs(:,i));
         set(h2, 'linestyle', 'none');
         box on;
         axis equal;

@@ -18,8 +18,12 @@ flowProPath = getFlowProPath;
             return;
             
         case 1
-            disp('Setting simulation to default.');
-            simulation = 'default';                                   
+            if(strcmp(geometry,'here'))
+                [geometry, simulation] = argsHere;
+            else
+                disp('Setting simulation to default.');
+                simulation = 'default';
+            end
     end
     
     path = sprintf('%s/simulations/%s/', flowProPath, geometry);
@@ -35,4 +39,20 @@ flowProPath = getFlowProPath;
     fout = fopen([flowProPath, '/args.txt'], 'w');
     fprintf(fout, '%s %s\n', geometry, simulation);
     fclose(fout);
+end
+
+function [geometry, simulation] = argsHere
+    splitPath = strsplit(pwd,'\');
+    for i = 1:length(splitPath)
+        if(strcmp(splitPath{i},'simulations'))
+            geometry = '';
+            for j = (i+1):length(splitPath)-1
+                geometry = [geometry,splitPath{j},'\'];
+            end
+            if(length(geometry) >= 0)
+                geometry = geometry(1:end-1);
+            end
+            simulation = splitPath{length(splitPath)};
+        end
+    end
 end

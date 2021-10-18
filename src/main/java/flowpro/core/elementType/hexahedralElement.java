@@ -21,34 +21,41 @@ public class hexahedralElement extends ElementType {
         nFaces = numberOfEdges();
     }
 
+    @Override
     public int numberOfPoints() {
         return 8;
     }
 
+    @Override
     public int numberOfEdges() {
         return 6;
     }
 
+    @Override
     public Basis getBasis(Transformation transform) throws IOException {
         Basis basis = new basis3Dhexa(order);
         basis.calculateCoefficients();
         return basis;
     }
 
+    @Override
     public Quadrature getQVolumeRule(QuadratureCentral qRules) {
         return qRules.qHexa[volumeQuadratureOrder];
     }
 
+    @Override
     public Transformation getVolumeTransformation(double[][] vertices, FaceCurvature fCurv, Parameters par) {
         Transformation transform = new transformation3Dhexa();
         transform.computeTransform(vertices);
         return transform;
     }
 
+    @Override
     public int getFaceType(int k) {
         return 4;
     }
 
+    @Override
     public int[] getFaceIndexes(int k) {
         int[] faceIndexes = null;
         switch (k) {
