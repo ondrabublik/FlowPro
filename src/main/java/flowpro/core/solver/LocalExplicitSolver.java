@@ -33,7 +33,6 @@ public class LocalExplicitSolver extends MasterSolver {
 
     // master and loner parameters
     private final State state;
-    private final Object lock;
     private final String simulationPath;
 
     // slave and loner parameters
@@ -52,10 +51,9 @@ public class LocalExplicitSolver extends MasterSolver {
      * @param par
      * @param state
      * @param domain
-     * @param lock
      */
     public LocalExplicitSolver(String simulationPath, Mesh[] meshes, Dynamics dyn,
-            Equation eqn, Parameters par, State state, Domain domain, Object lock) {
+            Equation eqn, Parameters par, State state, Domain domain) {
         this.simulationPath = simulationPath;
         this.dyn = dyn;
         this.eqn = eqn;
@@ -65,9 +63,9 @@ public class LocalExplicitSolver extends MasterSolver {
         elems = mesh.getElems();
         this.dofs = mesh.dofs;
         this.dfm = mesh.getDfm();
-        this.lock = lock;
     }
 
+	@Override
     public Mesh getMesh() {
         return mesh;
     }
@@ -112,6 +110,7 @@ public class LocalExplicitSolver extends MasterSolver {
                 state.steps, totalSteps, state.residuum, dt, state.t, state.currentCFL, timeStr);
     }
 
+	@Override
     public Solution solve() throws IOException {
         int tsr = 1; // for time save rate
         if (par.movingMesh) {
@@ -184,6 +183,7 @@ public class LocalExplicitSolver extends MasterSolver {
         return solution;
     }
 
+	@Override
     public void testDynamic(double dt, int newtonIter) throws IOException {
         double t = 0;
         for (int step = 0; step <= par.steps; step++) {
@@ -199,8 +199,8 @@ public class LocalExplicitSolver extends MasterSolver {
         }
     }
 
+	@Override
     public void saveData(Solution sol) throws IOException {
-        synchronized (lock) {
             state.save();
             eqn.saveReferenceValues(simulationPath + REF_VALUE_FILE_NAME);
             Mat.save(sol.avgW, simulationPath + "W.txt");
@@ -216,8 +216,6 @@ public class LocalExplicitSolver extends MasterSolver {
 //                }
 //            }
 
-            lock.notify();
-        }
         LOG.info("results have been saved into " + simulationPath);
     }
 
@@ -226,16 +224,13 @@ public class LocalExplicitSolver extends MasterSolver {
         if (!directory.exists()) {
             directory.mkdir();
         }
-        synchronized (lock) {
             Mat.save(sol.avgW, simulationPath + "animation/W" + String.format("%08d", step) + ".txt");
-            if (par.order > 1) {
-                Mat.save(sol.W, simulationPath + "animation/We" + String.format("%08d", step) + ".txt");
-            }
-            if (par.movingMesh) {
-                Mat.save(sol.vertices, simulationPath + "animation/vertices" + String.format("%08d", step) + ".txt");
-            }
-            lock.notify();
-        }
+		if (par.order > 1) {
+			Mat.save(sol.W, simulationPath + "animation/We" + String.format("%08d", step) + ".txt");
+		}
+		if (par.movingMesh) {
+			Mat.save(sol.vertices, simulationPath + "animation/vertices" + String.format("%08d", step) + ".txt");
+		}
         LOG.info("results have been saved into " + simulationPath);
     }
 

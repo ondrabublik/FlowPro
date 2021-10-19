@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import flowpro.core.solver.MasterSolver;
 import flowpro.core.solver.SlaveSolver;
+import javax.script.ScriptException;
 
 /**
  *
@@ -43,18 +44,20 @@ public class FlowProMain {
 
     public final String meshPath;
     public final String simulationPath;
-    private final Object lock;
 
     public FlowProMain() throws IOException {
-        lock = new Object();
-
-        File f = new File(ARG_FILE_NAME);
-        if (!f.exists()) {
-            LOG.warn("File args.txt not exists. Default args.txt file was create.");
-            f.createNewFile();
-            PrintWriter writer = new PrintWriter(ARG_FILE_NAME, "UTF-8");
-            writer.print("examples/GAMM default");
-            writer.close();
+        File file = new File(ARG_FILE_NAME);
+        if (!file.exists()) {
+            LOG.warn("file " + ARG_FILE_NAME + " does not exist");
+            file.createNewFile();
+			try (PrintWriter writer = new PrintWriter(ARG_FILE_NAME, "UTF-8")) {
+				String geo = "examples/GAMM";
+				String sim = "default";
+				String args = geo + " " + sim;
+				writer.println(args);
+				LOG.info("creating file " + ARG_FILE_NAME + " with geometry '" + geo +
+						"' and simulation '" + sim + "'");
+			}
         }
 
         BufferedReader reader;
@@ -79,10 +82,6 @@ public class FlowProMain {
 
         meshPath = "simulations/" + geometryName + "/mesh/";
         simulationPath = "simulations/" + geometryName + "/" + simulationName + "/";
-    }
-
-    public Object getLock() {
-        return lock;
     }
 
     public static void main(String args[]) throws InterruptedException, IOException {
@@ -116,21 +115,6 @@ public class FlowProMain {
                     solver = dgfem.solverFactory(false, Integer.valueOf(args[1]));
                     solution = solver.solve();
                     solver.saveData(solution);
-                    break;
-
-                case "remote":
-                    dgfem = new FlowProMain();
-                    Object lock = dgfem.getLock();
-                    Proxy proxy = new Proxy(args[1], 6666, args[2], dgfem.simulationPath, lock);
-                    Thread proxyThread = new Thread(proxy);
-                    proxyThread.start();
-                    solver = dgfem.solverFactory(false, 0);
-                    solution = solver.solve();
-                    solver.saveData(solution);
-                    synchronized (lock) {
-                        proxy.stop();
-                        lock.notify();
-                    }
                     break;
 
                 case "slave":
@@ -200,13 +184,13 @@ public class FlowProMain {
         // load matrices defining the mesh
         double[][] PXY = Mat.loadDoubleMatrix(meshPath + "vertices.txt"); // mesh vertices coordinates
         if (par.meshScale != 1 || par.lRef != 1) {
-            for (int i = 0; i < PXY.length; i++) {
-                for (int j = 0; j < PXY[i].length; j++) {
-                    if(par.scaleDims[j]){
-                        PXY[i][j] *= par.meshScale / par.lRef;
-                    }
-                }
-            }
+			for (double[] PXY1 : PXY) {
+				for (int j = 0; j < PXY1.length; j++) {
+					if (par.scaleDims[j]) {
+						PXY1[j] *= par.meshScale / par.lRef;
+					}
+				}
+			}
             LOG.info("Mesh was scaled (meshScale/lR"
                     + ""
                     + "ef) with parameters: meshScale = " + par.meshScale + " and lRef = " + par.lRef);
@@ -315,11 +299,11 @@ public class FlowProMain {
             TEshift = Mat.loadIntMatrix(meshPath + "TEshift.txt");
             shift = Mat.loadDoubleMatrix(meshPath + "shift.txt");
             if (par.meshScale != 1) {
-                for (int i = 0; i < shift.length; i++) {
-                    for (int j = 0; j < shift[i].length; j++) {
-                        shift[i][j] *= par.meshScale;
-                    }
-                }
+				for (double[] shift1 : shift) {
+					for (int j = 0; j < shift1.length; j++) {
+						shift1[j] *= par.meshScale;
+					}
+				}
             }
             LOG.info("periodic boundary found");
         } catch (FileNotFoundException ex) {
@@ -368,7 +352,7 @@ public class FlowProMain {
                 try {
                     System.out.println("Trying run script " + simulationPath + "initScript.js");
                     initW = (new InitConditionScript(PXY, TP, eqn.nEqs(), simulationPath + "initScript.js")).getInitW();
-                } catch (Exception ex) {
+                } catch (ScriptException | NoSuchMethodException ex) {
                     System.out.println("Script initScript.js cannot be expressed because: " + ex);
                     double[] w = eqn.constInitCondition();
                     initW = replicate(w, nElems, eqn.nEqs());
@@ -385,9 +369,9 @@ public class FlowProMain {
         // create file for residuum
         if (!par.continueComputation) {
             try {
-                PrintWriter writer = new PrintWriter(simulationPath + "residuum.txt");
-                writer.print("");
-                writer.close();
+				try (PrintWriter writer = new PrintWriter(simulationPath + "residuum.txt")) {
+					writer.print("");
+				}
             } catch (IOException ioe) {
                 LOG.error("error while creating a new empty file residuum.txt");
             }
@@ -419,7 +403,7 @@ public class FlowProMain {
         }
 
         memoryInfo();
-        return MasterSolver.factory(simulationPath, mesh, dyn, eqn, par, state, domain, lock);
+        return MasterSolver.factory(simulationPath, mesh, dyn, eqn, par, state, domain);
     }
 
     public static String millisecsToTime(long nanoseconds) {

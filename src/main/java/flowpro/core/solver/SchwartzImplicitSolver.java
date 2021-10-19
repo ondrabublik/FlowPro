@@ -37,7 +37,6 @@ public class SchwartzImplicitSolver extends MasterSolver {
     private Mesh[] meshes;
     private final State state;
     private final Domain domain;
-    private final Object lock;
     private final String simulationPath;
     private final MPIMaster mpi;
 
@@ -56,10 +55,9 @@ public class SchwartzImplicitSolver extends MasterSolver {
      * @param par
      * @param state
      * @param domain
-     * @param lock
      */
     public SchwartzImplicitSolver(MPIMaster mpi, String simulationPath, Mesh[] meshes, Dynamics dyn,
-            Equation eqn, Parameters par, State state, Domain domain, Object lock) {
+            Equation eqn, Parameters par, State state, Domain domain) {
         this.mpi = mpi;
         this.simulationPath = simulationPath;
         this.meshes = meshes;
@@ -70,7 +68,6 @@ public class SchwartzImplicitSolver extends MasterSolver {
         this.domain = domain;
         mesh = meshes[0];
         this.dfm = mesh.getDfm();
-        this.lock = lock;
     }
 
 
@@ -341,7 +338,6 @@ public class SchwartzImplicitSolver extends MasterSolver {
 
     @Override
     public void saveData(Solution sol) throws IOException {
-        synchronized (lock) {
             state.save();
             eqn.saveReferenceValues(simulationPath + REF_VALUE_FILE_NAME);
             Mat.save(sol.avgW, simulationPath + "W.txt");
@@ -358,8 +354,6 @@ public class SchwartzImplicitSolver extends MasterSolver {
 //                }
 //            }
 
-            lock.notify();
-        }
         LOG.info("results have been saved into " + simulationPath);
     }
 
@@ -368,7 +362,6 @@ public class SchwartzImplicitSolver extends MasterSolver {
         if (!directory.exists()) {
             directory.mkdir();
         }
-        synchronized (lock) {
             Mat.save(sol.avgW, simulationPath + "animation/W" + String.format("%08d", step) + ".txt");
             if (par.order > 1) {
                 Mat.save(sol.W, simulationPath + "animation/We" + String.format("%08d", step) + ".txt");
@@ -377,8 +370,6 @@ public class SchwartzImplicitSolver extends MasterSolver {
                 Mat.save(sol.vertices, simulationPath + "animation/vertices" + String.format("%08d", step) + ".txt");
                 Mat.save(sol.meshVelocity, simulationPath + "animation/verticesVelocity" + String.format("%08d", step) + ".txt");
             }
-            lock.notify();
-        }
         LOG.info("results have been saved into " + simulationPath);
     }
 

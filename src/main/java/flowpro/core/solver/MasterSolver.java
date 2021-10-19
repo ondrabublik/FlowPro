@@ -34,98 +34,98 @@ import org.apache.commons.lang3.tuple.MutablePair;
  */
 abstract public class MasterSolver {
 
-    public static final String APP_NAME = "app";
+	public static final String APP_NAME = "app";
 
-    abstract public Solution solve() throws MPIException, IOException;
+	abstract public Solution solve() throws MPIException, IOException;
 
-    abstract public void saveData(Solution sol) throws IOException;
+	abstract public void saveData(Solution sol) throws IOException;
 
-    abstract public Mesh getMesh();
+	abstract public Mesh getMesh();
 
-    abstract public void testDynamic(double dt, int newtonIter) throws IOException;
+	abstract public void testDynamic(double dt, int newtonIter) throws IOException;
 
-    private static MPIMaster distributeJobs(int nSlaves, Parameters par) throws IOException, MPIException {
-        IpAddressReader ipAddressReader = new IpAddressReader(par.pcFilterFile, Parameters.PC_LIST_FILE);
-        List<MutablePair<String, Integer>> nodeList = ipAddressReader.getNodeList();
-        Map<String, String> ip2nodeNameMap = ipAddressReader.getIp2NodeNameMap();
+	private static MPIMaster distributeJobs(int nSlaves, Parameters par) throws IOException, MPIException {
+		IpAddressReader ipAddressReader = new IpAddressReader(par.pcFilterFile, Parameters.PC_LIST_FILE);
+		List<MutablePair<String, Integer>> nodeList = ipAddressReader.getNodeList();
+		Map<String, String> ip2nodeNameMap = ipAddressReader.getIp2NodeNameMap();
 
-        Comparator<MutablePair<String, Integer>> comparator = (n1, n2) -> {
-            if (n1.getValue() == n2.getValue()) {
-                return 0;
-            } else if (n1.getValue() > n2.getValue()) {
-                return 1;
-            } else {
-                return -1;
-            }
-        };
-        int maxSlavesPerNode = Collections.max(nodeList, comparator).getValue();
+		Comparator<MutablePair<String, Integer>> comparator = (n1, n2) -> {
+			if (n1.getValue() == n2.getValue()) {
+				return 0;
+			} else if (n1.getValue() > n2.getValue()) {
+				return 1;
+			} else {
+				return -1;
+			}
+		};
+		int maxSlavesPerNode = Collections.max(nodeList, comparator).getValue();
 
-        String[] argArr = new String[maxSlavesPerNode];
-        for (int i = 0; i < maxSlavesPerNode; i++) {
-            argArr[i] = "slave " + (par.slavePort + i) + " " + par.parallelSolverType;
-        }
-        AppInfo appInfo = new AppInfo("FlowPro.jar", argArr, "app_");
+		String[] argArr = new String[maxSlavesPerNode];
+		for (int i = 0; i < maxSlavesPerNode; i++) {
+			argArr[i] = "slave " + (par.slavePort + i) + " " + par.parallelSolverType;
+		}
+		AppInfo appInfo = new AppInfo("FlowPro.jar", argArr, "app_");
 
-        File zippedApp = new File("FlowPro.zip");
-        Fetcher fetcher = new Fetcher(nSlaves, ip2nodeNameMap, par.fetcherPort, par.publicKeyFile);
-        List<MutablePair<String, Integer>> reachedNodes = fetcher.establishConnections(nodeList);
-        fetcher.fetch(zippedApp, appInfo);
+		File zippedApp = new File("FlowPro.zip");
+		Fetcher fetcher = new Fetcher(nSlaves, ip2nodeNameMap, par.fetcherPort, par.publicKeyFile);
+		List<MutablePair<String, Integer>> reachedNodes = fetcher.establishConnections(nodeList);
+		fetcher.fetch(zippedApp, appInfo);
 
-        List<InetSocketAddress> inetList = new ArrayList<>();
-        reachedNodes.forEach((n) -> {
-            for (int i = 0; i < n.getValue(); i++) {
-                inetList.add(new InetSocketAddress(n.getKey(), par.slavePort + i));
-            }
-        });
-        InetSocketAddress[] inetAddresses = inetList.toArray(new InetSocketAddress[0]);
+		List<InetSocketAddress> inetList = new ArrayList<>();
+		reachedNodes.forEach((n) -> {
+			for (int i = 0; i < n.getValue(); i++) {
+				inetList.add(new InetSocketAddress(n.getKey(), par.slavePort + i));
+			}
+		});
+		InetSocketAddress[] inetAddresses = inetList.toArray(new InetSocketAddress[0]);
 
-        return new MPIMaster(inetAddresses, par.slavePort, ip2nodeNameMap);
-    }
+		return new MPIMaster(inetAddresses, par.slavePort, ip2nodeNameMap);
+	}
 
-    public enum MasterSolverType {
-        ksp, schwartz;
+	public enum MasterSolverType {
+		ksp, schwartz;
 
-        public static void help() {
-            System.out.println("********************************");
-            System.out.println("HELP for parameter spatialMethod");
-            System.out.println("list of possible values:");
-            System.out.println(Arrays.asList(MasterSolverType.values()));
-            System.out.println("********************************");
-        }
-    }
+		public static void help() {
+			System.out.println("********************************");
+			System.out.println("HELP for parameter spatialMethod");
+			System.out.println("list of possible values:");
+			System.out.println(Arrays.asList(MasterSolverType.values()));
+			System.out.println("********************************");
+		}
+	}
 
-    public static MasterSolver factory(String simulationPath, Mesh[] meshes, Dynamics dyn,
-            Equation eqn, Parameters par, State state, Domain domain, Object lock) throws IOException, MPIException {
+	public static MasterSolver factory(String simulationPath, Mesh[] meshes, Dynamics dyn,
+			Equation eqn, Parameters par, State state, Domain domain) throws IOException, MPIException {
 
-        MasterSolver masterSolver = null;
-        if (par.parallelMode) {
-            MPIMaster mpi = distributeJobs(domain.nDoms, par);
-            try {
-                MasterSolverType masterSolverType = MasterSolverType.valueOf(par.parallelSolverType.toLowerCase());
-                switch (masterSolverType) {
-                    case ksp:
-                        masterSolver = new KSPSolver(mpi, simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+		MasterSolver masterSolver = null;
+		if (par.parallelMode) {
+			MPIMaster mpi = distributeJobs(domain.nDoms, par);
+			try {
+				MasterSolverType masterSolverType = MasterSolverType.valueOf(par.parallelSolverType.toLowerCase());
+				switch (masterSolverType) {
+					case ksp:
+						masterSolver = new KSPSolver(mpi, simulationPath, meshes, dyn, eqn, par, state, domain);
 						break;
-                    case schwartz:
-                        masterSolver = new SchwartzImplicitSolver(mpi, simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+					case schwartz:
+						masterSolver = new SchwartzImplicitSolver(mpi, simulationPath, meshes, dyn, eqn, par, state, domain);
 						break;
-                }
-            } catch (IllegalArgumentException ex) {
-                MasterSolverType.help();
-                throw new IOException("unknown master solver " + par.parallelSolverType.toLowerCase());
-            }
-            return masterSolver;
-        } else {
-            String solverType = ((meshes[0].getElems())[0].ti).getLocalSolverType();
-            switch (solverType) {
-                case "localimplicit":
-                    return new LocalImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
+				}
+			} catch (IllegalArgumentException ex) {
+				MasterSolverType.help();
+				throw new IOException("unknown master solver " + par.parallelSolverType.toLowerCase());
+			}
+			return masterSolver;
+		} else {
+			String solverType = ((meshes[0].getElems())[0].ti).getLocalSolverType();
+			switch (solverType) {
+				case "localimplicit":
+					return new LocalImplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain);
 
-                case "localexplicit":
-                    return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain, lock);
-                default:
-                    throw new IOException("unknown solver " + solverType);
-            }
-        }
-    }
+				case "localexplicit":
+					return new LocalExplicitSolver(simulationPath, meshes, dyn, eqn, par, state, domain);
+				default:
+					throw new IOException("unknown solver " + solverType);
+			}
+		}
+	}
 }
