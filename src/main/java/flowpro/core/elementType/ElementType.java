@@ -95,6 +95,9 @@ public abstract class ElementType implements Serializable {
             case 6:
                 elemType = new hexahedralElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;
+            case 61:
+                elemType = new hexahedralElement_25D(order, volumeQuardatureOrder, faceQuardatureOrder);
+                break;
             case 63:
                 elemType = new hexahedralElementUserDef(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;

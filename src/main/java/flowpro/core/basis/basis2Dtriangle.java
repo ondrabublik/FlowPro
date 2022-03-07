@@ -42,6 +42,7 @@ public class basis2Dtriangle extends Basis {
         }
     }
 
+    @Override
     public void calculateCoefficients() {
         if (order == 1) {
             double[][] coefficients = new double[1][1];
@@ -85,6 +86,7 @@ public class basis2Dtriangle extends Basis {
     }
 
     // tato funkce vraci hodnotu m-te bazove funkce v bode Xi
+    @Override
     public double basisFun(int m, double[] Xi) {
         double val = 0;
         for (int i = 0; i < nBasis; i++) {
@@ -94,6 +96,7 @@ public class basis2Dtriangle extends Basis {
     }
 
     // tato funkce vraci hodnotu x-ove derivace m-te bazove funkce v bode x, y
+    @Override
     public double derBasis(int m, double[] Xi, int dim) {
         double der = 0;
         if (dim == 0) {

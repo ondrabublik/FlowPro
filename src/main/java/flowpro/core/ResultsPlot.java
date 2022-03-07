@@ -35,7 +35,6 @@ public class ResultsPlot {
 
     Equation eqn;
 
-    double[][] Wcoef;
     double[][] PXY;
     int[] elemsType;
     FaceCurvature[] fCurv;
@@ -67,15 +66,6 @@ public class ResultsPlot {
             eqn = (new EquationFactory()).getEquation(simulationPath + "parameters.txt", jarURLList);   // read physical parameters
         } catch (Exception e) {
             System.out.println("Error in model." + e);
-        }
-
-        lRef = 1;
-        try {
-            double[] refValues = eqn.getReferenceValues();
-            lRef = refValues[0];
-            System.out.println("Reference length found: " + lRef + " ");
-        } catch (Exception e) {
-            System.out.println("Reference length not defined!");
         }
 
         // loading mesh
@@ -169,11 +159,11 @@ public class ResultsPlot {
             
         }
 
-        if (meshScale != 1 || lRef != 1) {
+        if (meshScale != 1) {
             for (int i = 0; i < PXY.length; i++) {
                 for (int j = 0; j < PXY[i].length; j++) {
                     if (scaleDims[j]) {
-                        PXY[i][j] *= par.meshScale / par.lRef;
+                        PXY[i][j] *= par.meshScale;
                     }
                 }
             }
@@ -231,7 +221,6 @@ public class ResultsPlot {
                     elemsType = Mat.loadIntArray(meshPath + "elementType.txt");
                     TP = Mat.loadIntMatrix(meshPath + "elements.txt");
                     TT = Mat.loadIntMatrix(meshPath + "neighbors.txt");
-                    Wcoef = Mat.loadDoubleMatrix(simulationPath + "We.txt");
 
                     if (par.curvedBoundary) {
                         fCurv = CurvedBoundary.modifyMesh(elemsType, PXY, TP, TT);
@@ -242,7 +231,7 @@ public class ResultsPlot {
                     break;
             }
         } catch (FileNotFoundException ex) {
-            System.out.println("Results file not found.");
+            System.out.println("Results file not found: " + ex);
         }
 
         if (precision < 2) {
@@ -330,9 +319,9 @@ public class ResultsPlot {
                 }
 
                 for (int i = 0; i < PXY.length; i++) {
-                    for (int d = 0; d < eqn.dim(); d++) {
-                        PXY[i][d] *= meshScale;
-                    }
+//                    for (int d = 0; d < eqn.dim(); d++) {
+//                        PXY[i][d] *= meshScale;
+//                    }
                     for (int k = 0; k < result[i].length; k++) {
                         result[i][k] /= nNeighElem[i];
                     }
@@ -763,7 +752,7 @@ public class ResultsPlot {
                 double[][] coords = coordsMap.get(i);
                 for (int j = 0; j < coords.length; j++) {
                     for (int k = 0; k < coords[0].length; k++) {
-                        vertices[p][k] = coords[j][k] * meshScale * lRef;
+                        vertices[p][k] = coords[j][k] * meshScale;
                     }
                     p++;
                 }

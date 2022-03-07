@@ -7,7 +7,6 @@
 //
 //import flowpro.api.FlowProProperties;
 //import flowpro.api.Mat;
-//import flowpro.core.Integration;
 //import flowpro.core.Mesh;
 //import flowpro.core.curvedBoundary.FaceCurvature;
 //import flowpro.core.elementType.ElementType;
@@ -18,7 +17,7 @@
 // *
 // * @author obublik
 // */
-//public class DG25D extends Element {
+//public class DGpureStiff extends Element {
 //
 //    public double penalty;    // interior penalty constant
 //    public double beta0;  // direct discontinuous constant 
@@ -29,18 +28,13 @@
 //    public double[] dampInnerCoef; // koeficienty pro pridavnou viskozitu uvnitr
 //    public double dampConst; // konstantni pridavna viskozita 
 //
-//    // integration in z dimension
-//    IntegrationXYZ IntXYZ;
-//
-//    public DG25D() {
-//
-//    }
-//
+//    @Override
 //    public void set(int index, double[][] vertices, double[][] Uinit, double[] wallDistance, double[][] externalField, int[] TT, int[] TP, int[] TEale, int[] TEshift, double[][] shift, FaceCurvature fCurv, double[][] blendFun, double[] initW,
 //            Mesh mesh, ElementType elemType) throws IOException {
 //        super.set(index, vertices, Uinit, wallDistance, externalField, TT, TP, TEale, TEshift, shift, fCurv, blendFun, initW, mesh, elemType);
 //    }
 //
+//    @Override
 //    public void initMethod(FlowProProperties props) throws IOException {
 //        computeOrderTruncationMatrix();
 //
@@ -71,10 +65,9 @@
 //        } else {
 //            beta0 = 2;
 //        }
-//
-//        IntXYZ = new IntegrationXYZ(Int, 1, 4);
 //    }
 //
+//    @Override
 //    public void initCondition() {
 //        // fill the solution vector with initial condition
 //        W = new double[nBasis * nEqs];
@@ -122,66 +115,62 @@
 //            double[][] fv = null;
 //            double[] product = null;
 //
-//            for (int p = 0; p < IntXYZ.nIntVolume; p++) {
-//                double[] base = IntXYZ.basisVolume[p];
-//                double[][] dBase = IntXYZ.dXbasisVolume[p];
-//                double Jac = IntXYZ.JacobianVolume[p];
-//                double weight = IntXYZ.weightsVolume[p];
+//            // interpolation of mesh velocity, and other data
+//            double[] u = new double[dim]; //interpolateVelocityAndFillElementDataObjectOnVolume(Int.interpolantVolume[p]);
 //
-//                double[] WInt = new double[nEqs];
-//                double[] dWInt = new double[dim * nEqs];
-//                for (int m = 0; m < nEqs; m++) {
-//                    for (int j = 0; j < nBasis; j++) {
-//                        WInt[m] += (W[m * nBasis + j] + V[m * nBasis + j]) * base[j];
+//            double[] WInt = new double[nEqs];
+//            double[] dWInt = new double[dim * nEqs];
+//            for (int m = 0; m < nEqs; m++) {
+//                for (int j = 0; j < nBasis; j++) {
+//                    WInt[m] += (W[m * nBasis + j] + V[m * nBasis + j]) * base[j];
+//                    for (int d = 0; d < dim; d++) {
+//                        dWInt[nEqs * d + m] += (W[m * nBasis + j] + V[m * nBasis + j]) * dBase[j][d];
+//                    }
+//                }
+//            }
+//            // convection
+//            if (eqn.isConvective()) {
+//                f = new double[dim][];
+//                for (int d = 0; d < dim; d++) {
+//                    nor[d] = 1;
+//                    f[d] = eqn.convectiveFlux(WInt, nor, elemData);
+//                    nor[d] = 0;
+//                }
+//            }
+//            // diffusion
+//            if (eqn.isDiffusive()) {
+//                fv = new double[dim][];
+//                for (int d = 0; d < dim; d++) {
+//                    nor[d] = 1;
+//                    fv[d] = eqn.diffusiveFlux(WInt, dWInt, nor, elemData);
+//                    nor[d] = 0;
+//                }
+//            }
+//            // production
+//            if (eqn.isSourcePresent()) {
+//                product = eqn.sourceTerm(WInt, dWInt, elemData);
+//            }
+//
+//            for (int m = 0; m < nEqs; m++) {
+//                for (int j = 0; j < nBasis; j++) {
+//                    if (eqn.isConvective()) {
+//                        double fsum = 0;
+//                        double dWsum = 0;
 //                        for (int d = 0; d < dim; d++) {
-//                            dWInt[nEqs * d + m] += (W[m * nBasis + j] + V[m * nBasis + j]) * dBase[j][d];
+//                            fsum += (f[d][m] - u[d] * WInt[m]);
+//                            dWsum += dWInt[nEqs * d + m];
 //                        }
+//                        K[nBasis * m + j] += Jac * weight * fsum - (eps + dampConst + dampInner[m]) * Jac * weight * dWsum;
 //                    }
-//                }
-//                // convection
-//                if (eqn.isConvective()) {
-//                    f = new double[dim][];
-//                    for (int d = 0; d < dim; d++) {
-//                        nor[d] = 1;
-//                        f[d] = eqn.convectiveFlux(WInt, nor, elemData);
-//                        nor[d] = 0;
+//                    if (eqn.isDiffusive()) {
+//                        double fvsum = 0;
+//                        for (int d = 0; d < dim; d++) {
+//                            fvsum += fv[d][m] * dBase[j][d];
+//                        }
+//                        K[nBasis * m + j] -= Jac * weight * fvsum;
 //                    }
-//                }
-//                // diffusion
-//                if (eqn.isDiffusive()) {
-//                    fv = new double[dim][];
-//                    for (int d = 0; d < dim; d++) {
-//                        nor[d] = 1;
-//                        fv[d] = eqn.diffusiveFlux(WInt, dWInt, nor, elemData);
-//                        nor[d] = 0;
-//                    }
-//                }
-//                // production
-//                if (eqn.isSourcePresent()) {
-//                    product = eqn.sourceTerm(WInt, dWInt, elemData);
-//                }
-//
-//                for (int m = 0; m < nEqs; m++) {
-//                    for (int j = 0; j < nBasis; j++) {
-//                        if (eqn.isConvective()) {
-//                            double fsum = 0;
-//                            double dWsum = 0;
-//                            for (int d = 0; d < dim; d++) {
-//                                fsum += f[d][m] * dBase[j][d];
-//                                dWsum += dWInt[nEqs * d + m] * dBase[j][d];
-//                            }
-//                            K[nBasis * m + j] += Jac * weight * fsum - (eps + dampConst + dampInner[m]) * Jac * weight * dWsum;
-//                        }
-//                        if (eqn.isDiffusive()) {
-//                            double fvsum = 0;
-//                            for (int d = 0; d < dim; d++) {
-//                                fvsum += fv[d][m] * dBase[j][d];
-//                            }
-//                            K[nBasis * m + j] -= Jac * weight * fvsum;
-//                        }
-//                        if (eqn.isSourcePresent()) {
-//                            K[nBasis * m + j] += Jac * weight * product[m] * base[j];
-//                        }
+//                    if (eqn.isSourcePresent()) {
+//                        K[nBasis * m + j] += Jac * weight * product[m] * base[j];
 //                    }
 //                }
 //            }
@@ -196,8 +185,10 @@
 //        }
 //        double[] fn = null;
 //        double[] fvn = null;
+//        int[] edgeIndex = Int.faces[k].faceIndexes;
 //
 //        for (int p = 0; p < Int.faces[k].nIntEdge; p++) { // edge integral
+//            double[] innerInterpolant = Int.faces[k].interpolantFace[p];
 //            double[] baseLeft = Int.faces[k].basisFaceLeft[p];
 //            double[][] dBaseLeft = Int.faces[k].dXbasisFaceLeft[p];
 //            double Jac = Int.faces[k].JacobianFace[p];
@@ -208,6 +199,23 @@
 //                baseRight = Int.faces[k].basisFaceRight[p];
 //                dBaseRight = Int.faces[k].dXbasisFaceRight[p];
 //            }
+//
+//            double dL = 0;
+//            for (int d = 0; d < dim; d++) {
+//                if (TT[k] > -1) {
+//                    if (elems[TT[k]].insideComputeDomain) {
+//                        dL += (Xs[d] - elems[TT[k]].Xs[d]) * n[k][p][d];
+//                    } else {
+//                        dL += 2 * (Xs[d] - Xes[k][d]) * n[k][p][d];
+//                    }
+//                } else {
+//                    dL += (Xs[d] - Xes[k][d]) * n[k][p][d];
+//                }
+//            }
+//            dL = Math.abs(dL);
+//
+//            // interpolation of mesh velocity
+//            double[] u = interpolateVelocityAndFillElementDataObjectOnFace(k, innerInterpolant, edgeIndex);
 //
 //            double[] WL = new double[nEqs];
 //            double[] WR = new double[nEqs];
@@ -242,7 +250,19 @@
 //            }
 //
 //            // inviscid flux in integration point
+//            double vn = 0;
+//            double[] Wale = new double[nEqs];
 //            if (eqn.isConvective()) {
+//                for (int d = 0; d < dim; d++) {
+//                    vn = vn + u[d] * n[k][p][d];
+//                }
+//                if (TT[k] > -1) {
+//                    for (int j = 0; j < nEqs; j++) {
+//                        Wale[j] = (WL[j] + WR[j]) / 2;
+//                    }
+//                } else {
+//                    System.arraycopy(WR, 0, Wale, 0, nEqs);
+//                }
 //                fn = eqn.numericalConvectiveFlux(WL, WR, n[k][p], TT[k], elemData);	// nevazky tok
 //            }
 //
@@ -262,7 +282,7 @@
 //                        Wc[m] = WR[m];
 //                    }
 //                    for (int d = 0; d < dim; d++) {
-//                        dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2;
+//                        dWc[nEqs * d + m] = (dWL[nEqs * d + m] + dWR[nEqs * d + m]) / 2 + beta0 * (WR[m] - WL[m]) / dL * n[k][p][d];
 //                    }
 //                }
 //                fvn = eqn.numericalDiffusiveFlux(Wc, dWc, n[k][p], TT[k], elemData);
@@ -278,11 +298,9 @@
 //                for (int j = 0; j < nBasis; j++) {
 //                    double jwb = Jac * weight * baseLeft[j];
 //                    if (eqn.isConvective()) {
-//                        K[nBasis * m + j] -= jwb * fn[m];
+//                        K[nBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
 //                        if (TT[k] > -1) {
 //                            K[nBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
-////                        } else{
-////                            System.out.println(u[1]);
 //                        }
 //                    }
 //                    if (eqn.isDiffusive()) {
@@ -299,7 +317,7 @@
 //                    for (int j = 0; j < nRBasis; j++) {
 //                        double jwb = Jac * weight * baseRight[j];
 //                        if (eqn.isConvective()) {
-//                            KR[nRBasis * m + j] -= jwb * fn[m];
+//                            KR[nRBasis * m + j] -= jwb * (fn[m] - vn * Wale[m]);
 //                            KR[nRBasis * m + j] += (0.5 * (eps + elems[TT[k]].eps) + dampConst) * jwb * dWsum;
 //                        }
 //                        if (eqn.isDiffusive()) {
@@ -313,6 +331,7 @@
 //    }
 //
 //    // Aplikace limiteru
+//    @Override
 //    public void limiter(boolean isFirstIter) {
 //        eps = 0;
 //        c_IP = 0;
@@ -462,10 +481,50 @@
 //        return shock;
 //    }
 //
+//    public double shock_senzor2() {
+//        double shock = 0;
+//        double sumS = 0;
+//        double rhoLmax = 0;
+//        for (int k = 0; k < nFaces; k++) {
+//            for (int p = 0; p < Int.faces[k].nIntEdge; p++) { // edge integral
+//                double[] baseLeft = Int.faces[k].basisFaceLeft[p];
+//                double Jac = Int.faces[k].JacobianFace[p];
+//                double weight = Int.faces[k].weightsFace[p];
+//                double[] baseRight = null;
+//                if (TT[k] > -1) {
+//                    baseRight = Int.faces[k].basisFaceRight[p];
+//                }
+//
+//                double rhoL = 0;
+//                for (int j = 0; j < nBasis; j++) {
+//                    rhoL += W[j] * baseLeft[j];
+//                }
+//                double rhoR = rhoL;
+//                if (TT[k] > -1) {
+//                    double[] WRp = elems[TT[k]].W;
+//                    rhoR = 0;
+//                    for (int j = 0; j < elems[TT[k]].nBasis; j++) {
+//                        rhoL += WRp[j] * baseRight[j];
+//                    }
+//                }
+//
+//                shock += Jac * weight * (rhoL - rhoR);
+//
+//                if (rhoL > rhoLmax) {
+//                    rhoLmax = rhoL;
+//                }
+//            }
+//            sumS += S[k];
+//        }
+//        return shock / rhoLmax / sumS / Math.pow(elemSize, par.order / 2.0);
+//    }
+//
+//    @Override
 //    public void computeMassMatrixAndBasisWeights() { // funkce pro generovani matic
 //        // integracni vzorec pro vypocet matice hmotnosti musi mit prislusny rad, zkontrolovat!!!!!!!!!!   
 //
 //        double[][] base = Int.basisVolume;
+//        double[][][] dBase = Int.dXbasisVolume;
 //        double[] Jac = Int.JacobianVolume;
 //        double[] weights = Int.weightsVolume;
 //
@@ -473,11 +532,14 @@
 //        for (int i = 0; i < nBasis; i++) {
 //            for (int j = 0; j < nBasis; j++) {
 //                for (int p = 0; p < Int.nIntVolume; p++) {
-//                    M[i][j] = M[i][j] + Jac[p] * weights[p] * base[p][i] * base[p][j];
+//                    M[i][j] += Jac[p] * weights[p] * base[p][i] * base[p][j];
+//                    for (int d = 0; d < dim; d++) {
+//                        Kstiff[i][j][d] += Jac[p] * weights[p] * base[p][j] * dBase[p][i][d];
+//                    }
 //                }
 //            }
 //            for (int p = 0; p < Int.nIntVolume; p++) {
-//                Is[i] = Is[i] + Jac[p] * weights[p] * base[p][i] / area;
+//                Is[i] += Jac[p] * weights[p] * base[p][i] / area;
 //            }
 //        }
 //
@@ -490,6 +552,7 @@
 //        }
 //    }
 //
+//    @Override
 //    public void recalculateMassMatrix() {
 //        double[][] base = Int.basisVolume;
 //        double[] Jac = Int.JacobianVolume;
@@ -499,12 +562,12 @@
 //            for (int j = 0; j < nBasis; j++) {
 //                M[i][j] = 0;
 //                for (int p = 0; p < Int.nIntVolume; p++) {
-//                    M[i][j] = M[i][j] + Jac[p] * weights[p] * base[p][i] * base[p][j];
+//                    M[i][j] += Jac[p] * weights[p] * base[p][i] * base[p][j];
 //                }
 //            }
 //            Is[i] = 0;
 //            for (int p = 0; p < Int.nIntVolume; p++) {
-//                Is[i] = Is[i] + Jac[p] * weights[p] * base[p][i] / area;
+//                Is[i] += Jac[p] * weights[p] * base[p][i] / area;
 //            }
 //        }
 //    }
@@ -562,85 +625,5 @@
 //
 //    @Override
 //    public void residuumWallJacobi(int k, double[][] ADiag, Implicit.Neighbour Sous) {
-//    }
-//
-//    class IntegrationXYZ {
-//
-//        int nBasisZ;
-//        int nIntZ;
-//        int nIntVolume;
-//        double[] weightsVolume;
-//        double[][] basisVolume;
-//        double[][][] dXibasisVolume;
-//        double[] JacobianVolume;
-//
-//        IntegrationXYZ(Integration Int, int nBasisZ, int nIntZ) {
-//            this.nIntZ = nIntZ;
-//            this.nIntVolume = Int.nIntVolume * nIntZ;
-//            this.nBasisZ = nBasisZ;
-//
-//            weightsVolume = new double[nIntVolume];
-//            basisVolume = new double[nIntVolume][nBasisZ];
-//            dXibasisVolume = new double[nIntVolume][nBasisZ][3];
-//            for (int i = 0; i < nIntZ; i++) {
-//                for (int j = 0; j < Int.nIntVolume; j++) {
-//                    weightsVolume[i*Int.nIntVolume + j] = Int.weightsVolume[j] / nIntZ;
-//                    double zeta = (i+0.5)/nIntZ;
-//                    for(int k = 0; k < Int.basisVolume[0].length; k++){
-//                        for(int m = 0; m < nBasisZ; m++){
-//                            basisVolume[i*Int.nIntVolume + j][k*nBasisZ + m] = Int.basisVolume[j][k] * basis_z(m, zeta);
-//                            
-//                            dXibasisVolume[i*Int.nIntVolume + j][k*nBasisZ + m][0] = Int.dXibasisVolume[j][k][0] * basis_z(m, zeta);
-//                            dXibasisVolume[i*Int.nIntVolume + j][k*nBasisZ + m][1] = Int.dXibasisVolume[j][k][1] * basis_z(m, zeta);
-//                            dXibasisVolume[i*Int.nIntVolume + j][k*nBasisZ + m][2] = Int.basisVolume[j][k] * DX_basis_z(m, zeta);
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        double basis_z(int n, double zeta) {
-//            double b = 0;
-//            switch (n) {
-//                case (0):
-//                    b = 1;
-//                    break;
-//                case (1):
-//                    b = Math.sin(2 * Math.PI * zeta);
-//                    break;
-//                case (2):
-//                    b = Math.cos(2 * Math.PI * zeta);
-//                    break;
-//                case (3):
-//                    b = Math.sin(4 * Math.PI * zeta);
-//                    break;
-//                case (4):
-//                    b = Math.cos(4 * Math.PI * zeta);
-//                    break;
-//            }
-//            return b;
-//        }
-//        
-//        double DX_basis_z(int n, double zeta) {
-//            double b = 0;
-//            switch (n) {
-//                case (0):
-//                    b = 1;
-//                    break;
-//                case (1):
-//                    b = 2 * Math.PI * Math.cos(2 * Math.PI * zeta);
-//                    break;
-//                case (2):
-//                    b = -2 * Math.PI * Math.sin(2 * Math.PI * zeta);
-//                    break;
-//                case (3):
-//                    b = 4 * Math.PI * Math.cos(4 * Math.PI * zeta);
-//                    break;
-//                case (4):
-//                    b = -4 * Math.PI * Math.sin(4 * Math.PI * zeta);
-//                    break;
-//            }
-//            return b;
-//        }
 //    }
 //}

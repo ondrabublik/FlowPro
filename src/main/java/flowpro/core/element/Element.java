@@ -93,7 +93,8 @@ public abstract class Element implements Serializable {
     //private double k_el; // kvalita elementu
     public int maxMethodSpatialOrder = 100;
     public double[] Is; // integral bazove funkce
-    public double[][] M;	 // matice hmotnosti
+    public double[][] M; // matice hmotnosti
+    public double[][][] Kstiff; // stifness matrix
     double[][] iM; // inverze matice hmotnosti (pouze pro implicitni metodu)
     double[][] Mo;	 // matice hmotnosti v predchozi casove hladine
     double[][] Mo2;	 // matice hmotnosti
