@@ -16,6 +16,7 @@ public class QuadratureCentral implements Serializable {
     public Quadrature[] qTetra;
     public Quadrature[] qHexa;
     public Quadrature[] qPrism;
+    public Quadrature[] q25DSquare;
 
     public QuadratureCentral() throws IOException {
         int orderMax = 10;
@@ -28,6 +29,7 @@ public class QuadratureCentral implements Serializable {
         qTetra = new Quadrature[orderMax + 1];
         qHexa = new Quadrature[orderMax + 1];
         qPrism = new Quadrature[orderMax + 1];
+        q25DSquare = new Quadrature[orderMax + 1];
 
         for (int order = 1; order <= orderMax; order++) {
             qPoint[order] = new QuadraturePoint();
@@ -67,6 +69,11 @@ public class QuadratureCentral implements Serializable {
             try {
                 qPrism[order] = new QuadraturePrism(qTriangle[order], qLine[order]);
             } catch (Exception e) {
+            }
+            try {
+                q25DSquare[order] = new QuadratureSquare25D(order);
+            } catch (Exception e) {
+                System.out.println(e);
             }
         }
     }

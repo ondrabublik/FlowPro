@@ -56,7 +56,6 @@ public class Gmres extends LinearSolver{
         A.SubstrMult(aux, b, x, nThreads);
         M.apply(r, aux);
         double error = norm(r) / bnrm2;
-
         if (error < tol) {
             return true;
         }

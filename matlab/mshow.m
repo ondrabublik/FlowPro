@@ -6,7 +6,7 @@ args = '';
 for i = 1:nargin
     quantityName = varargin{i};
     
-    if strcmpi(quantityName,'mesh') || strcmpi(quantityName,'meshALE') || strcmpi(quantityName,'order') || ...
+    if strcmpi(quantityName,'mesh') || strcmpi(quantityName,'geometry') || strcmpi(quantityName,'meshALE') || strcmpi(quantityName,'order') || ...
        strcmpi(quantityName,'bodies') || strcmpi(quantityName,'residuum') || ...
        strcmpi(quantityName,'av') || strcmpi(quantityName,'meshvelo') || strcmpi(quantityName,'y') || ...
        strcmpi(quantityName,'bf')
@@ -40,6 +40,9 @@ for k = 1 : nargin
     switch lower(q)
         case 'mesh'
             showMesh;
+            continue
+        case 'geometry'
+            showGeometry;
             continue  
         case 'meshale'
             showMeshALE;
@@ -161,14 +164,14 @@ y = xy(:,2);
 tri = convert2Triangular(elems, type);
 
 figure('color','w','name', 'mesh')
-triplot(tri, xy(:,1), xy(:,2), 'k', 'linewidth', .1);
+triplot(tri, xy(:,1), xy(:,2), 'k', 'linewidth', 0.75);
 
 hold on
-color = 'bgrm';
+color = 'kgrb';
 linewidth = 2;
 for i = 1 : size(elems,1)
     for j = 1 : type(i)        
-        if neigh(i,j) < 0
+        if neigh(i,j) < 0 && neigh(i,j) ~= -1
             jp = mod(j, type(i)) + 1;
             ind = [elems(i,j),elems(i,jp)];
 
@@ -457,4 +460,37 @@ function showBlendingFunctions
         colorbar;
         colormap jet
     end
+end
+
+function showGeometry
+if nargin == 0
+    [meshPath, ~, ~] = getPath;    
+
+    xy = dlmread([meshPath, 'vertices.txt']);    
+    elems = dlmread([meshPath, 'elements.txt'])+1;
+    neigh = dlmread([meshPath, 'neighbors.txt']);
+    type = dlmread([meshPath, 'elementType.txt']);
+
+    fprintf('Mesh has %d elements and %d vertices.\n', length(elems), length(xy));
+end
+
+x = xy(:,1);
+y = xy(:,2);
+
+figure('color','w','name', 'mesh')
+hold on
+linewidth = 1.5;
+for i = 1 : size(elems,1)
+    for j = 1 : type(i)        
+        if neigh(i,j) < 0
+            jp = mod(j, type(i)) + 1;
+            ind = [elems(i,j),elems(i,jp)];
+            plot(x(ind),y(ind),'color','k','linewidth',linewidth);
+        end
+    end
+end
+
+axis equal
+box on
+
 end

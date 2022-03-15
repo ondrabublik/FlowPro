@@ -1,5 +1,6 @@
 package flowpro.core;
 
+import flowpro.api.Mat;
 import flowpro.core.transformation.Transformation;
 import flowpro.core.transformation.FaceTransformation;
 import flowpro.core.quadrature.Quadrature;

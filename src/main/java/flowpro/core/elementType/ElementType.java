@@ -36,7 +36,7 @@ public abstract class ElementType implements Serializable {
     public abstract int[] getFaceIndexes(int k);
 
     public FaceTransformation getFaceTransformation(int elemFaceType, Transformation transform, int[] faceIndexes) {
-        switch (elemFaceType) {
+        switch (firstDigit(elemFaceType)) {
             case 1:
                 return new faceTransformation1Dpoint(transform, faceIndexes);
             case 2:
@@ -57,9 +57,13 @@ public abstract class ElementType implements Serializable {
             case 2:
                 return qRules.qLine[faceOrder];
             case 3:
+            case 31:
+            case 33:
                 return qRules.qTriangle[faceOrder];
             case 4:
                 return qRules.qSquare[faceOrder];
+            case 43:
+                return qRules.q25DSquare[faceOrder];
             default:
                 throw new RuntimeException("unknown face type");
         }
@@ -88,7 +92,7 @@ public abstract class ElementType implements Serializable {
                 break;
             case 42:
                 elemType = new squareElementTaylor(order, volumeQuardatureOrder, faceQuardatureOrder);
-                break;    
+                break;
             case 5:
                 elemType = new tetrahedralElement(order, volumeQuardatureOrder, faceQuardatureOrder);
                 break;

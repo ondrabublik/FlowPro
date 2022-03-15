@@ -551,7 +551,7 @@ public class DGpure extends Element {
                 Is[i] = Is[i] + Jac[p] * weights[p] * base[p][i] / area;
             }
         }
-
+        
         // initialization of mass matrixes
         for (int i = 0; i < nBasis; i++) {
             for (int j = 0; j < nBasis; j++) {
