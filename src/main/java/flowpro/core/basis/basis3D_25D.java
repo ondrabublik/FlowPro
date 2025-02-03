@@ -28,6 +28,7 @@ public class basis3D_25D extends Basis {
     @Override
     public double basisFun(int m, double[] Xi) {
         double val = 0;
+        double c = 2*Math.PI;
         switch(m) {
             case 0:
                 val = 1;
@@ -39,22 +40,22 @@ public class basis3D_25D extends Basis {
                 val = Xi[1];
                 break;
             case 3:
-                val = Math.sin(2*Math.PI*Xi[2]);
+                val = Math.sin(c*Xi[2]);
                 break;
             case 4:
-                val = Xi[0]*Math.sin(2*Math.PI*Xi[2]);;
+                val = Xi[0]*Math.sin(c*Xi[2]);
                 break;
             case 5:
-                val = Xi[1]*Math.sin(2*Math.PI*Xi[2]);;
+                val = Xi[1]*Math.sin(c*Xi[2]);
                 break;
             case 6:
-                val = Math.cos(2*Math.PI*Xi[2]);
+                val = Math.cos(c*Xi[2]);
                 break;
             case 7:
-                val = Xi[0]*Math.cos(2*Math.PI*Xi[2]);;
+                val = Xi[0]*Math.cos(c*Xi[2]);
                 break;
             case 8:
-                val = Xi[1]*Math.cos(2*Math.PI*Xi[2]);;
+                val = Xi[1]*Math.cos(c*Xi[2]);
                 break;
         }
         return val;
@@ -63,6 +64,7 @@ public class basis3D_25D extends Basis {
     // tato funkce vraci hodnotu x-ove derivace m-te bazove funkce v bode x, y
     @Override
     public double derBasis(int m, double[] Xi, int dim) {
+        double c = 2*Math.PI;
         double val = 0;
         switch (dim) {
             case 0:
@@ -80,7 +82,7 @@ public class basis3D_25D extends Basis {
                         val = 0;
                         break;
                     case 4:
-                        val = Math.sin(2*Math.PI*Xi[2]);
+                        val = Math.sin(c*Xi[2]);
                         break;
                     case 5:
                         val = 0;
@@ -89,7 +91,7 @@ public class basis3D_25D extends Basis {
                         val = 0;
                         break;
                     case 7:
-                        val = Math.cos(2*Math.PI*Xi[2]);
+                        val = Math.cos(c*Xi[2]);
                         break;
                     case 8:
                         val = 0;
@@ -114,7 +116,7 @@ public class basis3D_25D extends Basis {
                         val = 0;
                         break;
                     case 5:
-                        val = Math.sin(2*Math.PI*Xi[2]);
+                        val = Math.sin(c*Xi[2]);
                         break;
                     case 6:
                         val = 0;
@@ -123,12 +125,11 @@ public class basis3D_25D extends Basis {
                         val = 0;
                         break;
                     case 8:
-                        val = Math.cos(2*Math.PI*Xi[2]);
+                        val = Math.cos(c*Xi[2]);
                         break;
                 }
                 return val;
             case 2:
-                
                 switch(m) {
                     case 0:
                         val = 0;
@@ -140,22 +141,22 @@ public class basis3D_25D extends Basis {
                         val = 0;
                         break;
                     case 3:
-                        val = 2*Math.PI*Math.cos(2*Math.PI*Xi[2]);
+                        val = c*Math.cos(c*Xi[2]);
                         break;
                     case 4:
-                        val = 2*Math.PI*Xi[0]*Math.cos(2*Math.PI*Xi[2]);
+                        val = c*Xi[0]*Math.cos(c*Xi[2]);
                         break;
                     case 5:
-                        val = 2*Math.PI*Xi[1]*Math.cos(2*Math.PI*Xi[2]);
+                        val = c*Xi[1]*Math.cos(c*Xi[2]);
                         break;
                     case 6:
-                        val = -2*Math.PI*Math.sin(2*Math.PI*Xi[2]);
+                        val = -c*Math.sin(c*Xi[2]);
                         break;
                     case 7:
-                        val = -2*Math.PI*Xi[0]*Math.sin(2*Math.PI*Xi[2]);
+                        val = -c*Xi[0]*Math.sin(c*Xi[2]);
                         break;
                     case 8:
-                        val = -2*Math.PI*Xi[1]*Math.sin(2*Math.PI*Xi[2]);
+                        val = -c*Xi[1]*Math.sin(c*Xi[2]);
                         break;
                 }
                 return val;

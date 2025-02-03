@@ -1,26 +1,43 @@
-apply plugin: 'com.github.johnrengelman.shadow'
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+application {
+    mainClass = 'flowpro.core.FlowProMain'
+}
+
+run {
+    args = ['master', '0']
+}
 
 def mainClassName = 'flowpro.core.FlowProMain'
 
+
 if (!hasProperty('mainClass')) {
     ext.mainClass = mainClassName
+}
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
 }
 
 dependencies {
     implementation fileTree(dir: 'lib', include: ['*.jar'])
     implementation group: 'commons-validator', name: 'commons-validator', version: '1.4.0'
     implementation group: 'org.json', name: 'json', version: '20090211'
+    implementation 'org.openjdk.nashorn:nashorn-core:15.4'
+    runtimeOnly group: 'com.github.johnrengelman.shadow', name: 'com.github.johnrengelman.shadow.gradle.plugin', version: '8.1.1', ext: 'pom'
     
 //    testCompile group: 'junit', name: 'junit', version: '4.10'
-}
-
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.1'
-    }
 }
 
 println '-------------------------------------------------'
@@ -53,20 +70,14 @@ task copyJar {
     }
 }
 
-task zip2Fetch(type: Zip) {
+tasks.register('zip2Fetch', Zip) {
     from "${projectDir}"
     include 'modules/**', 'FlowPro.jar' //, 'lib/*.dll'
-    archiveName 'FlowPro.zip'
-    destinationDir(file("${projectDir}"))
+    archiveFileName.set('FlowPro.zip')
+    destinationDirectory.set(file("${projectDir}"))
 }
 
 jar.finalizedBy shadowJar
 shadowJar.finalizedBy copyJar
-copyJar.finalizedBy zip2Fetch
+//copyJar.finalizedBy zip2Fetch
 
-
-// xlint for more info
-//tasks.withType(JavaCompile) {
-//    options.compilerArgs << '-Xlint:unchecked'
-//    options.deprecation = true
-//}

@@ -321,9 +321,9 @@ public class FlowProMain {
         try {
             externalField = Mat.loadDoubleMatrix(meshPath + "externalField.txt");
             par.externalField = true;
-            LOG.info(" external field found");
+            LOG.info("external field found");
         } catch (FileNotFoundException ex) {
-            LOG.info(" external field not found ");
+            LOG.info("external field not found ");
         }
 
         // load initial condition
@@ -387,7 +387,7 @@ public class FlowProMain {
         if (par.movingMesh) {
             dyn = (new DynamicsFactory()).getDynamicsModel(simulationPath + PARAMETER_FILE_NAME, jarURLList, dfm.nBodies, simulationPath, meshPath, eqn);
             dfm.setCenters(dyn.getCenter());
-            dfm.calculateBlendingFunctions(PXY, wallDistance, TP, TT, TEale, elemsType, meshPath);
+            dfm.calculateBlendingFunctions(PXY, generateBoundaryDistanceFunction(elemsType, PXY, TP, TT), TP, TT, TEale, elemsType, meshPath);
         }
 
         Domain domain = new Domain(elemsOrder, elemsType, TT, TP, TEale, TEshift, fCurv, initW, elem2DomMap, nDoms, par.overlap, PXY.length);
@@ -669,6 +669,69 @@ public class FlowProMain {
             iter++;
             if (iter > 1e4) {
                 System.out.println("wall distance error, probably wall boundary condition not defined");
+                break;
+            }
+        }
+        return wallDistance;
+    }
+    
+    public double[] generateBoundaryDistanceFunction(int[] type, double[][] PXY, int[][] TP, int[][] TT) {
+        int nRows = TP.length;
+        // creating elementTypes
+        ElementType[] elemType = new ElementType[nRows];
+        for (int i = 0; i < nRows; i++) {
+            elemType[i] = ElementType.elementTypeFactory(type[i], 0, 0, 0);
+        }
+
+        int nPoints = PXY.length;
+        int nElem = TT.length;
+        double[] wallDistance = new double[nPoints];
+        Arrays.fill(wallDistance, 1e30);
+        for (int i = 0; i < nElem; i++) {
+            for (int k = 0; k < TT[i].length; k++) {
+                int[] faceIndexes = elemType[i].getFaceIndexes(k);
+                for (int j = 0; j < faceIndexes.length; j++) {
+                    wallDistance[TP[i][faceIndexes[j]]] = 0;
+                }
+            }
+        }
+
+        int iter = 1;
+        double sum = 0;
+        while (true) {
+            for (int i = 0; i < nElem; i++) {
+                for (int j = 0; j < TP[i].length; j++) {
+                    if (wallDistance[TP[i][j]] > 0) {
+                        for (int k = 0; k < TP[i].length; k++) {
+                            if (j != k) {
+                                double L = 0;
+                                for (int d = 0; d < PXY[0].length; d++) {
+                                    L += (PXY[TP[i][j]][d] - PXY[TP[i][k]][d]) * (PXY[TP[i][j]][d] - PXY[TP[i][k]][d]);
+                                }
+                                L = Math.sqrt(L);
+                                double y = wallDistance[TP[i][k]] + L;
+                                if (y < wallDistance[TP[i][j]]) {
+                                    wallDistance[TP[i][j]] = y;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            double sumOld = sum;
+            sum = 0;
+            for (int i = 0; i < nPoints; i++) {
+                sum += wallDistance[i];
+            }
+
+            if (sum < 1e30 && Math.abs(sumOld - sum) == 0) {
+                System.out.println("boundary distance generated at " + iter + " th iteration");
+                break;
+            }
+
+            iter++;
+            if (iter > 1e4) {
+                System.out.println("boundary distance error, probably wall boundary condition not defined");
                 break;
             }
         }

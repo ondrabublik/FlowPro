@@ -101,7 +101,7 @@ public abstract class Deformation implements Serializable {
         this.center = center;
     }
 
-    public void calculateBlendingFunctions(double[][] PXY, double[] wallDistance, int[][] TP, int[][] TT, int[][] TEale, int[] elemsType, String meshPath) throws IOException {
+    public void calculateBlendingFunctions(double[][] PXY, double[] boundaryDistance, int[][] TP, int[][] TT, int[][] TEale, int[] elemsType, String meshPath) throws IOException {
 
         try {
             blendFuns = Mat.loadDoubleMatrix(meshPath + "blendingFunctions.txt");
@@ -156,7 +156,7 @@ public abstract class Deformation implements Serializable {
                         for (int d = 0; d < dim; d++) {
                             S += (PXY[TP[i][faceIndexes[kp]]][d] - PXY[TP[i][faceIndexes[k]]][d]) * (PXY[TP[i][faceIndexes[kp]]][d] - PXY[TP[i][faceIndexes[k]]][d]);
                         }
-                        double wds = (wallDistance[TP[i][faceIndexes[k]]] + wallDistance[TP[i][faceIndexes[kp]]])/2;
+                        double wds = (boundaryDistance[TP[i][faceIndexes[k]]] + boundaryDistance[TP[i][faceIndexes[kp]]])/2;
                         double bCoef = 0.45;
                         S = Math.sqrt(S) * (Math.pow(wds,bCoef) + 1e-14); 
 
